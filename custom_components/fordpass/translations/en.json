@@ -15,10 +15,10 @@
         "step": {
             "token": {
                 "title": "Setup Token",
-                "description": "Please enter the full token from the Location: header once logging in using the URL below",
+                "description": "The Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL it into your second browser\r3. Enter your Fordpass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
                 "data": {
-                    "url": "URL",
-                    "tokenstr": "Token"
+                    "url": "URL: copy this into your browser",
+                    "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
                 }
             },
             "user": {
@@ -28,7 +28,8 @@
                     "region" : "FordPass Region"
                 },
                 "data_description": {
-                    "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)"
+                    "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
+                    "region": "It's expected that the only working region is `USA` - so it's selected by default. Only change the region, if the default value (USA) doesn't work!"
                 }   
             },
             "vehicle": {
@@ -40,7 +41,7 @@
             },
             "vin": {
                 "title": "Manual Vin Entry",
-                "description": "Please enter your VIN number manually as no vehicles could be found automatticaly.",
+                "description": "Please enter your VIN number manually as no vehicles could be found automatically.",
                 "data": {
                     "vin": "Vin Number for vehicle"
                 }

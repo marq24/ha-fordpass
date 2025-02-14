@@ -1,15 +1,15 @@
 """Config flow for FordPass integration."""
-import logging
-import re
-import random
-import string
 import hashlib
+import logging
+import random
+import re
+import string
+from base64 import urlsafe_b64encode
+
 import voluptuous as vol
 from homeassistant import config_entries, core, exceptions
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
 from homeassistant.core import callback
-from base64 import urlsafe_b64encode
-
 
 from .const import (  # pylint:disable=unused-import
     CONF_DISTANCE_UNIT,
@@ -32,14 +32,6 @@ from .const import (  # pylint:disable=unused-import
 from .fordpass_new import Vehicle
 
 _LOGGER = logging.getLogger(__name__)
-
-DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_USERNAME): str,
-        # vol.Required(CONF_PASSWORD): str,
-        # vol.Required(REGION): vol.In(REGION_OPTIONS),
-    }
-)
 
 VIN_SCHEME = vol.Schema(
     {
@@ -141,16 +133,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                self.region = DEFAULT_REGION
+                self.region = user_input[REGION]
                 self.username = user_input[CONF_USERNAME]
 
                 return await self.async_step_token(None)
             except CannotConnect:
                 print("EXCEPT")
                 errors["base"] = "cannot_connect"
+        else:
+            user_input = {}
+            user_input[REGION] = DEFAULT_REGION
+            user_input[CONF_USERNAME] = ""
 
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+            step_id="user", data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_USERNAME, default=""): str,
+                    vol.Required(REGION, default=DEFAULT_REGION): vol.In(REGION_OPTIONS),
+                }
+            ), errors=errors
         )
 
     async def async_step_token(self, user_input=None):

@@ -1,17 +1,16 @@
-# Fordpass Home Assistant Integration [v1.70 fork]
+# Fordpass Home Assistant Integration [v1.7x fork]
 
 [![hacs_badge](https://img.shields.io/badge/HACS-custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 
-<!-- Wrote up a little note thing for the breaking change. Not sure if you want to use it but I figured this could be a good start or something since I was already editing the readme. -->
-> [!WARNING]
-> # Breaking Change
-> There is a new token obtaining system.
+> [!NOTE]
+> # This is just a FORK!
+> ### All credits must go to @itchannel and @SquidBytes
+> There is a new token obtaining system introduced in the origin fordpass repository. This fork has been released in order to provide a release version of the v1.7x that can be installed via the new HACS (2.0) system (where you only can install 'released' integration versions). 
 > 
-> The token used by this integration is currently removed whenever the integration is updated. With this 1.70 update, the token will be wiped during every update, requiring users to manually add the token during the initial setup.
+> The token used by this integration is currently removed whenever the integration is updated. With this 1.7x update, the token will be wiped during every update, requiring users to manually add the token during the initial setup.
 > 
 > To prevent this issue, we will be moving the token file outside the FordPass directory. This change will ensure that the token is preserved during updates. This will require reconfiguration of your setup.
-> Please see the Installation section, or the Wiki for help.
-
+> Please see the Installation section, or the [docs](./doc/OBTAINING_TOKEN.md) for help.
 
 ## Credit
 - https://github.com/itchannel/fordpass-ha - Original Fordpass integration by @itchannel and @SquidBytes
@@ -23,28 +22,40 @@
 - https://github.com/heehoo59 - French Translation
 - https://github.com/SquidBytes - EV updates and documentation
 
-## **Changelog**
-[Updates](info.md)
-
 ## Installation
 Use [HACS](https://hacs.xyz/) to add this repository as a custom integration repo [ https://github.com/marq24/ha-fordpass ]. 
 
 Upon installation navigate to your integrations, and follow the configuration options. You will need to provide:
-- Fordpass Email
+- Your Fordpass Email
+- Select a Fordpass Region (US, EU, UK, AU) [it's expected that only US will work right now]
 
-You will then be prompted with `Setup Token` 
+### **Token Setup**
+The actual token request requires an external browser to get finally the Fordpass access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
 
-Follow the instructions on the [docs](./doc/OBTAINING_TOKEN.md) to obtain your token.
+Please follow the steps:
+1. Copy the URL listed in the first input field
+2. Open a new browser (with enabled developer tools) and paste the copied URL it into your second browser
+3. In this second browser: Enter your Fordpass credentials (again) and press the login button
+4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but it's not important)
+5. Copy the full `Request-URL` from this `?code=` request from the browsers developer tools and paste it in the HA integration setup Token field
+
+More details (how to deal with the browser developer tools) to obtain your token can be found in the [docs](./doc/OBTAINING_TOKEN.md).
+
+## Usage with EVCC
+[All information, how to use this integration as provider for Ford EV data can be found in a seperate section.](./doc/EVCC.md)
+
+## **Changelog**
+[Updates](info.md)
 
 ## Usage
-Your car must have the lastest onboard modem functionality and have registered/authorised the fordpass application
+Your car must have the latest onboard modem functionality and have registered/authorised the fordpass application
 
 ## Services
 <!-- I haven't looked into these services, but it might be easier to maintain a Wiki with the various services compared to the README. Just a thought. -->
 ### Car Refresh
-I have added a service to poll the car for updates, due to the battery drain I have left this up to you to set the interval. The service to be called is "refresh_status" and can be accessed in home assistant using "fordpas.refresh_status". 
+@itchannel and @SquidBytes have added a service to poll the car for updates, due to the battery drain they have left this up to you to set the interval. The service to be called is "refresh_status" and can be accessed in home assistant using "fordpas.refresh_status". 
 
-Optionally you can add the "vin" parameter followed by your VIN number to only refresh one vehicle. By default this service will refresh all registered cars in HA.
+Optionally you can add the "vin" parameter followed by your VIN number to only refresh one vehicle. By default, this service will refresh all registered cars in HA.
 
 **This will take up to 5 mins to update from the car once the service has been run**
 
