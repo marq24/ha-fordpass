@@ -21,6 +21,7 @@ from .const import (  # pylint:disable=unused-import
     PRESSURE_UNITS,
     REGION,
     REGION_OPTIONS,
+    DEFAULT_REGION,
     REGIONS,
     VIN,
     UPDATE_INTERVAL,
@@ -36,7 +37,7 @@ DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): str,
         # vol.Required(CONF_PASSWORD): str,
-        vol.Required(REGION): vol.In(REGION_OPTIONS),
+        # vol.Required(REGION): vol.In(REGION_OPTIONS),
     }
 )
 
@@ -132,7 +133,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
-    region = None
+    region = DEFAULT_REGION
     username = None
     login_input = {}
 
@@ -140,8 +141,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                _LOGGER.debug(user_input[REGION])
-                self.region = user_input[REGION]
+                self.region = DEFAULT_REGION
                 self.username = user_input[CONF_USERNAME]
 
                 return await self.async_step_token(None)
@@ -184,8 +184,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
         if self.region is not None:
-            _LOGGER.debug("Region")
-            _LOGGER.debug(self.region)
+            _LOGGER.debug(f"Region {self.region}")
             return self.async_show_form(
                 step_id="token", data_schema=vol.Schema(
                     {
