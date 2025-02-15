@@ -5,10 +5,11 @@
 > Although this have tested this locally, It can't be guaranteed the method will last as Ford are consistently making changes!
 
 > [!NOTE]
-> This requires the [1.70 release](https://github.com/marq24/ha-fordpass/releases/tag/1.70-Release) as this has not been fully detected you will need to manually grab the files to test
+> This requires the [1.71 release (or higher)](https://github.com/marq24/ha-fordpass/releases/tag/1.71-Release) as this has not been fully detected you will need to manually grab the files to test
 
 ### **Step 1:**
-1. In Home Assistant: Enter your Fordpass username and choose the region you are from
+1. In Home Assistant: Enter your Fordpass username
+2. You can select an alternative Region but currently I do not expect that other regions then `USA` will work.
 
 ![image](./../images/001.png)
 

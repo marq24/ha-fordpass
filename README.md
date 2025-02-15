@@ -20,7 +20,7 @@
 > Please see the Installation section, or the [docs](./doc/OBTAINING_TOKEN.md) for help.
 
 ## Credit
-- https://github.com/itchannel/fordpass-ha - Original Fordpass integration by @itchannel and @SquidBytes
+- https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
 - https://github.com/clarkd - Initial Home Assistant automation idea and Python code (Lock/Unlock)
 - https://github.com/pinballnewf - Figuring out the application ID issue
 - https://github.com/degrashopper - Fixing 401 error for certain installs
@@ -29,14 +29,23 @@
 - https://github.com/heehoo59 - French Translation
 - https://github.com/SquidBytes - EV updates and documentation
 
-## Installation
-Use [HACS](https://hacs.xyz/) to add this repository as a custom integration repo [ https://github.com/marq24/ha-fordpass ]. 
+## Installation Instructions (3 Steps)
+### Step 1. HACS add the Integration
+1. In HA HACS, you need to add a new custom repository (via the 'three dots' menu in the top right corner).
+2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
+3. After adding the new repository, you can search for `fordpass` in the search bar.
+4. Important there is already a default HACS fordpass integration - Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork as 1.71 Release (EVCC optimized)]_
+5. Install the 'correct' (aka 'this') fordpass integration (v1.71).
+6. Restart HA.
 
-Upon installation navigate to your integrations, and follow the configuration options. You will need to provide:
-- Your Fordpass Email
-- Select a Fordpass Region (US, EU, UK, AU) [it's expected that only US will work right now]
+### Step 2. Setup the Integration
+7. After the restart go to  `Settings` -> `Devices & Services` area
+8. Add the new integration `Fordpass` and follw the instructions:<br/>
+   You will need to provide:
+   - Your Fordpass Email
+   - Select a Fordpass Region (USA, EU, UK, AU) [it's expected that only USA will work right now]
 
-### **Token Setup**
+### Step 3. The hard part - the  **Token Setup**
 The actual token request requires an external browser to get finally the Fordpass access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
 
 Please follow the steps:
