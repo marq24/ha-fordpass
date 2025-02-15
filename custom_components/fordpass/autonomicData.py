@@ -1,10 +1,11 @@
+import glob
 import json
-import requests
-import sys
 import os
 import re
-import glob
+import sys
 from datetime import datetime
+
+import requests
 
 # Place this script in the /config/custom_components/fordpass folder on your HomeAssistant
 # Add the details below
@@ -121,9 +122,8 @@ def redact_json(data, redaction):
 
 
 if __name__ == "__main__":
-    fordPassDir = "/config/custom_components/fordpass"
-    existingfordToken = os.path.join(fordPassDir, "*_fordpass_token.txt")
-    userToken = glob.glob(existingfordToken)
+    existing_ford_token = os.path.join("/config/.storage/fordpass", "*_access_token.txt")
+    userToken = glob.glob(existing_ford_token)
 
     if userToken:
         for userTokenMatch in userToken:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             fpToken = fp_token_data['access_token']
             fpRefresh = fp_token_data['refresh_token']
     else:
-        print(f"Error finding FordPass token text file: {existingfordToken}, {userToken}")
+        print(f"Error finding FordPass token text file: {existing_ford_token}, {userToken}")
         sys.exit()
 
     if fp_vin == "":
@@ -167,4 +167,4 @@ if __name__ == "__main__":
         json.dump(vehicle_status, file, indent=4)
     if verbose:
         print(f"File saved: {fileName}")
-        print("Note: json file will be deleted if fordpass-ha is updated")
+        print("Note: json file will be deleted if ha-fordpass is updated")

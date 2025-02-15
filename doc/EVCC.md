@@ -85,6 +85,18 @@ From the original Ford evcc integration it looks like that we only needs to prov
 5. Optional you can select your fordpass Vehicle as `Device`
 6. Click `OK`
 
+As alternative, you can add the following code to your template section of the `configuration.yaml`:
+
+```yaml
+  - unique_id: template.uid_fordpass_[YOUR-VIN-HERE]_evcc_code
+    sensor:
+      - name: 'fordpass [YOUR-VIN-HERE] EVCC Charging code'
+        unique_id: 'uid_fordpass_[YOUR-VIN-HERE]_evcc_charging_code'
+        icon: mdi:state-machine
+        state: >
+           {% set val = states('sensor.fordpass_[YOUR-VIN-HERE]_elvehcharging')|upper %}{% if val == 'DISCONNECTED' -%}A{% elif val == 'CONNECTED' -%}B{% elif val == 'CHARGING' or val == 'CHARGINGAC' -%}C{%- else %}UNKNOWN{%- endif %}
+```
+
 ### Check if the status of the new template sensor is working
 
 Make sure that the new created sensor `sensor.fordpass_[YOUR-VIN-HERE]_evcc_charging_code` will provide the correct status code (A, B or C) - you can check this in the HA Developer Tools -> States.

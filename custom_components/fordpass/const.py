@@ -18,7 +18,7 @@ DISTANCE_CONVERSION_DISABLED = "distance_conversion"
 DISTANCE_CONVERSION_DISABLED_DEFAULT = False
 
 UPDATE_INTERVAL = "update_interval"
-UPDATE_INTERVAL_DEFAULT = 900
+UPDATE_INTERVAL_DEFAULT = 60
 
 COORDINATOR = "coordinator"
 
@@ -33,7 +33,7 @@ SENSORS = {
     "battery": {"icon": "mdi:car-battery", "device_class": "battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": "%"},
     "oil": {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": "%"},
     "tirePressure": {"icon": "mdi:car-tire-alert", "api_key": "tirePressure"},
-    # "gps": {"icon": "mdi:radar"},
+    "gps": {"icon": "mdi:radar", "api_key": "position"},
     "alarm": {"icon": "mdi:bell", "api_key": "alarmStatus"},
     "ignitionStatus": {"icon": "hass:power", "api_key": "ignitionStatus"},
     "doorStatus": {"icon": "mdi:car-door", "api_key": "doorStatus"},

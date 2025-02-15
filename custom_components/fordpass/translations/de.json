@@ -25,7 +25,7 @@
                     "region" : "FordPass Region"
                 },
                 "data_description": {
-                    "username": "Wenn Sie ein Mobiltelefon statt einer E-Mail-Adresse verwenden, geben Sie bitte Ihre Nummer (ohne die anfängliche 0) ein, einschließlich + und der Landesvorwahl (z. B. +99123456789).",
+                    "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwenden, gib bitte Deine Nummer (ohne die führede 0) ein, einschließlich + und der Landesvorwahl (z. B. +99123456789).",
                     "region": "Es wird erwartet, dass die einzige funktionierende Region die „USA“ sind - daher ist sie standardmäßig ausgewählt. Ändere die Region nur, wenn der Default-Wert (USA) nicht funktioniert!"
                 }
             },
@@ -38,7 +38,7 @@
             },
             "vin": {
                 "title": "Manuelle VIN-Eingabe",
-                "description": "Bitte geben Sie Ihre VIN (Fahrzeug-Identifikationsnummer) manuell ein, da keine Fahrzeuge automatisch gefunden werden konnten.",
+                "description": "Bitte gib Deine VIN (Fahrzeug-Identifikationsnummer) manuell ein, da keine Fahrzeuge automatisch gefunden werden konnten.",
                 "data": {
                     "vin": "VIN Deines Fahrzeugs"
                 }
@@ -96,8 +96,8 @@
             "battery":                  {"name": "Batterie (12V)"},
             "oil":                      {"name": "Ölstand"},
             "tirepressure":             {"name": "Reifendruck"},
-            "gps":                      {"name": "GPS"},
-            "alarm":                    {"name": "Alarm"},
+            "gps":                      {"name": "GPS JSON"},
+            "alarm":                    {"name": "Alarmanlage"},
             "ignitionstatus":           {"name": "Status Zündung"},
             "doorstatus":               {"name": "Status Türen"},
             "windowposition":           {"name": "Fenster Positionen"},

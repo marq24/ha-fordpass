@@ -26,24 +26,27 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     entry = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     sensors = []
     for key, value in SENSORS.items():
-        sensor = CarSensor(entry, key, config_entry.options)
-        api_key = value["api_key"]
-        api_class = value.get("api_class", None)
-        sensor_type = value.get("sensor_type", None)
-        string = isinstance(api_key, str)
-        if string and sensor_type == "single":
-            sensors.append(sensor)
-        elif string:
-            if api_key and api_class and api_key in sensor.coordinator.data.get(api_class, {}):
+        # make sure that we do not crash on not valid configurations
+        if "api_key" in value:
+            sensor = CarSensor(entry, key, config_entry.options)
+            api_key = value["api_key"]
+            api_class = value.get("api_class", None)
+            sensor_type = value.get("sensor_type", None)
+            string = isinstance(api_key, str)
+            if string and sensor_type == "single":
                 sensors.append(sensor)
-                continue
-            if api_key and api_key in sensor.coordinator.data.get("metrics", {}):
-                sensors.append(sensor)
-        else:
-            for key in api_key:
-                if key and key in sensor.coordinator.data.get("metrics", {}):
+            elif string:
+                if api_key and api_class and api_key in sensor.coordinator.data.get(api_class, {}):
                     sensors.append(sensor)
                     continue
+                if api_key and api_key in sensor.coordinator.data.get("metrics", {}):
+                    sensors.append(sensor)
+            else:
+                for key in api_key:
+                    if key and key in sensor.coordinator.data.get("metrics", {}):
+                        sensors.append(sensor)
+                        continue
+
     _LOGGER.debug(hass.config.units)
     async_add_entities(sensors, True)
 
@@ -95,7 +98,7 @@ class CarSensor(
                 return self.data.get("tirePressureSystemStatus", [{}])[0].get("value", "Unsupported")
 
             if self.sensor_key == "gps":
-                return self.data.get("position", {}).get("value", "Unsupported")
+                return self.data.get("position", {}).get("value", "Unsupported").get("location", {})
 
             if self.sensor_key == "alarm":
                 return self.data.get("alarmStatus", {}).get("value", "Unsupported")

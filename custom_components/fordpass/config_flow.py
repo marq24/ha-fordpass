@@ -51,9 +51,9 @@ def configured_vehicles(hass):
 
 async def validate_token(hass: core.HomeAssistant, data):
     _LOGGER.debug(data)
-    configPath = hass.config.path("custom_components/fordpass/" + data["username"] + "_fordpass_token.txt")
+    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
     _LOGGER.debug(configPath)
-    vehicle = Vehicle(data["username"], "", "", data["region"], 1, configPath)
+    vehicle = Vehicle(data[CONF_USERNAME], "", "", data["region"], 1, configPath)
     results = await hass.async_add_executor_job(
         vehicle.generate_tokens,
         data["tokenstr"],
@@ -73,7 +73,7 @@ async def validate_input(hass: core.HomeAssistant, data):
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
     _LOGGER.debug(data[REGION])
-    configPath = hass.config.path("custom_components/fordpass/" + data[CONF_USERNAME] + "_fordpass_token.txt")
+    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
     vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], "", data[REGION], 1, configPath)
 
     try:
@@ -106,7 +106,7 @@ async def validate_input(hass: core.HomeAssistant, data):
 
 
 async def validate_vin(hass: core.HomeAssistant, data):
-    configPath = hass.config.path("custom_components/fordpass/" + data[CONF_USERNAME] + "_fordpass_token.txt")
+    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
 
     vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], data[VIN], data[REGION], 1, configPath)
     test = await(hass.async_add_executor_job(vehicle.get_status))

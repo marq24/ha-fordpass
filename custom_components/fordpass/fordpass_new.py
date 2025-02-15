@@ -8,11 +8,12 @@ import re
 import string
 import time
 from base64 import urlsafe_b64encode
-import requests
 
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from.const import REGIONS
+
+from .const import REGIONS
 
 _LOGGER = logging.getLogger(__name__)
 defaultHeaders = {
@@ -71,7 +72,7 @@ class Vehicle:
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         if config_location == "":
-            self.token_location = "custom_components/fordpass/fordpass_token.txt"
+            self.token_location = f".storage/fordpass/{username}_access_token.txt"
         else:
             _LOGGER.debug(config_location)
             self.token_location = config_location
@@ -337,6 +338,13 @@ class Vehicle:
             _LOGGER.debug("Token is valid, continuing")
 
     def write_token(self, token):
+        # check if parent exists...
+        if not os.path.exists(os.path.dirname(self.token_location)):
+            try:
+                os.makedirs(os.path.dirname(self.token_location))
+            except OSError as exc:  # Guard
+                _LOGGER.debug(exc)
+
         """Save token to file for reuse"""
         with open(self.token_location, "w", encoding="utf-8") as outfile:
             token["expiry_date"] = time.time() + token["expires_in"]

@@ -100,7 +100,7 @@
             "battery":                  {"name": "Battery (12V)"},
             "oil":                      {"name": "Oil"},
             "tirepressure":             {"name": "Tire Pressure"},
-            "gps":                      {"name": "GPS"},
+            "gps":                      {"name": "GPS JSON"},
             "alarm":                    {"name": "Alarm"},
             "ignitionstatus":           {"name": "Status Ignition"},
             "doorstatus":               {"name": "Status Door"},
