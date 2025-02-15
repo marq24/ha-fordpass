@@ -6,8 +6,6 @@ VIN = "vin"
 
 MANUFACTURER = "Ford Motor Company"
 
-VEHICLE = "Ford Vehicle"
-
 DEFAULT_PRESSURE_UNIT = "kPa"
 DEFAULT_DISTANCE_UNIT = "km"
 
@@ -23,7 +21,6 @@ UPDATE_INTERVAL = "update_interval"
 UPDATE_INTERVAL_DEFAULT = 900
 
 COORDINATOR = "coordinator"
-
 
 REGION = "region"
 
@@ -94,7 +91,7 @@ REGIONS = {
     },
     "UK&Europe": {
         "region": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
-        "locale": "EN-GB",
+        "locale": "en-GB",
         "locale_short": "IE",  # Temp fix
         "locale_url": "https://login.ford.co.uk",
         "countrycode": "GBR"

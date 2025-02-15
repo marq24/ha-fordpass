@@ -13,8 +13,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Switch from the config."""
     entry = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
-    # switches = [Switch(entry)]
-    # async_add_entities(switches, False)
     for key, value in SWITCHES.items():
         sw = Switch(entry, key, config_entry.options)
         # Only add guard entity if supported by the car
@@ -31,14 +29,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class Switch(FordPassEntity, SwitchEntity):
     """Define the Switch for turning ignition off/on"""
 
-    def __init__(self, coordinator, switch, options):
+    def __init__(self, coordinator, switch_key: str, options):
         """Initialize"""
-        self._device_id = "fordpass_" + switch
-        self.switch = switch
-        self.coordinator = coordinator
-        self.data = coordinator.data["metrics"]
-        # Required for HA 2022.7
-        self.coordinator_context = object()
+        super().__init__(internal_key=switch_key, coordinator=coordinator)
+        self.switch_key = switch_key
 
     async def async_turn_on(self, **kwargs):
         """Send request to vehicle on switch status on"""
@@ -69,26 +63,16 @@ class Switch(FordPassEntity, SwitchEntity):
         self.async_write_ha_state()
 
     @property
-    def name(self):
-        """return switch name"""
-        return "fordpass_" + self.switch + "_Switch"
-
-    @property
-    def device_id(self):
-        """return switch device id"""
-        return self.device_id
-
-    @property
     def is_on(self):
         """Check status of switch"""
-        if self.switch == "ignition":
+        if self.switch_key == "ignition":
             if (
                 self.coordinator.data["metrics"] is None or self.coordinator.data["metrics"]["ignitionStatus"] is None
             ):
                 return None
             if self.coordinator.data["metrics"]["ignitionStatus"]["value"] == "OFF":
                 return False
-        if self.switch == "guardmode":
+        if self.switch_key == "guardmode":
             # Need to find the correct response for enabled vs disabled so this may be spotty at the moment
             guardstatus = self.coordinator.data["guardstatus"]
 
@@ -105,4 +89,4 @@ class Switch(FordPassEntity, SwitchEntity):
     @property
     def icon(self):
         """Return icon for switch"""
-        return SWITCHES[self.switch]["icon"]
+        return SWITCHES[self.switch_key]["icon"]

@@ -6,7 +6,7 @@
         "error": {
             "cannot_connect": "Verbindungsfehler",
             "invalid_auth": "Authentifizierungsfehler",
-            "invalid_vin": "Die FIN kann nicht in deinem Konto gefunden werden",
+            "invalid_vin": "Die VIN kann nicht in deinem Konto gefunden werden",
             "unknown": "Unbekannter Fehler"
         },
         "step": {
@@ -33,14 +33,14 @@
                 "title": "Zum Hinzufügen ein Fahrzeug auswählen",
                 "description": "Es werden nur Fahrzeuge angezeigt, die derzeit nicht hinzugefügt wurden",
                 "data": {
-                    "vin": "FIN"
+                    "vin": "VIN"
                 }
             },
             "vin": {
-                "title": "Manuelle FIN-Eingabe",
-                "description": "Bitte geben Sie Ihre FIN-Nummer manuell ein, da keine Fahrzeuge automatisch gefunden werden konnten.",
+                "title": "Manuelle VIN-Eingabe",
+                "description": "Bitte geben Sie Ihre VIN (Fahrzeug-Identifikationsnummer) manuell ein, da keine Fahrzeuge automatisch gefunden werden konnten.",
                 "data": {
-                    "vin": "FIN Deines Fahrzeugs"
+                    "vin": "VIN Deines Fahrzeugs"
                 }
             }
         }
@@ -81,5 +81,45 @@
             "description": "Ruft eine manuelle Datenaktualisierung aus der Fordpass-API auf. (Vorsicht: Häufige Aufrufen können zu einer temporären Drosselung/Sperre führen)"
         }
     },
-    "title": "FordPass"
+    "title": "FordPass",
+
+    "entity": {
+        "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
+        "lock":             {"doorlock":{"name": "Verriegelung"}},
+        "switch": {
+            "ignition":                 {"name": "Zündung"},
+            "guardmode":                {"name": "Alarmanlage"}
+        },
+        "sensor": {
+            "odometer":                 {"name": "Tachometerstand"},
+            "fuel":                     {"name": "Tankanzeige"},
+            "battery":                  {"name": "Batterie (12V)"},
+            "oil":                      {"name": "Ölstand"},
+            "tirepressure":             {"name": "Reifendruck"},
+            "gps":                      {"name": "GPS"},
+            "alarm":                    {"name": "Alarm"},
+            "ignitionstatus":           {"name": "Status Zündung"},
+            "doorstatus":               {"name": "Status Türen"},
+            "windowposition":           {"name": "Fenster Positionen"},
+            "lastrefresh":              {"name": "letzte Aktualisierung"},
+            "elveh":                    {"name": "EV Daten"},
+            "elvehcharging":            {"name": "EV Ladezustand"},
+            "speed":                    {"name": "Geschwindigkeit"},
+            "indicators":               {"name": "Warnleuchten"},
+            "coolanttemp":              {"name": "Temperatur Kühlmittel"},
+            "outsidetemp":              {"name": "Temperatur Außen"},
+            "engineoiltemp":            {"name": "Temperatur Motoröl"},
+            "deepsleep":                {"name": "Tiefschlaf"},
+            "firmwareupginprogress":    {"name": "Firmware Update wird durchfeführt"},
+            "remotestartstatus":        {"name": "Status Fernstart"},
+            "zonelighting":             {"name": "Zonenbeleuchtung"},
+            "messages":                 {"name": "Nachrichten"},
+            "dieselsystemstatus":       {"name": "Status Diesel System"},
+            "exhaustfluidlevel":        {"name": "Abgasflüssigkeitsstand"},
+            "events":                   {"name": "Ereignisse"},
+            "metrics":                  {"name": "Metriken"},
+            "states":                   {"name": "Status"},
+            "vehicles":                 {"name": "Fahrzeuge"}
+        }
+    }
 }

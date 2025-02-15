@@ -23,14 +23,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class CarTracker(FordPassEntity, TrackerEntity):
     def __init__(self, coordinator, sensor):
-
-        self._attr = {}
-        self.sensor = sensor
-        self.coordinator = coordinator
-        self.data = coordinator.data["metrics"]
-        self._device_id = "fordpass_tracker"
-        # Required for HA 2022.7
-        self.coordinator_context = object()
+        super().__init__(internal_key="tracker", coordinator=coordinator)
+        #self._attr = {}
 
     @property
     def latitude(self):
@@ -46,16 +40,6 @@ class CarTracker(FordPassEntity, TrackerEntity):
     def source_type(self):
         """Set source type to GPS"""
         return SourceType.GPS
-
-    @property
-    def name(self):
-        """Return device tracker entity name"""
-        return "fordpass_tracker"
-
-    @property
-    def device_id(self):
-        """Return device tracker id"""
-        return self.device_id
 
     @property
     def extra_state_attributes(self):

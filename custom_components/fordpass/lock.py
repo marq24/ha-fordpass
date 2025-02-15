@@ -23,19 +23,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class Lock(FordPassEntity, LockEntity):
     """Defines the vehicle's lock."""
     def __init__(self, coordinator):
-        """Initialize."""
-        self._device_id = "fordpass_doorlock"
-        self.coordinator = coordinator
-        self.data = coordinator.data["metrics"]
-
-        # Required for HA 2022.7
-        self.coordinator_context = object()
+        super().__init__(internal_key="doorlock", coordinator=coordinator)
 
     async def async_lock(self, **kwargs):
         """Locks the vehicle."""
         self._attr_is_locking = True
         self.async_write_ha_state()
-        _LOGGER.debug("Locking %s", self.coordinator.vin)
         status = await self.coordinator.hass.async_add_executor_job(
             self.coordinator.vehicle.lock
         )
@@ -47,7 +40,6 @@ class Lock(FordPassEntity, LockEntity):
 
     async def async_unlock(self, **kwargs):
         """Unlocks the vehicle."""
-        _LOGGER.debug("Unlocking %s", self.coordinator.vin)
         self._attr_is_unlocking = True
         self.async_write_ha_state()
         status = await self.coordinator.hass.async_add_executor_job(
@@ -69,8 +61,3 @@ class Lock(FordPassEntity, LockEntity):
     def icon(self):
         """Return MDI Icon"""
         return "mdi:car-door-lock"
-
-    @property
-    def name(self):
-        """Return Name"""
-        return "fordpass_doorlock"

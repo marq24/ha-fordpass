@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from datetime import timedelta
+from re import sub
 
 import async_timeout
 import voluptuous as vol
@@ -9,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -24,7 +26,6 @@ from .const import (
     DOMAIN,
     MANUFACTURER,
     REGION,
-    VEHICLE,
     VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
@@ -182,7 +183,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, user, password, vin, region, update_interval, save_token=False):
         """Initialize the coordinator and set up the Vehicle object."""
         self._hass = hass
-        self.vin = vin
+        self._vin = vin
         config_path = hass.config.path("custom_components/fordpass/" + user + "_fordpass_token.txt")
         self.vehicle = Vehicle(user, password, vin, region, save_token, config_path)
         self._available = True
@@ -216,55 +217,100 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug(data)
                 # If data has now been fetched but was previously unavailable, log and reset
                 if not self._available:
-                    _LOGGER.info("Restored connection to FordPass for %s", self.vin)
+                    _LOGGER.info("Restored connection to FordPass for %s", self._vin)
                     self._available = True
 
                 return data
         except Exception as ex:
             self._available = False  # Mark as unavailable
             _LOGGER.warning(str(ex))
-            _LOGGER.warning("Error communicating with FordPass for %s", self.vin)
+            _LOGGER.warning("Error communicating with FordPass for %s", self._vin)
             raise UpdateFailed(
-                f"Error communicating with FordPass for {self.vin}"
+                f"Error communicating with FordPass for {self._vin}"
             ) from ex
 
 
 class FordPassEntity(CoordinatorEntity):
     """Defines a base FordPass entity."""
+    _attr_should_poll = False
+    _attr_has_entity_name = True
 
-    def __init__(
-        self, *, device_id: str, name: str, coordinator: FordPassDataUpdateCoordinator
-    ):
+    def __init__(self, internal_key: str, coordinator: FordPassDataUpdateCoordinator):
         """Initialize the entity."""
         super().__init__(coordinator)
-        self._device_id = device_id
-        self._name = name
+        self.coordinator = coordinator
+        self.coordinator_context = object()
+        self.data = coordinator.data.get("metrics", {})
+
+        self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{internal_key}"
+        self._internal_key = internal_key
+        self._name = internal_key
+
+        # ok setting the internal translation key attr (so we can make use of the translation key in the entity)
+        self._attr_translation_key = internal_key.lower()
 
     @property
-    def name(self):
-        """Return the name of the entity."""
-        return self._name
+    def device_id(self):
+        return f"fordpass_did_{self.self.coordinator._vin.lower()}"
+
+    @property
+    def should_poll(self) -> bool:
+        return False
 
     @property
     def unique_id(self):
         """Return the unique ID of the entity."""
-        return f"{self.coordinator.vin}-{self._device_id}"
+        return f"fordpass_uid_{self.coordinator._vin.lower()}_{self._internal_key}"
 
     @property
     def device_info(self):
         """Return device information about this device."""
-        if self._device_id is None:
+        if self._internal_key is None:
             return None
 
         model = "unknown"
         if self.coordinator.data["vehicles"] is not None:
             for vehicle in self.coordinator.data["vehicles"]["vehicleProfile"]:
-                if vehicle["VIN"] == self.coordinator.vin:
+                if vehicle["VIN"] == self.coordinator._vin:
                     model = f"{vehicle['year']} {vehicle['model']}"
 
         return {
-            "identifiers": {(DOMAIN, self.coordinator.vin)},
-            "name": f"{VEHICLE} ({self.coordinator.vin})",
+            "identifiers": {(DOMAIN, self.coordinator._vin)},
+            "name": f"VIN {self.coordinator._vin}",
             "model": f"{model}",
             "manufacturer": MANUFACTURER,
         }
+
+    def _friendly_name_internal(self) -> str | None:
+        """Return the friendly name.
+        If has_entity_name is False, this returns self.name
+        If has_entity_name is True, this returns device.name + self.name
+        """
+        name = self.name
+        if name is UNDEFINED:
+            name = None
+
+        if not self.has_entity_name or not (device_entry := self.device_entry):
+            return name
+
+        device_name = device_entry.name_by_user or device_entry.name
+        if name is None and self.use_device_name:
+            return device_name
+
+        # we overwrite the default impl here and just return our 'name'
+        # return f"{device_name} {name}" if device_name else name
+        if device_entry.name_by_user is not None:
+            return f"{device_entry.name_by_user} {name}" if device_name else name
+        #elif self.coordinator.include_fordpass_prefix:
+        #    return f"[fordpass] {name}"
+        else:
+            return name
+
+    @staticmethod
+    def camel_case(s):
+        # Use regular expression substitution to replace underscores and hyphens with spaces,
+        # then title case the string (capitalize the first letter of each word), and remove spaces
+        s = sub(r"(_|-)+", " ", s).title().replace(" ", "")
+
+        # Join the string, ensuring the first letter is lowercase
+        return ''.join([s[0].lower(), s[1:]])

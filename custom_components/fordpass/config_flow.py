@@ -241,7 +241,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
 
             if vehicle:
-                return self.async_create_entry(title=f"Vehicle ({user_input[VIN]})", data=self.login_input)
+                return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.login_input)
 
             # return self.async_create_entry(title=f"Enter VIN", data=self.login_input)
         _LOGGER.debug(self.login_input)
@@ -252,7 +252,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Checking Vehicle is accessible")
             self.login_input[VIN] = user_input["vin"]
             _LOGGER.debug(self.login_input)
-            return self.async_create_entry(title=f"Vehicle ({user_input[VIN]})", data=self.login_input)
+            return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.login_input)
 
         _LOGGER.debug(self.vehicles)
 

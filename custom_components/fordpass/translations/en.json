@@ -85,6 +85,46 @@
             "description": "Manually poll API for data update (Warning: doing this too often could result in a ban)"
         }
     },
-    "title": "Fordpass"
+    "title": "Fordpass",
+
+    "entity": {
+        "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
+        "lock":             {"doorlock":{"name": "Doors"}},
+        "switch": {
+            "ignition":                 {"name": "Ignition"},
+            "guardmode":                {"name": "Guard Mode"}
+        },
+        "sensor": {
+            "odometer":                 {"name": "Odometer"},
+            "fuel":                     {"name": "Fuel"},
+            "battery":                  {"name": "Battery (12V)"},
+            "oil":                      {"name": "Oil"},
+            "tirepressure":             {"name": "Tire Pressure"},
+            "gps":                      {"name": "GPS"},
+            "alarm":                    {"name": "Alarm"},
+            "ignitionstatus":           {"name": "Status Ignition"},
+            "doorstatus":               {"name": "Status Door"},
+            "windowposition":           {"name": "Window Position"},
+            "lastrefresh":              {"name": "last refresh"},
+            "elveh":                    {"name": "EV"},
+            "elvehcharging":            {"name": "EV Charging"},
+            "speed":                    {"name": "Speed"},
+            "indicators":               {"name": "Indicators"},
+            "coolanttemp":              {"name": "Temperature Coolant"},
+            "outsidetemp":              {"name": "Temperature Outdoors"},
+            "engineoiltemp":            {"name": "Temperature Engine Oil"},
+            "deepsleep":                {"name": "Sleep Mode"},
+            "firmwareupginprogress":    {"name": "Firmware Update In Progress"},
+            "remotestartstatus":        {"name": "Status Remote Start"},
+            "zonelighting":             {"name": "Zone Lighting"},
+            "messages":                 {"name": "Messages"},
+            "dieselsystemstatus":       {"name": "Status Diesel System"},
+            "exhaustfluidlevel":        {"name": "Exhaust Fluid Level"},
+            "events":                   {"name": "Events"},
+            "metrics":                  {"name": "Metrics"},
+            "states":                   {"name": "States"},
+            "vehicles":                 {"name": "Vehicles"}
+        }
+    }
 }
     

@@ -1,10 +1,17 @@
-# Fordpass Home Assistant Integration [v1.7x fork]
+# Fordpass Home Assistant Integration (EV dedicated) [v1.7x fork]
 
 [![hacs_badge](https://img.shields.io/badge/HACS-custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 
 > [!NOTE]
-> # This is just a FORK!
-> ### All credits must go to @itchannel and @SquidBytes
+> This fork is WIP - and since I just own a EV (Mustang MachE 2023) I will focus on the features of the electrical vehicle data.
+
+> [!WARNING]
+> ## This fork is **not compatible** with the original Fordpass integration
+> - The entity names have been changed in oder to ensure that the sensor names include the VIN.
+> - The sensor attribute names does not contain spaces anymore to make post-processing easier (using camelcase).
+
+> [!NOTE]
+> ## All credits must go to @itchannel and @SquidBytes
 > There is a new token obtaining system introduced in the origin fordpass repository. This fork has been released in order to provide a release version of the v1.7x that can be installed via the new HACS (2.0) system (where you only can install 'released' integration versions). 
 > 
 > The token used by this integration is currently removed whenever the integration is updated. With this 1.7x update, the token will be wiped during every update, requiring users to manually add the token during the initial setup.
