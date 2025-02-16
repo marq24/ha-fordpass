@@ -11,19 +11,22 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Switch from the config."""
-    entry = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
+    entities = []
     for key, value in SWITCHES.items():
-        sw = Switch(entry, key, config_entry.options)
         # Only add guard entity if supported by the car
-        if key == "guardmode":
-            if "guardstatus" in sw.coordinator.data:
-                if sw.coordinator.data["guardstatus"]["returnCode"] == 200:
-                    async_add_entities([sw], False)
-                else:
-                    _LOGGER.debug("Guard mode not supported on this vehicle")
+        if key == "guardmode" and "guardstatus" in coordinator.data:
+            if coordinator.data["guardstatus"]["returnCode"] == 200:
+                sw = Switch(coordinator, key, config_entry.options)
+                entities.append(sw)
+            else:
+                _LOGGER.debug("Guard mode not supported on this vehicle")
         else:
-            async_add_entities([sw], False)
+            sw = Switch(coordinator, key, config_entry.options)
+            entities.append(sw)
+
+    async_add_entities(entities, True)
 
 
 class Switch(FordPassEntity, SwitchEntity):
@@ -75,8 +78,7 @@ class Switch(FordPassEntity, SwitchEntity):
         if self.switch_key == "guardmode":
             # Need to find the correct response for enabled vs disabled so this may be spotty at the moment
             guardstatus = self.coordinator.data["guardstatus"]
-
-            _LOGGER.debug(guardstatus)
+            _LOGGER.debug(f"is_on guardstatus: {guardstatus}")
             if guardstatus["returnCode"] == 200:
                 if "gmStatus" in guardstatus:
                     if guardstatus["session"]["gmStatus"] == "enable":

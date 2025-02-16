@@ -91,7 +91,7 @@
             "guardmode":                {"name": "Alarmanlage"}
         },
         "sensor": {
-            "odometer":                 {"name": "Tachometerstand"},
+            "odometer":                 {"name": "Kilometerstand"},
             "fuel":                     {"name": "Tankanzeige"},
             "battery":                  {"name": "Batterie (12V)"},
             "oil":                      {"name": "Ölstand"},
@@ -105,7 +105,7 @@
             "elveh":                    {"name": "EV Daten"},
             "elvehcharging":            {"name": "EV Ladezustand"},
             "speed":                    {"name": "Geschwindigkeit"},
-            "indicators":               {"name": "Warnleuchten"},
+            "indicators":               {"name": "Warnmeldungen"},
             "coolanttemp":              {"name": "Temperatur Kühlmittel"},
             "outsidetemp":              {"name": "Temperatur Außen"},
             "engineoiltemp":            {"name": "Temperatur Motoröl"},
@@ -115,7 +115,7 @@
             "zonelighting":             {"name": "Zonenbeleuchtung"},
             "messages":                 {"name": "Nachrichten"},
             "dieselsystemstatus":       {"name": "Status Diesel System"},
-            "exhaustfluidlevel":        {"name": "Abgasflüssigkeitsstand"},
+            "exhaustfluidlevel":        {"name": "AdBlue-Stand"},
             "events":                   {"name": "Ereignisse"},
             "metrics":                  {"name": "Metriken"},
             "states":                   {"name": "Status"},

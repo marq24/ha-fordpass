@@ -11,11 +11,9 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the lock from the config."""
-    entry = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-
-    lock = Lock(entry)
-    if lock.coordinator.data["metrics"]["doorLockStatus"] and lock.coordinator.data["metrics"]["doorLockStatus"][0]["value"] != "ERROR":
-        async_add_entities([lock], False)
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    if coordinator.data["metrics"]["doorLockStatus"] and coordinator.data["metrics"]["doorLockStatus"][0]["value"] != "ERROR":
+        async_add_entities([Lock(coordinator)], False)
     else:
         _LOGGER.debug("Ford model doesn't support remote locking")
 
@@ -32,7 +30,7 @@ class Lock(FordPassEntity, LockEntity):
         status = await self.coordinator.hass.async_add_executor_job(
             self.coordinator.vehicle.lock
         )
-        _LOGGER.debug(status)
+        _LOGGER.debug(f"async_lock status: {status}")
         await self.coordinator.async_request_refresh()
         _LOGGER.debug("Locking here")
         self._attr_is_locking = False
@@ -45,7 +43,7 @@ class Lock(FordPassEntity, LockEntity):
         status = await self.coordinator.hass.async_add_executor_job(
             self.coordinator.vehicle.unlock
         )
-        _LOGGER.debug(status)
+        _LOGGER.debug(f"async_unlock status: {status}")
         await self.coordinator.async_request_refresh()
         self._attr_is_unlocking = False
         self.async_write_ha_state()

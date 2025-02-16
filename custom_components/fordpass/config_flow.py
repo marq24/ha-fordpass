@@ -50,10 +50,9 @@ def configured_vehicles(hass):
 
 
 async def validate_token(hass: core.HomeAssistant, data):
-    _LOGGER.debug(data)
+    _LOGGER.debug(f"validate_token: {data}")
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    _LOGGER.debug(configPath)
-    vehicle = Vehicle(data[CONF_USERNAME], "", "", data["region"], 1, configPath)
+    vehicle = Vehicle(data[CONF_USERNAME], "", "", data["region"], True, tokens_location=configPath)
     results = await hass.async_add_executor_job(
         vehicle.generate_tokens,
         data["tokenstr"],
@@ -63,7 +62,7 @@ async def validate_token(hass: core.HomeAssistant, data):
     if results:
         _LOGGER.debug("Getting Vehicles")
         vehicles = await(hass.async_add_executor_job(vehicle.vehicles))
-        _LOGGER.debug(vehicles)
+        _LOGGER.debug(f"Getting Vehicles -> {vehicles}")
         return vehicles
 
 
@@ -72,9 +71,9 @@ async def validate_input(hass: core.HomeAssistant, data):
 
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
-    _LOGGER.debug(data[REGION])
+    _LOGGER.debug(f"data[REGION]: {data[REGION]}")
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], "", data[REGION], 1, configPath)
+    vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], "", data[REGION], True, tokens_location=configPath)
 
     try:
         result = await hass.async_add_executor_job(vehicle.auth)
@@ -110,8 +109,7 @@ async def validate_vin(hass: core.HomeAssistant, data):
 
     vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], data[VIN], data[REGION], 1, configPath)
     test = await(hass.async_add_executor_job(vehicle.get_status))
-    _LOGGER.debug("GOT SOMETHING BACK?")
-    _LOGGER.debug(test)
+    _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
     if test and test.status_code == 200:
         _LOGGER.debug("200 Code")
         return True
@@ -137,8 +135,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.username = user_input[CONF_USERNAME]
 
                 return await self.async_step_token(None)
-            except CannotConnect:
-                print("EXCEPT")
+            except CannotConnect as ex:
+                _LOGGER.debug(f"async_step_user {ex}")
                 errors["base"] = "cannot_connect"
         else:
             user_input = {}
@@ -165,7 +163,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input["username"] = self.username
                     user_input["password"] = ""
                     user_input["code_verifier"] = self.login_input["code_verifier"]
-                    _LOGGER.debug(user_input)
+                    _LOGGER.debug(f"user_input {user_input}")
                     info = await validate_token(self.hass, user_input)
                     self.login_input = user_input
                     if info is None:
@@ -180,12 +178,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     errors["base"] = "invalid_token"
 
-            except CannotConnect:
-                print("EXCEPT")
+            except CannotConnect as ex:
+                _LOGGER.debug(f"async_step_token {ex}")
                 errors["base"] = "cannot_connect"
 
         if self.region is not None:
-            _LOGGER.debug(f"Region {self.region}")
+            _LOGGER.debug(f"self.region {self.region}")
             return self.async_show_form(
                 step_id="token", data_schema=vol.Schema(
                     {
@@ -201,7 +199,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return False
 
     def generate_url(self, region):
-        _LOGGER.debug(REGIONS[region])
+        _LOGGER.debug(f"REGIONS[region]: {REGIONS[region]}")
         code1 = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
         code_verifier = self.generate_hash(code1)
         self.login_input["code_verifier"] = code1
@@ -228,8 +226,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle manual VIN entry"""
         errors = {}
         if user_input is not None:
-            _LOGGER.debug(self.login_input)
-            _LOGGER.debug(user_input)
+            _LOGGER.debug(f"{self.login_input} user_input: {user_input}")
             data = self.login_input
             data["vin"] = user_input["vin"]
             vehicle = None
@@ -244,23 +241,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.login_input)
 
             # return self.async_create_entry(title=f"Enter VIN", data=self.login_input)
-        _LOGGER.debug(self.login_input)
+        _LOGGER.debug(f"{self.login_input}")
         return self.async_show_form(step_id="vin", data_schema=VIN_SCHEME, errors=errors)
 
     async def async_step_vehicle(self, user_input=None):
         if user_input is not None:
             _LOGGER.debug("Checking Vehicle is accessible")
             self.login_input[VIN] = user_input["vin"]
-            _LOGGER.debug(self.login_input)
+            _LOGGER.debug(f"{self.login_input}")
             return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.login_input)
 
-        _LOGGER.debug(self.vehicles)
+        _LOGGER.debug(f"vehicles: {self.vehicles}")
 
         configured = configured_vehicles(self.hass)
-        _LOGGER.debug(configured)
+        _LOGGER.debug(f"configured: {configured}")
         avaliable_vehicles = {}
         for vehicle in self.vehicles:
-            _LOGGER.debug(vehicle)
+            _LOGGER.debug(f"a vehicle: {vehicle}")
             if vehicle["VIN"] not in configured:
                 if "nickName" in vehicle:
                     avaliable_vehicles[vehicle["VIN"]] = vehicle["nickName"] + f" ({vehicle['VIN']})"

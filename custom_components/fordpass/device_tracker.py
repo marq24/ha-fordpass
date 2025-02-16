@@ -12,11 +12,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Entities from the config."""
-    entry = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     # Added a check to see if the car supports GPS
-    if "position" in entry.data["metrics"] and entry.data["metrics"]["position"] is not None:
-        async_add_entities([CarTracker(entry, "gps")], True)
+    if "position" in coordinator.data["metrics"] and coordinator.data["metrics"]["position"] is not None:
+        async_add_entities([CarTracker(coordinator, "gps")], True)
     else:
         _LOGGER.debug("Vehicle does not support GPS")
 
@@ -24,7 +24,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class CarTracker(FordPassEntity, TrackerEntity):
     def __init__(self, coordinator, sensor):
         super().__init__(internal_key="tracker", coordinator=coordinator)
-        #self._attr = {}
 
     @property
     def latitude(self):

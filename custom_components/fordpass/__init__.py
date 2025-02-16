@@ -46,55 +46,57 @@ async def async_setup(hass: HomeAssistant, config: dict):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up FordPass from a config entry."""
-    user = entry.data[CONF_USERNAME]
-    password = entry.data[CONF_PASSWORD]
-    vin = entry.data[VIN]
-    if UPDATE_INTERVAL in entry.options:
-        update_interval = entry.options[UPDATE_INTERVAL]
+    user = config_entry.data[CONF_USERNAME]
+    password = config_entry.data[CONF_PASSWORD]
+    vin = config_entry.data[VIN]
+    if UPDATE_INTERVAL in config_entry.options:
+        update_interval = config_entry.options[UPDATE_INTERVAL]
     else:
         update_interval = UPDATE_INTERVAL_DEFAULT
-    _LOGGER.debug(update_interval)
-    for ar_entry in entry.data:
-        _LOGGER.debug(ar_entry)
-    if REGION in entry.data.keys():
-        _LOGGER.debug(entry.data[REGION])
-        region = entry.data[REGION]
+    _LOGGER.debug(f"Update interval: {update_interval}")
+
+    for config_emtry_data in config_entry.data:
+        _LOGGER.debug(f"config_entry.data: {config_emtry_data}")
+
+    if REGION in config_entry.data.keys():
+        _LOGGER.debug(f"Region: {config_entry.data[REGION]}")
+        region = config_entry.data[REGION]
     else:
         _LOGGER.debug("CANT GET REGION")
         region = DEFAULT_REGION
-    coordinator = FordPassDataUpdateCoordinator(hass, user, password, vin, region, update_interval, 1)
 
+    coordinator = FordPassDataUpdateCoordinator(hass, user, password, vin, region, update_interval, True)
     await coordinator.async_refresh()  # Get initial data
 
-    fordpass_options_listener = entry.add_update_listener(options_update_listener)
+    fordpass_options_listener = config_entry.add_update_listener(options_update_listener)
 
-    if not entry.options:
-        await async_update_options(hass, entry)
+    if not config_entry.options:
+        await async_update_options(hass, config_entry)
 
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
-    hass.data[DOMAIN][entry.entry_id] = {
+    hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
         "fordpass_options_listener": fordpass_options_listener
     }
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
+    # SERVICES from here...
+    # simple service implementations (might be moved to separate service.py)
     async def async_refresh_status_service(service_call):
-        await hass.async_add_executor_job(
-            refresh_status, hass, service_call, coordinator
-        )
+        await hass.async_add_executor_job(service_refresh_status, hass, service_call, coordinator)
 
     async def async_clear_tokens_service(service_call):
-        await hass.async_add_executor_job(clear_tokens, hass, service_call, coordinator)
+        await hass.async_add_executor_job(service_clear_tokens, hass, service_call, coordinator)
 
     async def poll_api_service(service_call):
         await coordinator.async_request_refresh()
 
-    async def handle_reload(service):
+    async def handle_reload_service(service_call):
         """Handle reload service call."""
         _LOGGER.debug("Reloading Integration")
 
@@ -106,28 +108,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
         await asyncio.gather(*reload_tasks)
 
-    hass.services.async_register(
-        DOMAIN,
-        "refresh_status",
-        async_refresh_status_service,
-    )
-    hass.services.async_register(
-        DOMAIN,
-        "clear_tokens",
-        async_clear_tokens_service,
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        "reload",
-        handle_reload
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        "poll_api",
-        poll_api_service
-    )
+    hass.services.async_register(DOMAIN, "refresh_status", async_refresh_status_service)
+    hass.services.async_register(DOMAIN, "clear_tokens", async_clear_tokens_service)
+    hass.services.async_register(DOMAIN, "reload", handle_reload_service)
+    hass.services.async_register(DOMAIN, "poll_api", poll_api_service)
 
     return True
 
@@ -135,13 +119,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 async def async_update_options(hass, config_entry):
     """Update options entries on change"""
     options = {
-        CONF_PRESSURE_UNIT: config_entry.data.get(
-            CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT
-        )
+        CONF_PRESSURE_UNIT: config_entry.data.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),
+        CONF_DISTANCE_UNIT: config_entry.data.get(CONF_DISTANCE_UNIT, DEFAULT_DISTANCE_UNIT)
     }
-    options[CONF_DISTANCE_UNIT] = config_entry.data.get(
-        CONF_DISTANCE_UNIT, DEFAULT_DISTANCE_UNIT
-    )
     hass.config_entries.async_update_entry(config_entry, options=options)
 
 
@@ -151,29 +131,30 @@ async def options_update_listener(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-def refresh_status(hass, service, coordinator):
+def service_refresh_status(hass, service, coordinator):
     """Get latest vehicle status from vehicle, actively polls the car"""
-    _LOGGER.debug("Running Service")
+    _LOGGER.debug("Running Service 'refresh_status'")
     vin = service.data.get("vin", "")
     status = coordinator.vehicle.request_update(vin)
     if status == 401:
-        _LOGGER.debug("Invalid VIN")
+        _LOGGER.debug("refresh_status: Invalid VIN?! (status 401)")
     elif status == 200:
-        _LOGGER.debug("Refresh Sent")
+        _LOGGER.debug("refresh_status: Refresh Sent")
 
 
-def clear_tokens(hass, service, coordinator):
+def service_clear_tokens(hass, service, coordinator):
     """Clear the token file in config directory, only use in emergency"""
-    _LOGGER.debug("Clearing Tokens")
+    _LOGGER.debug("Running Service 'clear_tokens'")
     coordinator.vehicle.clear_token()
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
 
-    if await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+    if await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS):
+        hass.data[DOMAIN].pop(config_entry.entry_id)
         return True
+
     return False
 
 
@@ -188,12 +169,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self.vehicle = Vehicle(user, password, vin, region, save_token, config_path)
         self._available = True
 
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=update_interval),
-        )
+        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
@@ -208,27 +184,37 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 #    self.vehicle.guardStatus  # Fetch new status
                 # )
 
-                data["messages"] = await self._hass.async_add_executor_job(
-                    self.vehicle.messages
-                )
-                data["vehicles"] = await self._hass.async_add_executor_job(
-                    self.vehicle.vehicles
-                )
-                _LOGGER.debug(data)
+                data["messages"] = await self._hass.async_add_executor_job(self.vehicle.messages)
+
+                # only update vehicles data if not present yet
+                if "vehicles" not in data or data["vehicles"] is None:
+                    _LOGGER.debug("_async_update_data: request vehicle data...")
+                    data["vehicles"] = await self._hass.async_add_executor_job(self.vehicle.vehicles)
+
+                if "metrics" in data and data["metrics"] is not None:
+                    _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")
+                else:
+                    _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
+
+                # only for private debugging
+                #self.write_data_debug(data)
+
                 # If data has now been fetched but was previously unavailable, log and reset
                 if not self._available:
-                    _LOGGER.info("Restored connection to FordPass for %s", self._vin)
+                    _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
                     self._available = True
 
                 return data
         except Exception as ex:
             self._available = False  # Mark as unavailable
-            _LOGGER.warning(str(ex))
-            _LOGGER.warning("Error communicating with FordPass for %s", self._vin)
-            raise UpdateFailed(
-                f"Error communicating with FordPass for {self._vin}"
-            ) from ex
+            _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {str(ex)}")
+            raise UpdateFailed(f"Error communicating with FordPass for {self._vin}") from ex
 
+    # def write_data_debug(self, data):
+    #     import time
+    #     with open(f"data/fordpass_data_{time.time()}.json", "w", encoding="utf-8") as outfile:
+    #         import json
+    #         json.dump(data, outfile)
 
 class FordPassEntity(CoordinatorEntity):
     """Defines a base FordPass entity."""
@@ -276,7 +262,7 @@ class FordPassEntity(CoordinatorEntity):
 
         return {
             "identifiers": {(DOMAIN, self.coordinator._vin)},
-            "name": f"VIN {self.coordinator._vin}",
+            "name": f"VIN: {self.coordinator._vin}",
             "model": f"{model}",
             "manufacturer": MANUFACTURER,
         }

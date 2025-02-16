@@ -119,7 +119,7 @@
             "zonelighting":             {"name": "Zone Lighting"},
             "messages":                 {"name": "Messages"},
             "dieselsystemstatus":       {"name": "Status Diesel System"},
-            "exhaustfluidlevel":        {"name": "Exhaust Fluid Level"},
+            "exhaustfluidlevel":        {"name": "AdBlue Level"},
             "events":                   {"name": "Events"},
             "metrics":                  {"name": "Metrics"},
             "states":                   {"name": "States"},
