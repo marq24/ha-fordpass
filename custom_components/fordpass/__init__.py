@@ -8,7 +8,7 @@ import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.helpers.update_coordinator import (
@@ -87,16 +87,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     # SERVICES from here...
     # simple service implementations (might be moved to separate service.py)
-    async def async_refresh_status_service(service_call):
-        await hass.async_add_executor_job(service_refresh_status, hass, service_call, coordinator)
+    async def async_refresh_status_service(call: ServiceCall):
+        await hass.async_add_executor_job(service_refresh_status, hass, call, coordinator)
+        await asyncio.sleep(45)
+        await coordinator.async_refresh()
 
-    async def async_clear_tokens_service(service_call):
-        await hass.async_add_executor_job(service_clear_tokens, hass, service_call, coordinator)
+    async def async_clear_tokens_service(call: ServiceCall):
+        await hass.async_add_executor_job(service_clear_tokens, hass, call, coordinator)
 
-    async def poll_api_service(service_call):
+    async def poll_api_service(call: ServiceCall):
         await coordinator.async_request_refresh()
 
-    async def handle_reload_service(service_call):
+    async def handle_reload_service(call: ServiceCall):
         """Handle reload service call."""
         _LOGGER.debug("Reloading Integration")
 
@@ -110,8 +112,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     hass.services.async_register(DOMAIN, "refresh_status", async_refresh_status_service)
     hass.services.async_register(DOMAIN, "clear_tokens", async_clear_tokens_service)
-    hass.services.async_register(DOMAIN, "reload", handle_reload_service)
     hass.services.async_register(DOMAIN, "poll_api", poll_api_service)
+    hass.services.async_register(DOMAIN, "reload", handle_reload_service)
 
     return True
 
@@ -134,12 +136,12 @@ async def options_update_listener(hass: HomeAssistant, entry: ConfigEntry):
 def service_refresh_status(hass, service, coordinator):
     """Get latest vehicle status from vehicle, actively polls the car"""
     _LOGGER.debug("Running Service 'refresh_status'")
-    vin = service.data.get("vin", "")
+    vin = service.data.get("vin", None)
     status = coordinator.vehicle.request_update(vin)
     if status == 401:
         _LOGGER.debug("refresh_status: Invalid VIN?! (status 401)")
     elif status == 200:
-        _LOGGER.debug("refresh_status: Refresh Sent")
+        _LOGGER.debug("refresh_status: Refresh sent")
 
 
 def service_clear_tokens(hass, service, coordinator):
@@ -168,28 +170,28 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
         self.vehicle = Vehicle(user, password, vin, region, save_token, config_path)
         self._available = True
-
+        self._cached_vehicles_data = {}
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
         try:
             async with async_timeout.timeout(30):
-                data = await self._hass.async_add_executor_job(
-                    self.vehicle.status  # Fetch new status
-                )
+
+                data = await self._hass.async_add_executor_job(self.vehicle.status)
 
                 # Temporarily removed due to Ford backend API changes
-                # data["guardstatus"] = await self._hass.async_add_executor_job(
-                #    self.vehicle.guardStatus  # Fetch new status
-                # )
+                # data["guardstatus"] = await self._hass.async_add_executor_job(self.vehicle.guardStatus)
 
                 data["messages"] = await self._hass.async_add_executor_job(self.vehicle.messages)
 
                 # only update vehicles data if not present yet
-                if "vehicles" not in data or data["vehicles"] is None:
+                if len(self._cached_vehicles_data) == 0:
                     _LOGGER.debug("_async_update_data: request vehicle data...")
-                    data["vehicles"] = await self._hass.async_add_executor_job(self.vehicle.vehicles)
+                    self._cached_vehicles_data = await self._hass.async_add_executor_job(self.vehicle.vehicles)
+
+                if len(self._cached_vehicles_data) > 0:
+                    data["vehicles"] = self._cached_vehicles_data
 
                 if "metrics" in data and data["metrics"] is not None:
                     _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")

@@ -713,7 +713,7 @@ class Vehicle:
     def request_update(self, vin=None):
         """Send request to vehicle for update"""
         self.__acquire_tokens()
-        if vin is None:
+        if vin is None or len(vin) == 0:
             vin_to_requst = self.vin
         else:
             vin_to_requst = vin
