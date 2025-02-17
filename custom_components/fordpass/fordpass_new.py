@@ -35,7 +35,7 @@ loginHeaders = {
     "Accept-Encoding": "gzip, deflate, br",
 }
 
-NEW_API = True
+LOG_DATA = False
 
 BASE_URL = "https://usapi.cv.ford.com/api"
 GUARD_URL = "https://api.mps.ford.com/api"
@@ -45,7 +45,6 @@ AUTONOMIC_ACCOUNT_URL = "https://accounts.autonomic.ai/v1"
 FORD_LOGIN_URL = "https://login.ford.com"
 
 session = requests.Session()
-
 
 class Vehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
@@ -80,17 +79,18 @@ class Vehicle:
         else:
             self.stored_tokens_location = tokens_location
 
-        _LOGGER.info(f"init vehicle object {self.vin} using token from: {tokens_location}")
+        _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
     def base64_url_encode(self, data):
         """Encode string to base64"""
         return urlsafe_b64encode(data).rstrip(b'=')
 
     def generate_tokens(self, urlstring, code_verifier):
+        _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
         code_new = urlstring.replace("fordapp://userauthorized/?code=", "")
-        #_LOGGER.debug(f"generate_tokens: {code_new} country_code: {self.country_code} code_verifier: {code_verifier}")
-        _LOGGER.debug(f"generate_tokens: code: {code_new} country_code: {self.country_code}")
-
+        headers = {
+            **loginHeaders,
+        }
         data = {
             "client_id": "09852200-05fd-41f6-8c21-d36d3497dc64",
             "grant_type": "authorization_code",
@@ -98,42 +98,45 @@ class Vehicle:
             "code": code_new,
             "redirect_uri": "fordapp://userauthorized"
         }
-
-        #_LOGGER.debug(f"generate_tokens post data: {data}")
-        headers = {
-            **loginHeaders,
-        }
-        req = requests.post(
+        response = requests.post(
             f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{self.country_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
             verify=False
         )
-        _LOGGER.debug(f"generate_tokens status: {req.status_code} content: {req.text}")
-        return self.generate_fulltokens(req.json())
 
-    def generate_fulltokens(self, token):
-        data = {"idpToken": token["access_token"]}
+        # do not check the status code here - since it's not always return http 200!
+        token_data = response.json()
+        if "access_token" in token_data:
+            _LOGGER.debug(f"generate_tokens 'OK'- http status: {response.status_code} - JSON: {token_data}")
+            return self.generate_tokens_part2(token_data)
+        else:
+            _LOGGER.warning(f"generate_tokens 'FAILED'- http status: {response.status_code} - cause no 'access_token' in response: {token_data}")
+            return False
+
+    def generate_tokens_part2(self, token):
         headers = {**apiHeaders, "Application-Id": self.region}
+        data = {"idpToken": token["access_token"]}
         response = requests.post(
             f"{GUARD_URL}/token/v2/cat-with-b2c-access-token",
             data=json.dumps(data),
             headers=headers,
             verify=False
         )
-        _LOGGER.debug(f"generate_fulltokens status: {response.status_code} content: {response.text}")
 
-        final_tokens = response.json()
-        if "expires_in" in final_tokens:
-            final_tokens["expiry_date"] = time.time() + final_tokens["expires_in"]
-            del final_tokens["expires_in"]
+        # do not check the status code here - since it's not always return http 200!
+        final_access_token = response.json()
+        if "expires_in" in final_access_token:
+            final_access_token["expiry_date"] = time.time() + final_access_token["expires_in"]
+            del final_access_token["expires_in"]
 
-        if "refresh_expires_in" in final_tokens:
-            final_tokens["refresh_expiry_date"] = time.time() + final_tokens["refresh_expires_in"]
-            del final_tokens["refresh_expires_in"]
+        if "refresh_expires_in" in final_access_token:
+            final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
+            del final_access_token["refresh_expires_in"]
 
+        _LOGGER.debug(f"generate_tokens_part2 'OK' - http status: {response.status_code} - JSON: {final_access_token}")
         if self.save_token:
-            self.write_token_to_storage(final_tokens)
+            self._write_token_to_storage(final_access_token)
 
         return True
 
@@ -143,7 +146,9 @@ class Vehicle:
         hashengine.update(code.encode('utf-8'))
         return self.base64_url_encode(hashengine.digest()).decode('utf-8')
 
-    def auth(self):
+    # IMHO (marq24) this can't work - since with the latest (1.7x versions we do not have the password from the user...
+    # so there is IMHO no wqy to get access again (if our tokens are invalidated)...
+    def re_auth(self):
         """New Authentication System """
         _LOGGER.debug("auth: New System")
 
@@ -236,7 +241,6 @@ class Vehicle:
         else:
             response4.raise_for_status()
 
-
         # Auth Step5
         # ----------------
         headers5 = {
@@ -267,7 +271,7 @@ class Vehicle:
                 result5["refresh_expiry_date"] = time.time() + result5["refresh_expires_in"]
                 del result5["refresh_expires_in"]
 
-            auto_token = self._refresh_auto_token_request()
+            auto_token = self._request_auto_token()
             self.auto_access_token = auto_token["access_token"]
             self.auto_refresh_token = auto_token["refresh_token"]
             if "expires_in" in auto_token:
@@ -285,7 +289,7 @@ class Vehicle:
                 if self.auto_expires_at is not None:
                     result5["auto_expiry_date"] = self.auto_expires_at
 
-                self.write_token_to_storage(result5)
+                self._write_token_to_storage(result5)
 
             session.cookies.clear()
             return True
@@ -293,85 +297,120 @@ class Vehicle:
         response5.raise_for_status()
         return False
 
-    def __acquire_tokens(self):
+    def __ensure_valid_tokens(self):
         # Fetch and refresh token as needed
+        _LOGGER.debug("__ensure_valid_tokens()")
         # If file exists read in token file and check it's valid
-        _LOGGER.debug("__acquire_token: called...")
         if self.save_token:
             # do not access every time the file system - since we are the only one
             # using the vehicle object, we can keep the token in memory (and
             # invalidate it if needed)
             if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
-                token_data = self.read_token_from_storage()
+                prev_token_data = self._read_token_from_storage()
                 self.use_token_data_from_memory = True
-                _LOGGER.debug(f"__acquire_token: token data read from fs: {token_data}")
+                _LOGGER.debug(f"__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
 
-                self.access_token = token_data["access_token"]
-                self.refresh_token = token_data["refresh_token"]
-                self.expires_at = token_data["expiry_date"]
+                self.access_token = prev_token_data["access_token"]
+                self.refresh_token = prev_token_data["refresh_token"]
+                self.expires_at = prev_token_data["expiry_date"]
 
-                if "auto_token" in token_data and "auto_refresh_token" in token_data and "auto_expiry_date" in token_data:
-                    self.auto_access_token = token_data["auto_token"]
-                    self.auto_refresh_token = token_data["auto_refresh_token"]
-                    self.auto_expires_at = token_data["auto_expiry_date"]
+                if "auto_token" in prev_token_data and "auto_refresh_token" in prev_token_data and "auto_expiry_date" in prev_token_data:
+                    self.auto_access_token = prev_token_data["auto_token"]
+                    self.auto_refresh_token = prev_token_data["auto_refresh_token"]
+                    self.auto_expires_at = prev_token_data["auto_expiry_date"]
                 else:
-                    _LOGGER.debug("__acquire_token: AUTO token not set (or incomplete) in file")
+                    _LOGGER.debug("__ensure_valid_tokens: auto-token not set (or incomplete) in file")
                     self.auto_access_token = None
                     self.auto_refresh_token = None
                     self.auto_expires_at = None
             else:
-                token_data = {}
-                token_data["access_token"] = self.access_token
-                token_data["refresh_token"] = self.refresh_token
-                token_data["expiry_date"] = self.expires_at
-                token_data["auto_token"] = self.auto_access_token
-                token_data["auto_refresh_token"] = self.auto_refresh_token
-                token_data["auto_expiry_date"] = self.auto_expires_at
+                # we will use the token data from memory...
+                prev_token_data = {}
+                prev_token_data["access_token"] = self.access_token
+                prev_token_data["refresh_token"] = self.refresh_token
+                prev_token_data["expiry_date"] = self.expires_at
+                prev_token_data["auto_token"] = self.auto_access_token
+                prev_token_data["auto_refresh_token"] = self.auto_refresh_token
+                prev_token_data["auto_expiry_date"] = self.auto_expires_at
         else:
-            token_data = {}
-            token_data["access_token"] = self.access_token
-            token_data["refresh_token"] = self.refresh_token
-            token_data["expiry_date"] = self.expires_at
-            token_data["auto_token"] = self.auto_access_token
-            token_data["auto_refresh_token"] = self.auto_refresh_token
-            token_data["auto_expiry_date"] = self.auto_expires_at
+            prev_token_data = {}
+            prev_token_data["access_token"] = self.access_token
+            prev_token_data["refresh_token"] = self.refresh_token
+            prev_token_data["expiry_date"] = self.expires_at
+            prev_token_data["auto_token"] = self.auto_access_token
+            prev_token_data["auto_refresh_token"] = self.auto_refresh_token
+            prev_token_data["auto_expiry_date"] = self.auto_expires_at
 
         # checking token data (and refreshing if needed)
+        now_time = time.time()
+        if self.expires_at and now_time > self.expires_at:
+            _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {now_time - self.expires_at} -> requesting new token")
+            refreshed_token = self.refresh_token_func(prev_token_data)
+            _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+            self.refresh_auto_token_func(refreshed_token)
+
         if self.auto_access_token is None or self.auto_expires_at is None:
-            _LOGGER.debug(f"__acquire_token: auto_token or auto_expires_at is None -> requesting new token")
-            result = self.refresh_token_func(token_data)
-            _LOGGER.debug(f"__acquire_token: result for new token: {result}")
-            self.refresh_auto_token_func(result)
+            _LOGGER.debug(f"__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+            self.refresh_auto_token_func(prev_token_data)
 
-        # self.auto_token = token_data["auto_token"]
-        # self.auto_expires_at = token_data["auto_expiry_date"]
-
-        if self.expires_at:
-            if time.time() >= self.expires_at:
-                _LOGGER.debug("__acquire_token: expires_at has expired -> requesting new token")
-                result = self.refresh_token_func(token_data)
-                _LOGGER.debug(f"__acquire_token: result for new token: {result}")
-                self.refresh_auto_token_func(result)
-
-        if self.auto_expires_at:
-            if time.time() >= self.auto_expires_at:
-                _LOGGER.debug("__acquire_token: auto_expires_at has expired -> requesting new token")
-                result = self.refresh_token_func(token_data)
-                _LOGGER.debug(f"__acquire_token: result for new token: {result}")
-                self.refresh_auto_token_func(result)
+        if self.auto_expires_at and now_time > self.auto_expires_at:
+            _LOGGER.debug(f"__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {now_time - self.auto_expires_at} -> requesting new auto-token")
+            self.refresh_auto_token_func(prev_token_data)
 
         if self.access_token is None:
-            _LOGGER.debug("__acquire_token: self.access_token is None -> requesting new token...")
+            _LOGGER.warning("__ensure_valid_tokens: self.access_token is None -> re_auth() this will probably fail")
             # No existing token exists so refreshing library
-            self.auth()
+            self.re_auth()
         else:
-            _LOGGER.debug("__acquire_token: Token is valid -> continuing")
+            _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
 
-    def refresh_token_func(self, token):
+    def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
-        data = {"refresh_token": token["refresh_token"]}
-        headers = {**apiHeaders, "Application-Id": self.region}
+        _LOGGER.debug(f"refresh_token_func()")
 
+        token_data = self._request_token(prev_token_data)
+        if token_data is not False:
+
+            # re-write the 'expires_in' to 'expiry_date'...
+            if "expires_in" in token_data:
+                token_data["expiry_date"] = time.time() + token_data["expires_in"]
+                del token_data["expires_in"]
+
+            if "refresh_expires_in" in token_data:
+                token_data["refresh_expiry_date"] = time.time() + token_data["refresh_expires_in"]
+                del token_data["refresh_expires_in"]
+
+            if self.save_token:
+                self._write_token_to_storage(token_data)
+
+            self.access_token = token_data["access_token"]
+            self.refresh_token = token_data["refresh_token"]
+            self.expires_at = token_data["expiry_date"]
+
+            _LOGGER.debug("refresh_token_func: OK")
+            return token_data
+
+        else:
+            self.access_token = None
+            self.refresh_token = None
+            self.expires_at = None
+
+            # also invalidating the auto-tokens...
+            self.auto_access_token = None
+            self.auto_refresh_token = None
+            self.auto_expires_at = None
+            _LOGGER.debug(f"refresh_token_func: FAILED!")
+
+    def _request_token(self, prev_token_data):
+        _LOGGER.debug("_request_token()")
+
+        headers = {
+            **apiHeaders,
+            "Application-Id": self.region
+        }
+        data = {
+            "refresh_token": prev_token_data["refresh_token"]
+        }
         response = session.post(
             f"{GUARD_URL}/token/v2/cat-with-refresh-token",
             data=json.dumps(data),
@@ -380,37 +419,20 @@ class Vehicle:
 
         if response.status_code == 200:
             result = response.json()
-
-            # re-write the 'expires_in' to 'expiry_date'...
-            if "expires_in" in result:
-                result["expiry_date"] = time.time() + result["expires_in"]
-                del result["expires_in"]
-
-            if "refresh_expires_in" in result:
-                result["refresh_expiry_date"] = time.time() + result["refresh_expires_in"]
-                del result["refresh_expires_in"]
-
-            if self.save_token:
-                self.write_token_to_storage(result)
-
-            self.access_token = result["access_token"]
-            self.refresh_token = result["refresh_token"]
-            self.expires_at = result["expiry_date"]
-
-            _LOGGER.debug("refresh_token_func: read new access token -> success")
+            _LOGGER.debug(f"_request_token: status OK")
             return result
-
         elif response.status_code == 401:
-            _LOGGER.debug(f"refresh_token_func: status: {response.status_code} - start auth()")
-            self.auth()
+            _LOGGER.warning(f"_request_token: status: {response.status_code} - start re_auth() - this will probably fail")
+            self.re_auth()
+            return False
         else:
-            _LOGGER.debug(f"refresh_token_func: status: {response.status_code} - no data read!")
+            _LOGGER.warning(f"_request_token: status: {response.status_code} - no data read? {response.text}")
+            response.raise_for_status()
+            return False
 
-        return False
-
-    def refresh_auto_token_func(self, token_data):
-        _LOGGER.debug(f"refresh_auto_token_func: called...")
-        auto_token = self._refresh_auto_token_request()
+    def refresh_auto_token_func(self, cur_token_data):
+        _LOGGER.debug(f"refresh_auto_token_func()")
+        auto_token = self._request_auto_token()
         if auto_token is not False:
             if "expires_in" in auto_token:
                 # re-write the 'expires_in' to 'expiry_date'...
@@ -422,32 +444,31 @@ class Vehicle:
                 del auto_token["refresh_expires_in"]
 
             if self.save_token:
-                token_data["auto_token"] = auto_token["access_token"]
-                token_data["auto_refresh_token"] = auto_token["refresh_token"]
-                token_data["auto_expiry_date"] = auto_token["expiry_date"]
+                cur_token_data["auto_token"] = auto_token["access_token"]
+                cur_token_data["auto_refresh_token"] = auto_token["refresh_token"]
+                cur_token_data["auto_expiry_date"] = auto_token["expiry_date"]
 
-                self.write_token_to_storage(token_data)
+                self._write_token_to_storage(cur_token_data)
 
             # finally setting our internal values...
             self.auto_access_token = auto_token["access_token"]
             self.auto_refresh_token = auto_token["refresh_token"]
             self.auto_expires_at = auto_token["expiry_date"]
 
-            _LOGGER.debug(f"refresh_auto_token_func: updated auto_token: {self.auto_access_token} auto_expires_at: {self.auto_expires_at}")
+            _LOGGER.debug("refresh_auto_token_func: OK")
         else:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
             _LOGGER.debug(f"refresh_auto_token_func: FAILED!")
 
-    def _refresh_auto_token_request(self):
+    def _request_auto_token(self):
         """Get token from new autonomic API"""
-        _LOGGER.debug("_refresh_auto_token_request: request Auto Token")
+        _LOGGER.debug("_request_auto_token()")
         headers = {
             "accept": "*/*",
             "content-type": "application/x-www-form-urlencoded"
         }
-
         # looks like, that the auto_refresh_token is useless here...
         # but for now I (marq24) keep this in the code...
         data = {
@@ -457,57 +478,57 @@ class Vehicle:
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
         }
-
-        r = session.post(
+        response = session.post(
             f"{AUTONOMIC_ACCOUNT_URL}/auth/oidc/token",
             data=data,
             headers=headers
         )
 
-        if r.status_code == 200:
-            result = r.json()
-            _LOGGER.debug(f"_refresh_auto_token_request: status: {r.status_code} content: {r.text}")
+        if response.status_code == 200:
+            result = response.json()
+            _LOGGER.debug(f"_request_auto_token: status OK")
             return result
-        elif r.status_code == 401:
-            _LOGGER.debug(f"_refresh_auto_token_request: status: {r.status_code} - start auth()")
-            self.auth()
+        elif response.status_code == 401:
+            _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - start re_auth() - this will probably fail")
+            self.re_auth()
+            return False
         else:
-            _LOGGER.debug(f"_refresh_auto_token_request: status: {r.status_code} - no data read!")
+            _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - no data read? {response.text}")
+            response.raise_for_status()
+            return False
 
-        return False
-
-
-    def write_token_to_storage(self, token):
+    def _write_token_to_storage(self, token):
         """Save token to file for reuse"""
-
+        _LOGGER.debug(f"_write_token_to_storage()")
         # check if parent exists...
         if not os.path.exists(os.path.dirname(self.stored_tokens_location)):
             try:
                 os.makedirs(os.path.dirname(self.stored_tokens_location))
             except OSError as exc:  # Guard
-                _LOGGER.debug(f"write_token_to_storage: create dir caused {exc}")
+                _LOGGER.debug(f"_write_token_to_storage: create dir caused {exc}")
 
         with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
-            _LOGGER.debug(f"write_token_to_storage: {token}")
             json.dump(token, outfile)
 
         # make sure that we will read the token data next time...
         self.use_token_data_from_memory = False
 
-    def read_token_from_storage(self):
+    def _read_token_from_storage(self):
         """Read saved token from file"""
+        _LOGGER.debug(f"_read_token_from_storage()")
         try:
             with open(self.stored_tokens_location, encoding="utf-8") as token_file:
                 token = json.load(token_file)
                 return token
         except ValueError:
-            _LOGGER.debug("read_token_from_storage: Fixing malformed token")
-            self.auth()
+            _LOGGER.debug("_read_token_from_storage: Fixing malformed token")
+            self.re_auth()
             with open(self.stored_tokens_location, encoding="utf-8") as token_file:
                 token = json.load(token_file)
                 return token
 
     def clear_token(self):
+        _LOGGER.debug(f"clear_token()")
         """Clear tokens from config directory"""
         if os.path.isfile("/tmp/fordpass_token.txt"):
             os.remove("/tmp/fordpass_token.txt")
@@ -528,89 +549,42 @@ class Vehicle:
         # https://www.high-mobility.com/car-api/ford-data-api
         # https://github.com/mlaanderson/fordpass-api-doc
 
-        self.__acquire_tokens()
+        self.__ensure_valid_tokens()
         #_LOGGER.debug(f"status: using token: {self.auto_token}")
-        _LOGGER.debug(f"status: started... auto_access_token exist? {self.auto_access_token is not None}")
+        _LOGGER.debug(f"status() - auto_access_token exist? {self.auto_access_token is not None}")
 
-        params_state = {"lrdt": "01-01-1970 00:00:00"}
+        headers_state = {
+            **apiHeaders,
+            "authorization": f"Bearer {self.auto_access_token}",
+            "Application-Id": self.region,
+        }
+        params_state = {
+            "lrdt": "01-01-1970 00:00:00"
+        }
+        response_state = session.get(
+            f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
+            params=params_state,
+            headers=headers_state
+        )
 
-        if NEW_API:
-            headers_state = {
-                **apiHeaders,
-                "authorization": f"Bearer {self.auto_access_token}",
-                "Application-Id": self.region,
-            }
-            response_state = session.get(
-                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}", params=params_state, headers=headers_state
-            )
-            if response_state.status_code == 200:
-                result_state = response_state.json()
+        if response_state.status_code == 200:
+            result_state = response_state.json()
+            if LOG_DATA:
                 _LOGGER.debug(f"status: JSON: {result_state}")
-                return result_state
-            elif response_state.status_code == 401:
-                _LOGGER.debug(f"status: 401")
-                self.auth()
-            else:
-                _LOGGER.debug(f"status: (not 200) {response_state.text}")
-
+            return result_state
+        elif response_state.status_code == 401:
+            _LOGGER.debug(f"status: 401")
+            self.re_auth()
+            return None
+        else:
+            _LOGGER.debug(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
             response_state.raise_for_status()
             return None
 
-        else:
-            # we should get rid of OLD code...
-            headers_state_old = {
-                **apiHeaders,
-                "auth-token": self.access_token,
-                "Application-Id": self.region,
-            }
-            response_state_old = session.get(
-                f"{BASE_URL}/vehicles/v5/{self.vin}/status",
-                params=params_state,
-                headers=headers_state_old
-            )
-            if response_state_old.status_code == 200:
-                result_state_old = response_state_old.json()
-                # this looks a bit wired to me (marq24)... but I leave it for now...
-                if "status" in result_state_old and result_state_old["status"] == 402:
-                    response_state_old.raise_for_state()
-
-                if "vehiclestatus" in result_state_old:
-                    return result_state_old["vehiclestatus"]
-
-            elif response_state_old.status_code == 401:
-                _LOGGER.debug("status: 401 with status request: start token refresh")
-
-                # try to refresh access-token...
-                token_refresh_data = {}
-                token_refresh_data["access_token"] = self.access_token
-                token_refresh_data["refresh_token"] = self.refresh_token
-                token_refresh_data["expiry_date"] = self.expires_at
-                self.refresh_token_func(token_refresh_data)
-                self.__acquire_tokens()
-
-                # ok now access token should be refreshed - we simply try it again...
-                headers_state_old_second_try = {
-                    **apiHeaders,
-                    "auth-token": self.access_token,
-                    "Application-Id": self.region,
-                }
-                response_state_old_second_try = session.get(
-                    f"{BASE_URL}/vehicles/v5/{self.vin}/status",
-                    params=params_state,
-                    headers=headers_state_old_second_try,
-                )
-                if response_state_old_second_try.status_code == 200:
-                    result_state_old_second_try = response_state_old_second_try.json()
-
-                if "vehiclestatus" in result_state_old_second_try:
-                    return result_state_old_second_try["vehiclestatus"]
-
-            response_state_old.raise_for_status()
-
     def messages(self):
         """Get Vehicle messages from API"""
-        self.__acquire_tokens()
-        _LOGGER.debug(f"messages: started... access_token exist? {self.access_token is not None}")
+        self.__ensure_valid_tokens()
+        _LOGGER.debug(f"messages() - access_token exist? {self.access_token is not None}")
 
         headers_msg = {
             **apiHeaders,
@@ -620,21 +594,22 @@ class Vehicle:
         response_msg = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
         if response_msg.status_code == 200:
             result_msg = response_msg.json()
-            _LOGGER.debug(f"messages: JSON: {result_msg}")
+            if LOG_DATA:
+                _LOGGER.debug(f"messages: JSON: {result_msg}")
             return result_msg["result"]["messages"]
         elif response_msg.status_code == 401:
             _LOGGER.debug(f"messages: 401")
-            self.auth()
+            self.re_auth()
+            return None
         else:
-            _LOGGER.debug(f"messages: (not 200) {response_msg.text}")
-
-        response_msg.raise_for_status()
-        return None
+            _LOGGER.debug(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
+            response_msg.raise_for_status()
+            return None
 
     def vehicles(self):
         """Get vehicle list from account"""
-        self.__acquire_tokens()
-        _LOGGER.debug(f"vehicles: started... access_token exist? {self.access_token is not None}")
+        self.__ensure_valid_tokens()
+        _LOGGER.debug(f"vehicles() - access_token exist? {self.access_token is not None}")
 
         headers_veh = {
             **apiHeaders,
@@ -653,21 +628,22 @@ class Vehicle:
         )
         if response_veh.status_code == 207 or response_veh.status_code == 200:
             result_veh = response_veh.json()
-            _LOGGER.debug(f"vehicles: JSON: {result_veh}")
+            if LOG_DATA:
+                _LOGGER.debug(f"vehicles: JSON: {result_veh}")
             return result_veh
         elif response_veh.status_code == 401:
             _LOGGER.debug(f"vehicles: 401")
-            self.auth()
+            self.re_auth()
+            return None
         else:
-            _LOGGER.debug(f"vehicles: (not 200 or 207) {response_veh.text}")
-
-        response_veh.raise_for_status()
-        return None
+            _LOGGER.debug(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
+            response_veh.raise_for_status()
+            return None
 
     def guard_status(self):
         """Retrieve guard status from API"""
-        self.__acquire_tokens()
-        _LOGGER.debug(f"guard_status: started... access_token exist? {self.access_token is not None}")
+        self.__ensure_valid_tokens()
+        _LOGGER.debug(f"guard_status() - access_token exist? {self.access_token is not None}")
 
         headers_gs = {
             **apiHeaders,
@@ -713,7 +689,7 @@ class Vehicle:
         """
         Enable Guard mode on supported models
         """
-        self.__acquire_tokens()
+        self.__ensure_valid_tokens()
 
         response = self.__make_request(
             "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
@@ -725,7 +701,7 @@ class Vehicle:
         """
         Disable Guard mode on supported models
         """
-        self.__acquire_tokens()
+        self.__ensure_valid_tokens()
         response = self.__make_request(
             "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
         )
@@ -734,7 +710,7 @@ class Vehicle:
 
     def request_update(self, vin=None):
         """Send request to vehicle for update"""
-        self.__acquire_tokens()
+        self.__ensure_valid_tokens()
         if vin is None or len(vin) == 0:
             vin_to_requst = self.vin
         else:
@@ -778,7 +754,7 @@ class Vehicle:
 
     def __request_and_poll_command(self, command, vin=None):
         """Send command to the new Command endpoint"""
-        self.__acquire_tokens()
+        self.__ensure_valid_tokens()
         headers = {
             **apiHeaders,
             "Application-Id": self.region,

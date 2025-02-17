@@ -49,7 +49,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up FordPass from a config entry."""
     user = config_entry.data[CONF_USERNAME]
-    password = config_entry.data[CONF_PASSWORD]
     vin = config_entry.data[VIN]
     if UPDATE_INTERVAL in config_entry.options:
         update_interval = config_entry.options[UPDATE_INTERVAL]
@@ -67,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.debug("CANT GET REGION")
         region = DEFAULT_REGION
 
-    coordinator = FordPassDataUpdateCoordinator(hass, user, password, vin, region, update_interval, True)
+    coordinator = FordPassDataUpdateCoordinator(hass, user, vin, region, update_interval, True)
     await coordinator.async_refresh()  # Get initial data
 
     fordpass_options_listener = config_entry.add_update_listener(options_update_listener)
@@ -163,12 +162,12 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
 
-    def __init__(self, hass, user, password, vin, region, update_interval, save_token=False):
+    def __init__(self, hass, user, vin, region, update_interval, save_token=False):
         """Initialize the coordinator and set up the Vehicle object."""
         self._hass = hass
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.vehicle = Vehicle(user, password, vin, region, save_token, config_path)
+        self.vehicle = Vehicle(user, "", vin, region, save_token, config_path)
         self._available = True
         self._cached_vehicles_data = {}
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))

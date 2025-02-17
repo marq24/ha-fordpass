@@ -18,7 +18,7 @@ DISTANCE_CONVERSION_DISABLED = "distance_conversion"
 DISTANCE_CONVERSION_DISABLED_DEFAULT = False
 
 UPDATE_INTERVAL = "update_interval"
-UPDATE_INTERVAL_DEFAULT = 300
+UPDATE_INTERVAL_DEFAULT = 290 # looks like that the default auto-access_token expires after 5 minutes (300 seconds)
 
 COORDINATOR = "coordinator"
 

@@ -49,65 +49,26 @@ def configured_vehicles(hass):
     }
 
 
-async def validate_token(hass: core.HomeAssistant, data):
+async def validate_token(hass: core.HomeAssistant, data, token:str, code_verifier:str):
     _LOGGER.debug(f"validate_token: {data}")
+
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
     vehicle = Vehicle(data[CONF_USERNAME], "", "", data["region"], True, tokens_location=configPath)
-    results = await hass.async_add_executor_job(
-        vehicle.generate_tokens,
-        data["tokenstr"],
-        data["code_verifier"]
-    )
+    results = await hass.async_add_executor_job(vehicle.generate_tokens, token, code_verifier)
 
     if results:
         _LOGGER.debug("Getting Vehicles")
         vehicles = await(hass.async_add_executor_job(vehicle.vehicles))
         _LOGGER.debug(f"Getting Vehicles -> {vehicles}")
         return vehicles
-
-
-async def validate_input(hass: core.HomeAssistant, data):
-    """Validate the user input allows us to connect.
-
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
-    _LOGGER.debug(f"data[REGION]: {data[REGION]}")
-    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], "", data[REGION], True, tokens_location=configPath)
-
-    try:
-        result = await hass.async_add_executor_job(vehicle.auth)
-    except Exception as ex:
-        raise InvalidAuth from ex
-    try:
-        if result:
-            vehicles = await(hass.async_add_executor_job(vehicle.vehicles))
-    except Exception:
-        vehicles = None
-    # except Exception as ex:
-    #     raise InvalidAuth from ex
-
-    # result3 = await hass.async_add_executor_job(vehicle.vehicles)
-    # # Disabled due to API change
-    # vinfound = False
-    # for car in result3:
-    #     if car["vin"] == data[VIN]:
-    #         vinfound = True
-    # if vinfound == False:
-    #     _LOGGER.debug("Vin not found in account, Is your VIN valid?")
-    if not result:
-        _LOGGER.error("Failed to authenticate with fordpass")
+    else:
+        _LOGGER.debug(f"validate_token failed: {results}")
         raise CannotConnect
-
-    # Return info that you want to store in the config entry.
-    return vehicles
-    # return {"title": f"Vehicle ({data[VIN]})"}
-
 
 async def validate_vin(hass: core.HomeAssistant, data):
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
 
-    vehicle = Vehicle(data[CONF_USERNAME], data[CONF_PASSWORD], data[VIN], data[REGION], 1, configPath)
+    vehicle = Vehicle(data[CONF_USERNAME], "", data[VIN], data[REGION], True, configPath)
     test = await(hass.async_add_executor_job(vehicle.get_status))
     _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
     if test and test.status_code == 200:
@@ -125,7 +86,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
     region = DEFAULT_REGION
     username = None
-    login_input = {}
+    code_verifier = None
+    cached_login_input = {}
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -157,23 +119,29 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                token = user_input["tokenstr"]
-                if self.check_token(token):
+                token_fragment = user_input["tokenstr"]
+                # we should not save our user-captured 'code' url...
+                del user_input["tokenstr"]
+
+                if self.check_token(token_fragment):
+                    # we don't need our generated URL either...
+                    del user_input[CONF_URL]
+
                     user_input["region"] = self.region
                     user_input["username"] = self.username
-                    user_input["password"] = ""
-                    user_input["code_verifier"] = self.login_input["code_verifier"]
                     _LOGGER.debug(f"user_input {user_input}")
-                    info = await validate_token(self.hass, user_input)
-                    self.login_input = user_input
-                    if info is None:
-                        self.vehicles = None
-                        _LOGGER.debug("NO VEHICLES FOUND")
-                    else:
+
+                    info = await validate_token(self.hass, user_input, token_fragment, self.code_verifier)
+                    self.cached_login_input = user_input
+
+                    if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
                         self.vehicles = info["userVehicles"]["vehicleDetails"]
-                    if self.vehicles is None:
+                        return await self.async_step_vehicle()
+                    else:
+                        _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
+                        self.vehicles = None
                         return await self.async_step_vin()
-                    return await self.async_step_vehicle()
+
 
                 else:
                     errors["base"] = "invalid_token"
@@ -200,11 +168,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def generate_url(self, region):
         _LOGGER.debug(f"REGIONS[region]: {REGIONS[region]}")
-        code1 = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
-        code_verifier = self.generate_hash(code1)
-        self.login_input["code_verifier"] = code1
-
-        url = f"{REGIONS[region]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region]['locale']}&language_code={REGIONS[region]['locale']}&country_code={REGIONS[region]['locale_short']}&ford_application_id={REGIONS[region]['region']}"
+        self.code_verifier = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
+        hashed_code_verifier = self.generate_hash(self.code_verifier)
+        url = f"{REGIONS[region]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region]['locale']}&language_code={REGIONS[region]['locale']}&country_code={REGIONS[region]['locale_short']}&ford_application_id={REGIONS[region]['region']}"
         return url
 
     def base64_url_encode(self, data):
@@ -226,51 +192,51 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle manual VIN entry"""
         errors = {}
         if user_input is not None:
-            _LOGGER.debug(f"{self.login_input} user_input: {user_input}")
-            data = self.login_input
-            data["vin"] = user_input["vin"]
+            _LOGGER.debug(f"cached_login_input: {self.cached_login_input} vin_input: {user_input}")
+
+            # add the vin to the cached_login_input (so we store this in the config entry)
+            self.cached_login_input["vin"] = user_input["vin"]
             vehicle = None
             try:
-                vehicle = await validate_vin(self.hass, data)
+                vehicle = await validate_vin(self.hass, self.cached_login_input)
             except InvalidVin:
                 errors["base"] = "invalid_vin"
             except Exception:
                 errors["base"] = "unknown"
 
             if vehicle:
-                return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.login_input)
+                return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.cached_login_input)
 
-            # return self.async_create_entry(title=f"Enter VIN", data=self.login_input)
-        _LOGGER.debug(f"{self.login_input}")
+        _LOGGER.debug(f"{self.self.cached_login_input}")
         return self.async_show_form(step_id="vin", data_schema=VIN_SCHEME, errors=errors)
 
     async def async_step_vehicle(self, user_input=None):
         if user_input is not None:
             _LOGGER.debug("Checking Vehicle is accessible")
-            self.login_input[VIN] = user_input["vin"]
-            _LOGGER.debug(f"{self.login_input}")
-            return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.login_input)
+            self.cached_login_input[VIN] = user_input["vin"]
+            _LOGGER.debug(f"{self.cached_login_input}")
+            return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.cached_login_input)
 
-        _LOGGER.debug(f"vehicles: {self.vehicles}")
+        _LOGGER.debug(f"async_step_vehicle with vehicles: {self.vehicles}")
 
         configured = configured_vehicles(self.hass)
         _LOGGER.debug(f"configured: {configured}")
-        avaliable_vehicles = {}
+        available_vehicles = {}
         for vehicle in self.vehicles:
             _LOGGER.debug(f"a vehicle: {vehicle}")
             if vehicle["VIN"] not in configured:
                 if "nickName" in vehicle:
-                    avaliable_vehicles[vehicle["VIN"]] = vehicle["nickName"] + f" ({vehicle['VIN']})"
+                    available_vehicles[vehicle["VIN"]] = vehicle["nickName"] + f" ({vehicle['VIN']})"
                 else:
-                    avaliable_vehicles[vehicle["VIN"]] = f" ({vehicle['VIN']})"
+                    available_vehicles[vehicle["VIN"]] = f" ({vehicle['VIN']})"
 
-        if not avaliable_vehicles:
+        if not available_vehicles:
             _LOGGER.debug("No Vehicles?")
             return self.async_abort(reason="no_vehicles")
         return self.async_show_form(
             step_id="vehicle",
             data_schema=vol.Schema(
-                {vol.Required(VIN): vol.In(avaliable_vehicles)}
+                {vol.Required(VIN): vol.In(available_vehicles)}
             ),
             errors={}
         )
