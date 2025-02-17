@@ -146,119 +146,126 @@ class Vehicle:
     def auth(self):
         """New Authentication System """
         _LOGGER.debug("auth: New System")
+
         # Auth Step1
-        headers = {
+        # ----------------
+        headers1 = {
             **defaultHeaders,
             'Content-Type': 'application/json',
         }
         code1 = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
-        code_verifier = self.generate_hash(code1)
-        url1 = f"{SSO_URL}/v1.0/endpoint/default/authorize?redirect_uri=fordapp://userauthorized&response_type=code&scope=openid&max_age=3600&client_id=9fb503e0-715b-47e8-adfd-ad4b7770f73b&code_challenge={code_verifier}&code_challenge_method=S256"
-        response = session.get(
+        code_verifier1 = self.generate_hash(code1)
+        url1 = f"{SSO_URL}/v1.0/endpoint/default/authorize?redirect_uri=fordapp://userauthorized&response_type=code&scope=openid&max_age=3600&client_id=9fb503e0-715b-47e8-adfd-ad4b7770f73b&code_challenge={code_verifier1}&code_challenge_method=S256"
+        response1 = session.get(
             url1,
-            headers=headers,
+            headers=headers1,
         )
 
-        test = re.findall('data-ibm-login-url="(.*)"\s', response.text)[0]
-        next_url = SSO_URL + test
+        test2 = re.findall('data-ibm-login-url="(.*)"\s', response1.text)[0]
+        url2 = SSO_URL + test2
 
         # Auth Step2
-        headers = {
+        # ----------------
+        headers2 = {
             **defaultHeaders,
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        data = {
+        data2 = {
             "operation": "verify",
             "login-form-type": "password",
             "username": self.username,
             "password": self.password
-
         }
-        response = session.post(
-            next_url,
-            headers=headers,
-            data=data,
+        response2 = session.post(
+            url2,
+            headers=headers2,
+            data=data2,
             allow_redirects=False
         )
 
-        if response.status_code == 302:
-            next_url = response.headers["Location"]
+        if response2.status_code == 302:
+            url3 = response2.headers["Location"]
         else:
-            response.raise_for_status()
+            response2.raise_for_status()
 
         # Auth Step3
-        headers = {
+        # ----------------
+        headers3 = {
             **defaultHeaders,
             'Content-Type': 'application/json',
         }
-
-        response = session.get(
-            next_url,
-            headers=headers,
+        response3 = session.get(
+            url3,
+            headers=headers3,
             allow_redirects=False
         )
 
-        if response.status_code == 302:
-            next_url = response.headers["Location"]
-            query = requests.utils.urlparse(next_url).query
-            params = dict(x.split('=') for x in query.split('&'))
-            code = params["code"]
-            grant_id = params["grant_id"]
+        if response3.status_code == 302:
+            url4 = response3.headers["Location"]
+            query4 = requests.utils.urlparse(url4).query
+            params4 = dict(x.split('=') for x in query4.split('&'))
+            code4 = params4["code"]
+            grant_id4 = params4["grant_id"]
         else:
-            response.raise_for_status()
+            response3.raise_for_status()
 
         # Auth Step4
-        headers = {
+        # ----------------
+        headers4 = {
             **defaultHeaders,
             "Content-Type": "application/x-www-form-urlencoded",
         }
-
-        data = {
+        data4 = {
             "client_id": "9fb503e0-715b-47e8-adfd-ad4b7770f73b",
             "grant_type": "authorization_code",
             "redirect_uri": 'fordapp://userauthorized',
-            "grant_id": grant_id,
-            "code": code,
+            "grant_id": grant_id4,
+            "code": code4,
             "code_verifier": code1
         }
-
-        response = session.post(
+        response4 = session.post(
             f"{SSO_URL}/oidc/endpoint/default/token",
-            headers=headers,
-            data=data
-
+            headers=headers4,
+            data=data4
         )
 
-        if response.status_code == 200:
-            result = response.json()
-            if result["access_token"]:
-                access_token = result["access_token"]
+        if response4.status_code == 200:
+            result4 = response4.json()
+            if result4["access_token"]:
+                access_token5 = result4["access_token"]
         else:
-            response.raise_for_status()
+            response4.raise_for_status()
 
 
         # Auth Step5
-        data = {"ciToken": access_token}
-        headers = {**apiHeaders, "Application-Id": self.region}
-        response = session.post(
+        # ----------------
+        headers5 = {
+            **apiHeaders,
+            "Application-Id": self.region
+        }
+        data5 = {
+            "ciToken": access_token5
+        }
+        response5 = session.post(
             f"{GUARD_URL}/token/v2/cat-with-ci-access-token",
-            data=json.dumps(data),
-            headers=headers,
+            data=json.dumps(data5),
+            headers=headers5,
         )
 
-        if response.status_code == 200:
-            result = response.json()
+        if response5.status_code == 200:
+            result5 = response5.json()
 
-            self.access_token = result["access_token"]
-            self.refresh_token = result["refresh_token"]
-            if "expires_in" in result:
-                result["expiry_date"] = time.time() + result["expires_in"]
-                del result["expires_in"]
-                self.expires_at = result["expiry_date"]
+            # we have finally our access token that allows to request ford API's
+            self.access_token = result5["access_token"]
+            self.refresh_token = result5["refresh_token"]
+            if "expires_in" in result5:
+                result5["expiry_date"] = time.time() + result5["expires_in"]
+                del result5["expires_in"]
+                self.expires_at = result5["expiry_date"]
 
-            if "refresh_expires_in" in result:
-                result["refresh_expiry_date"] = time.time() + result["refresh_expires_in"]
-                del result["refresh_expires_in"]
+            if "refresh_expires_in" in result5:
+                result5["refresh_expiry_date"] = time.time() + result5["refresh_expires_in"]
+                del result5["refresh_expires_in"]
 
             auto_token = self._refresh_auto_token_request()
             self.auto_access_token = auto_token["access_token"]
@@ -273,17 +280,17 @@ class Vehicle:
 
             if self.save_token:
                 # we want to store also the 'auto' token data...
-                result["auto_token"] = self.auto_access_token
-                result["auto_refresh_token"] = self.auto_refresh_token
+                result5["auto_token"] = self.auto_access_token
+                result5["auto_refresh_token"] = self.auto_refresh_token
                 if self.auto_expires_at is not None:
-                    result["auto_expiry_date"] = self.auto_expires_at
+                    result5["auto_expiry_date"] = self.auto_expires_at
 
-                self.write_token_to_storage(result)
+                self.write_token_to_storage(result5)
 
             session.cookies.clear()
             return True
 
-        response.raise_for_status()
+        response5.raise_for_status()
         return False
 
     def __acquire_tokens(self):
@@ -516,150 +523,165 @@ class Vehicle:
     # fetching the main data...
     def status(self):
         """Get Vehicle status from API"""
+
+        # API-Reference?!
+        # https://www.high-mobility.com/car-api/ford-data-api
+        # https://github.com/mlaanderson/fordpass-api-doc
+
         self.__acquire_tokens()
         #_LOGGER.debug(f"status: using token: {self.auto_token}")
-        _LOGGER.debug(f"status: started... token exist? {self.auto_access_token is not None}")
+        _LOGGER.debug(f"status: started... auto_access_token exist? {self.auto_access_token is not None}")
 
-        params = {"lrdt": "01-01-1970 00:00:00"}
-
-        headers = {
-            **apiHeaders,
-            "auth-token": self.access_token,
-            "Application-Id": self.region,
-        }
+        params_state = {"lrdt": "01-01-1970 00:00:00"}
 
         if NEW_API:
-            headers = {
+            headers_state = {
                 **apiHeaders,
                 "authorization": f"Bearer {self.auto_access_token}",
                 "Application-Id": self.region,
             }
-            response = session.get(
-                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}", params=params, headers=headers
+            response_state = session.get(
+                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}", params=params_state, headers=headers_state
             )
-            if response.status_code == 200:
-                result = response.json()
-                _LOGGER.debug(f"status: JSON: {result}")
-                return result
-            elif response.status_code == 401:
+            if response_state.status_code == 200:
+                result_state = response_state.json()
+                _LOGGER.debug(f"status: JSON: {result_state}")
+                return result_state
+            elif response_state.status_code == 401:
                 _LOGGER.debug(f"status: 401")
                 self.auth()
             else:
-                _LOGGER.debug(f"status: (not 200) {response.text}")
+                _LOGGER.debug(f"status: (not 200) {response_state.text}")
+
+            response_state.raise_for_status()
+            return None
 
         else:
             # we should get rid of OLD code...
-            response = session.get(
-                f"{BASE_URL}/vehicles/v5/{self.vin}/status", params=params, headers=headers
+            headers_state_old = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.region,
+            }
+            response_state_old = session.get(
+                f"{BASE_URL}/vehicles/v5/{self.vin}/status",
+                params=params_state,
+                headers=headers_state_old
             )
-            if response.status_code == 200:
-                result = response.json()
-                if result["status"] == 402:
-                    response.raise_for_status()
-                return result["vehiclestatus"]
-            
-            elif response.status_code == 401:
+            if response_state_old.status_code == 200:
+                result_state_old = response_state_old.json()
+                # this looks a bit wired to me (marq24)... but I leave it for now...
+                if "status" in result_state_old and result_state_old["status"] == 402:
+                    response_state_old.raise_for_state()
+
+                if "vehiclestatus" in result_state_old:
+                    return result_state_old["vehiclestatus"]
+
+            elif response_state_old.status_code == 401:
                 _LOGGER.debug("status: 401 with status request: start token refresh")
-                data = {}
-                data["access_token"] = self.access_token
-                data["refresh_token"] = self.refresh_token
-                data["expiry_date"] = self.expires_at
-                self.refresh_token_func(data)
+
+                # try to refresh access-token...
+                token_refresh_data = {}
+                token_refresh_data["access_token"] = self.access_token
+                token_refresh_data["refresh_token"] = self.refresh_token
+                token_refresh_data["expiry_date"] = self.expires_at
+                self.refresh_token_func(token_refresh_data)
                 self.__acquire_tokens()
-                headers = {
+
+                # ok now access token should be refreshed - we simply try it again...
+                headers_state_old_second_try = {
                     **apiHeaders,
                     "auth-token": self.access_token,
                     "Application-Id": self.region,
                 }
-                response = session.get(
+                response_state_old_second_try = session.get(
                     f"{BASE_URL}/vehicles/v5/{self.vin}/status",
-                    params=params,
-                    headers=headers,
+                    params=params_state,
+                    headers=headers_state_old_second_try,
                 )
-                if response.status_code == 200:
-                    result = response.json()
+                if response_state_old_second_try.status_code == 200:
+                    result_state_old_second_try = response_state_old_second_try.json()
 
-                return result["vehiclestatus"]
-            
-            response.raise_for_status()
+                if "vehiclestatus" in result_state_old_second_try:
+                    return result_state_old_second_try["vehiclestatus"]
+
+            response_state_old.raise_for_status()
 
     def messages(self):
         """Get Vehicle messages from API"""
         self.__acquire_tokens()
-        _LOGGER.debug(f"messages: started... token exist? {self.auto_access_token is not None}")
+        _LOGGER.debug(f"messages: started... access_token exist? {self.access_token is not None}")
 
-        headers = {
+        headers_msg = {
             **apiHeaders,
             "Auth-Token": self.access_token,
             "Application-Id": self.region,
         }
-        response = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers)
-        if response.status_code == 200:
-            result = response.json()
-            _LOGGER.debug(f"messages: JSON: {result}")
-            return result["result"]["messages"]
-        elif response.status_code == 401:
+        response_msg = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
+        if response_msg.status_code == 200:
+            result_msg = response_msg.json()
+            _LOGGER.debug(f"messages: JSON: {result_msg}")
+            return result_msg["result"]["messages"]
+        elif response_msg.status_code == 401:
             _LOGGER.debug(f"messages: 401")
             self.auth()
         else:
-            _LOGGER.debug(f"messages: (not 200) {response.text}")
+            _LOGGER.debug(f"messages: (not 200) {response_msg.text}")
 
-        response.raise_for_status()
+        response_msg.raise_for_status()
         return None
 
     def vehicles(self):
         """Get vehicle list from account"""
         self.__acquire_tokens()
-        _LOGGER.debug(f"vehicles: started... token exist? {self.auto_access_token is not None}")
+        _LOGGER.debug(f"vehicles: started... access_token exist? {self.access_token is not None}")
 
-        headers = {
+        headers_veh = {
             **apiHeaders,
             "Auth-Token": self.access_token,
             "Application-Id": self.region,
             "Countrycode": self.countrycode,
-            "Locale": "EN-US"
+            "Locale": "en-US"
         }
-
-        data = {
+        data_veh = {
             "dashboardRefreshRequest": "All"
         }
-        response = session.post(
+        response_veh = session.post(
             f"{GUARD_URL}/expdashboard/v1/details/",
-            headers=headers,
-            data=json.dumps(data)
+            headers=headers_veh,
+            data=json.dumps(data_veh)
         )
-        if response.status_code == 207 or response.status_code == 200:
-            result = response.json()
-            _LOGGER.debug(f"vehicles: JSON: {result}")
-            return result
-        elif response.status_code == 401:
+        if response_veh.status_code == 207 or response_veh.status_code == 200:
+            result_veh = response_veh.json()
+            _LOGGER.debug(f"vehicles: JSON: {result_veh}")
+            return result_veh
+        elif response_veh.status_code == 401:
             _LOGGER.debug(f"vehicles: 401")
             self.auth()
         else:
-            _LOGGER.debug(f"vehicles: (not 200 or 207) {response.text}")
+            _LOGGER.debug(f"vehicles: (not 200 or 207) {response_veh.text}")
 
-        response.raise_for_status()
+        response_veh.raise_for_status()
         return None
 
     def guard_status(self):
         """Retrieve guard status from API"""
         self.__acquire_tokens()
-        _LOGGER.debug(f"guard_status: started... token exist? {self.auto_access_token is not None}")
+        _LOGGER.debug(f"guard_status: started... access_token exist? {self.access_token is not None}")
 
-        params = {"lrdt": "01-01-1970 00:00:00"}
-
-        headers = {
+        headers_gs = {
             **apiHeaders,
             "auth-token": self.access_token,
             "Application-Id": self.region,
         }
+        params_gs = {"lrdt": "01-01-1970 00:00:00"}
 
-        response = session.get(
+        response_gs = session.get(
             f"{GUARD_URL}/guardmode/v1/{self.vin}/session",
-            params=params,
-            headers=headers,
+            params=params_gs,
+            headers=headers_gs,
         )
-        return response.json()
+        return response_gs.json()
 
 
     # operations
