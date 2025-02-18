@@ -34,8 +34,8 @@
 1. In HA HACS, you need to add a new custom repository (via the 'three dots' menu in the top right corner).
 2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
 3. After adding the new repository, you can search for `fordpass` in the search bar.
-4. Important there is already a default HACS fordpass integration - Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork as 1.71 Release (EVCC optimized)]_
-5. Install the 'correct' (aka 'this') fordpass integration (v1.71).
+4. Important there is already a default HACS fordpass integration - Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork optimized for EVCC].
+5. Install the 'correct' (aka 'this') fordpass integration (v1.71 or higher).
 6. Restart HA.
 
 ### Step 2. Setup the Integration
