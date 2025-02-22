@@ -1,6 +1,16 @@
 # Fordpass Home Assistant Integration (EV dedicated) [v1.7x fork]
 
+
 [![hacs_badge](https://img.shields.io/badge/HACS-custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+
+> [!WARNING]
+> ## Disclaimer - Use could lead to a (temporary) lock of your Fordpass account.
+> **This integration is not officially supported by Ford and as such using this integration could result in your account being locked out!** 
+> 
+> Please be aware, that we are developing this integration to best of our knowledge and belief, but cant give a guarantee. Therefore, use this integration **at your own risk**!
+> 
+> - It's recommended to use/create a **separate Fordpass account** for this integration (see step-by-step procedure further below).
+> - It's recommended to use an **update interval of 240 seconds or higher** to prevent a lock of your Fordpass account.
 
 > [!NOTE]
 > This fork is WIP - and since I just own a EV (Mustang MachE 2023) I will focus on the features of the electrical vehicle data.
@@ -58,7 +68,23 @@ Please follow the steps:
 More details (how to deal with the browser developer tools) to obtain your token can be found in the [docs](./doc/OBTAINING_TOKEN.md).
 
 ## Usage with EVCC
+
 [All information, how to use this integration as provider for Ford EV data can be found in a seperate section.](./doc/EVCC.md)
+
+## Use of a separate Fordpass account is recommended
+
+It's recommended to use a separate Fordpass account for this integration. This is to prevent any issues with the Fordpass account being locked due to the polling of the API. Here are is a short procedure:
+
+1. Create a new Fordpass account with a different email address (and confirm the account by eMail) - It's important, that you can access this eMail account from your mobile phone with the installed FordPass App!
+2. From the Fordpass app (logged in with your original account), you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
+3. On the next screen select `Vehicle Access` (from the options: `Phone As A Key >`, `Software updates >` & `Vehicle Access >`)
+4. Select `Invite Driver(s) Invite` and then enter the next screen the eMail address of the new account you created in step 1. 
+5. Now you can log out from the Fordpass app and log-in with the new account.
+6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.
+7. Finally, you should have now connected your car to the new Fordpass account.
+8. You can now log out again of the Fordpass app with your second account and re-login with your original Fordpass account.
+9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
+
 
 ## **Changelog**
 [Updates](info.md)
@@ -83,7 +109,6 @@ If you are experiencing any sign in issues, please trying clearing your tokens u
 
 ### Poll API
 This service allows you to manually refresh/poll the API without waiting the set poll interval. Handy if you need quicker updates e.g. when driving for gps coordinates
-
 
 ## Sensors
 ### Currently Working
@@ -110,7 +135,3 @@ This service allows you to manually refresh/poll the API without waiting the set
 - Guard Mode (Only supported cars)
 - Deep sleep status
 - Fordpass messages and alerts
-
-## Disclaimer
-
-This integration is not officially supported by Ford and as such using this integration could result in your account being locked out!
