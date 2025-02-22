@@ -1,7 +1,9 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Konto ist bereits konfiguriert"
+            "already_configured": "Konto ist bereits konfiguriert",
+            "reauth_successful": "Re-Autorisierung erfolgreich",
+            "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut"
         },
         "error": {
             "cannot_connect": "Verbindungsfehler",
@@ -11,8 +13,16 @@
         },
         "step": {
             "token": {
-                "title": "Setup Token",
+                "title": "Zugriffs-Token Einrichtung",
                 "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL diesen Browser ein\r3. Gibt Deine Fordpass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
+                "data": {
+                    "url": "URL: Füge diese in Deinen Browser ein",
+                    "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
+                }
+            },
+            "reauth_token": {
+                "title": "Erneute Autorisierung erforderlich",
+                "description": "Dein bisheriges Token ist ungültig (geworden) - Du musst also ein Neues angeben:\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\n\nBitte befolge die Schritte:\n1. Kopiere die URL aus dem oberen Feld\n2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL diesen Browser ein\n3. Gibt Deine Fordpass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\n4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\n5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\n6. Klicke auf „OK“ um fortzufahren",
                 "data": {
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
@@ -70,7 +80,7 @@
         },
         "clear_tokens": {
             "name": "Token-Cache leeren",
-            "description": "Leert die Token-Cache."
+            "description": "Leert die zwischengespeicherten Tokens (macht eine Re-Authorisierung erforderlich)"
         },
         "reload": {
             "name": "Integration neu laden",

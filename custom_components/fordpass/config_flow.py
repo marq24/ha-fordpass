@@ -5,11 +5,14 @@ import random
 import re
 import string
 from base64 import urlsafe_b64encode
+from collections.abc import Mapping
+from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries, core, exceptions
-from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
+from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
 
 from .const import (  # pylint:disable=unused-import
     CONF_DISTANCE_UNIT,
@@ -39,6 +42,7 @@ VIN_SCHEME = vol.Schema(
     }
 )
 
+CONF_TOKEN_STR: Final = "tokenstr"
 
 @callback
 def configured_vehicles(hass):
@@ -53,7 +57,7 @@ async def validate_token(hass: core.HomeAssistant, data, token:str, code_verifie
     _LOGGER.debug(f"validate_token: {data}")
 
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(data[CONF_USERNAME], "", "", data["region"], True, tokens_location=configPath)
+    vehicle = Vehicle(data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
     results = await hass.async_add_executor_job(vehicle.generate_tokens, token, code_verifier)
 
     if results:
@@ -64,6 +68,19 @@ async def validate_token(hass: core.HomeAssistant, data, token:str, code_verifie
     else:
         _LOGGER.debug(f"validate_token failed: {results}")
         raise CannotConnect
+
+async def validate_token_only(hass: core.HomeAssistant, data, token:str, code_verifier:str) -> bool:
+    _LOGGER.debug(f"validate_token_only: {data}")
+
+    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
+    vehicle = Vehicle(data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
+    results = await hass.async_add_executor_job(vehicle.generate_tokens, token, code_verifier)
+
+    if not results:
+        _LOGGER.debug(f"validate_token failed: {results}")
+        raise CannotConnect
+    else:
+        return True
 
 async def validate_vin(hass: core.HomeAssistant, data):
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
@@ -119,16 +136,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                token_fragment = user_input["tokenstr"]
+                token_fragment = user_input[CONF_TOKEN_STR]
                 # we should not save our user-captured 'code' url...
-                del user_input["tokenstr"]
+                del user_input[CONF_TOKEN_STR]
 
                 if self.check_token(token_fragment):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
-                    user_input["region"] = self.region
-                    user_input["username"] = self.username
+                    user_input[CONF_REGION] = self.region
+                    user_input[CONF_USERNAME] = self.username
                     _LOGGER.debug(f"user_input {user_input}")
 
                     info = await validate_token(self.hass, user_input, token_fragment, self.code_verifier)
@@ -156,7 +173,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="token", data_schema=vol.Schema(
                     {
                         vol.Optional(CONF_URL, default=self.generate_url(self.region)): str,
-                        vol.Required("tokenstr"): str,
+                        vol.Required(CONF_TOKEN_STR): str,
                     }
                 ), errors=errors
             )
@@ -239,6 +256,82 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {vol.Required(VIN): vol.In(available_vehicles)}
             ),
             errors={}
+        )
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """Handle re-authentication"""
+        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        return await self.async_step_reauth_token()
+
+    async def async_step_reauth_token(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Dialog that informs the user that reauth is required."""
+
+        errors: dict[str, str] = {}
+        assert self.entry is not None
+
+
+        if user_input is not None:
+            try:
+                token_fragment = user_input[CONF_TOKEN_STR]
+                # we should not save our user-captured 'code' url...
+                del user_input[CONF_TOKEN_STR]
+
+                if self.check_token(token_fragment):
+                    # we don't need our generated URL either...
+                    del user_input[CONF_URL]
+
+                    # ok we have already the username and region, this must be stored
+                    # in the config entry, so we can get it from there...
+                    user_input[CONF_REGION] = self.entry.data[CONF_REGION]
+                    user_input[CONF_USERNAME] = self.entry.data[CONF_USERNAME]
+                    _LOGGER.debug(f"async_step_reauth_token: user_input -> {user_input}")
+
+                    info = await validate_token_only(self.hass, user_input, token_fragment, self.code_verifier)
+                    if info:
+                        # do we want to check, if the VIN is still accessible?!
+                        # for now we just will reload the config entry...
+                        await self.hass.config_entries.async_reload(self.entry.entry_id)
+                        return self.async_abort(reason="reauth_successful")
+                    else:
+                        # what we need to do, if user did not re-authenticate successfully?
+                        _LOGGER.warning(f"Re-Authorization failed - fordpass integration can't provide data for VIN: {self.entry.data[VIN]}")
+                        return self.async_abort(reason="reauth_unsuccessful")
+                        pass
+                else:
+                    errors["base"] = "invalid_token"
+
+            except CannotConnect as ex:
+                _LOGGER.debug(f"async_step_reauth_token {ex}")
+                errors["base"] = "cannot_connect"
+
+
+            # try:
+            #     info = await self._async_get_info(host)
+            # except (DeviceConnectionError, InvalidAuthError, FirmwareUnsupported):
+            #     return self.async_abort(reason="reauth_unsuccessful")
+            #
+            # if self.entry.data.get("gen", 1) != 1:
+            #     user_input[CONF_USERNAME] = "admin"
+            # try:
+            #     await validate_input(self.hass, host, info, user_input)
+            # except (DeviceConnectionError, InvalidAuthError, FirmwareUnsupported):
+            #     return self.async_abort(reason="reauth_unsuccessful")
+            # else:
+            #     self.hass.config_entries.async_update_entry(
+            #         self.entry, data={**self.entry.data, **user_input}
+            #     )
+            #     await self.hass.config_entries.async_reload(self.entry.entry_id)
+            #     return self.async_abort(reason="reauth_successful")
+
+        # then we generate again the fordpass-login-url and show it to the
+        # user...
+        return self.async_show_form(
+            step_id="reauth_token", data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_URL, default=self.generate_url(self.entry.data[CONF_REGION])): str,
+                    vol.Required(CONF_TOKEN_STR): str,
+                }
+            ), errors=errors
         )
 
     @staticmethod

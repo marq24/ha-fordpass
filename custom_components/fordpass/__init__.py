@@ -7,7 +7,7 @@ from re import sub
 import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_USERNAME
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.typing import UNDEFINED
@@ -66,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.debug("CANT GET REGION")
         region = DEFAULT_REGION
 
-    coordinator = FordPassDataUpdateCoordinator(hass, user, vin, region, update_interval, True)
+    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region, update_interval, True)
     await coordinator.async_refresh()  # Get initial data
 
     fordpass_options_listener = config_entry.add_update_listener(options_update_listener)
@@ -93,6 +93,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     async def async_clear_tokens_service(call: ServiceCall):
         await hass.async_add_executor_job(service_clear_tokens, hass, call, coordinator)
+        await asyncio.sleep(5)
+        await coordinator.async_request_refresh()
 
     async def poll_api_service(call: ServiceCall):
         await coordinator.async_request_refresh()
@@ -162,54 +164,65 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
 
-    def __init__(self, hass, user, vin, region, update_interval, save_token=False):
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry,
+                 user, vin, region, update_interval, save_token=False):
         """Initialize the coordinator and set up the Vehicle object."""
         self._hass = hass
+        self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
         self.vehicle = Vehicle(user, "", vin, region, save_token, config_path)
         self._available = True
         self._cached_vehicles_data = {}
+        self._reauth_requested = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
-        try:
-            async with async_timeout.timeout(30):
-
-                data = await self._hass.async_add_executor_job(self.vehicle.status)
-
-                # Temporarily removed due to Ford backend API changes
-                # data["guardstatus"] = await self._hass.async_add_executor_job(self.vehicle.guardStatus)
-
-                data["messages"] = await self._hass.async_add_executor_job(self.vehicle.messages)
-
-                # only update vehicles data if not present yet
-                if len(self._cached_vehicles_data) == 0:
-                    _LOGGER.debug("_async_update_data: request vehicle data...")
-                    self._cached_vehicles_data = await self._hass.async_add_executor_job(self.vehicle.vehicles)
-
-                if len(self._cached_vehicles_data) > 0:
-                    data["vehicles"] = self._cached_vehicles_data
-
-                if "metrics" in data and data["metrics"] is not None:
-                    _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")
-                else:
-                    _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
-
-                # only for private debugging
-                #self.write_data_debug(data)
-
-                # If data has now been fetched but was previously unavailable, log and reset
-                if not self._available:
-                    _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
-                    self._available = True
-
-                return data
-        except Exception as ex:
+        if self.vehicle.require_reauth:
             self._available = False  # Mark as unavailable
-            _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {str(ex)}")
-            raise UpdateFailed(f"Error communicating with FordPass for {self._vin}") from ex
+            if not self._reauth_requested:
+                self._reauth_requested = True
+                _LOGGER.warning(f"_async_update_data: VIN {self._vin} requires re-authentication")
+                self._hass.add_job(self._config_entry.async_start_reauth, self._hass)
+
+            raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
+        else:
+            try:
+                async with async_timeout.timeout(30):
+                    data = await self._hass.async_add_executor_job(self.vehicle.status)
+
+                    # Temporarily removed due to Ford backend API changes
+                    # data["guardstatus"] = await self._hass.async_add_executor_job(self.vehicle.guardStatus)
+
+                    data["messages"] = await self._hass.async_add_executor_job(self.vehicle.messages)
+
+                    # only update vehicles data if not present yet
+                    if len(self._cached_vehicles_data) == 0:
+                        _LOGGER.debug("_async_update_data: request vehicle data...")
+                        self._cached_vehicles_data = await self._hass.async_add_executor_job(self.vehicle.vehicles)
+
+                    if len(self._cached_vehicles_data) > 0:
+                        data["vehicles"] = self._cached_vehicles_data
+
+                    if "metrics" in data and data["metrics"] is not None:
+                        _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")
+                    else:
+                        _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
+
+                    # only for private debugging
+                    #self.write_data_debug(data)
+
+                    # If data has now been fetched but was previously unavailable, log and reset
+                    if not self._available:
+                        _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
+                        self._available = True
+
+                    return data
+            except Exception as ex:
+                self._available = False  # Mark as unavailable
+                _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {str(ex)}")
+                raise UpdateFailed(f"Error communicating with FordPass for {self._vin}") from ex
 
     # def write_data_debug(self, data):
     #     import time

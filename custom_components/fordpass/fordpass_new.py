@@ -1,13 +1,8 @@
 """Fordpass API Library"""
-import hashlib
 import json
 import logging
 import os
-import random
-import re
-import string
 import time
-from base64 import urlsafe_b64encode
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -51,7 +46,7 @@ class Vehicle:
 
     def __init__(self, username, password, vin, region, save_token=False, tokens_location=None):
         self.username = username
-        self.password = password
+        #self.password = password # password is not used anymore...
         self.save_token = save_token
         self.region = REGIONS[region]["region"]
         self.country_code = REGIONS[region]["locale"]
@@ -74,16 +69,15 @@ class Vehicle:
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
+
         if tokens_location is None:
             self.stored_tokens_location = f".storage/fordpass/{username}_access_token.txt"
         else:
             self.stored_tokens_location = tokens_location
 
+        self._is_reauth_required = False
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
-    def base64_url_encode(self, data):
-        """Encode string to base64"""
-        return urlsafe_b64encode(data).rstrip(b'=')
 
     def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
@@ -114,6 +108,7 @@ class Vehicle:
             _LOGGER.warning(f"generate_tokens 'FAILED'- http status: {response.status_code} - cause no 'access_token' in response: {token_data}")
             return False
 
+
     def generate_tokens_part2(self, token):
         headers = {**apiHeaders, "Application-Id": self.region}
         data = {"idpToken": token["access_token"]}
@@ -140,162 +135,173 @@ class Vehicle:
 
         return True
 
-    def generate_hash(self, code):
-        """Generate hash for login"""
-        hashengine = hashlib.sha256()
-        hashengine.update(code.encode('utf-8'))
-        return self.base64_url_encode(hashengine.digest()).decode('utf-8')
+    @property
+    def require_reauth(self) -> bool:
+        return self._is_reauth_required
 
-    # IMHO (marq24) this can't work - since with the latest (1.7x versions we do not have the password from the user...
-    # so there is IMHO no wqy to get access again (if our tokens are invalidated)...
-    def re_auth(self):
-        """New Authentication System """
-        _LOGGER.debug("auth: New System")
+    def mark_re_auth_required(self):
+        self._is_reauth_required = True
 
-        # Auth Step1
-        # ----------------
-        headers1 = {
-            **defaultHeaders,
-            'Content-Type': 'application/json',
-        }
-        code1 = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
-        code_verifier1 = self.generate_hash(code1)
-        url1 = f"{SSO_URL}/v1.0/endpoint/default/authorize?redirect_uri=fordapp://userauthorized&response_type=code&scope=openid&max_age=3600&client_id=9fb503e0-715b-47e8-adfd-ad4b7770f73b&code_challenge={code_verifier1}&code_challenge_method=S256"
-        response1 = session.get(
-            url1,
-            headers=headers1,
-        )
-
-        test2 = re.findall('data-ibm-login-url="(.*)"\s', response1.text)[0]
-        url2 = SSO_URL + test2
-
-        # Auth Step2
-        # ----------------
-        headers2 = {
-            **defaultHeaders,
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        data2 = {
-            "operation": "verify",
-            "login-form-type": "password",
-            "username": self.username,
-            "password": self.password
-        }
-        response2 = session.post(
-            url2,
-            headers=headers2,
-            data=data2,
-            allow_redirects=False
-        )
-
-        if response2.status_code == 302:
-            url3 = response2.headers["Location"]
-        else:
-            response2.raise_for_status()
-
-        # Auth Step3
-        # ----------------
-        headers3 = {
-            **defaultHeaders,
-            'Content-Type': 'application/json',
-        }
-        response3 = session.get(
-            url3,
-            headers=headers3,
-            allow_redirects=False
-        )
-
-        if response3.status_code == 302:
-            url4 = response3.headers["Location"]
-            query4 = requests.utils.urlparse(url4).query
-            params4 = dict(x.split('=') for x in query4.split('&'))
-            code4 = params4["code"]
-            grant_id4 = params4["grant_id"]
-        else:
-            response3.raise_for_status()
-
-        # Auth Step4
-        # ----------------
-        headers4 = {
-            **defaultHeaders,
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        data4 = {
-            "client_id": "9fb503e0-715b-47e8-adfd-ad4b7770f73b",
-            "grant_type": "authorization_code",
-            "redirect_uri": 'fordapp://userauthorized',
-            "grant_id": grant_id4,
-            "code": code4,
-            "code_verifier": code1
-        }
-        response4 = session.post(
-            f"{SSO_URL}/oidc/endpoint/default/token",
-            headers=headers4,
-            data=data4
-        )
-
-        if response4.status_code == 200:
-            result4 = response4.json()
-            if result4["access_token"]:
-                access_token5 = result4["access_token"]
-        else:
-            response4.raise_for_status()
-
-        # Auth Step5
-        # ----------------
-        headers5 = {
-            **apiHeaders,
-            "Application-Id": self.region
-        }
-        data5 = {
-            "ciToken": access_token5
-        }
-        response5 = session.post(
-            f"{GUARD_URL}/token/v2/cat-with-ci-access-token",
-            data=json.dumps(data5),
-            headers=headers5,
-        )
-
-        if response5.status_code == 200:
-            result5 = response5.json()
-
-            # we have finally our access token that allows to request ford API's
-            self.access_token = result5["access_token"]
-            self.refresh_token = result5["refresh_token"]
-            if "expires_in" in result5:
-                result5["expiry_date"] = time.time() + result5["expires_in"]
-                del result5["expires_in"]
-                self.expires_at = result5["expiry_date"]
-
-            if "refresh_expires_in" in result5:
-                result5["refresh_expiry_date"] = time.time() + result5["refresh_expires_in"]
-                del result5["refresh_expires_in"]
-
-            auto_token = self._request_auto_token()
-            self.auto_access_token = auto_token["access_token"]
-            self.auto_refresh_token = auto_token["refresh_token"]
-            if "expires_in" in auto_token:
-                self.auto_expires_at = time.time() + auto_token["expires_in"]
-                del auto_token["expires_in"]
-
-            if "refresh_expires_in" in auto_token:
-                auto_token["refresh_expiry_date"] = time.time() + auto_token["refresh_expires_in"]
-                del auto_token["refresh_expires_in"]
-
-            if self.save_token:
-                # we want to store also the 'auto' token data...
-                result5["auto_token"] = self.auto_access_token
-                result5["auto_refresh_token"] = self.auto_refresh_token
-                if self.auto_expires_at is not None:
-                    result5["auto_expiry_date"] = self.auto_expires_at
-
-                self._write_token_to_storage(result5)
-
-            session.cookies.clear()
-            return True
-
-        response5.raise_for_status()
-        return False
+    # def base64_url_encode(self, data):
+    #     """Encode string to base64"""
+    #     return urlsafe_b64encode(data).rstrip(b'=')
+    #
+    # def generate_hash(self, code):
+    #     """Generate hash for login"""
+    #     hashengine = hashlib.sha256()
+    #     hashengine.update(code.encode('utf-8'))
+    #     return self.base64_url_encode(hashengine.digest()).decode('utf-8')
+    #
+    # # IMHO (marq24) this can't work - since with the latest (1.7x versions we do not have the password from the user...
+    # # so there is IMHO no wqy to get access again (if our tokens are invalidated)...
+    # def re_auth(self):
+    #     """New Authentication System """
+    #     _LOGGER.debug("auth: New System")
+    #
+    #     # Auth Step1
+    #     # ----------------
+    #     headers1 = {
+    #         **defaultHeaders,
+    #         'Content-Type': 'application/json',
+    #     }
+    #     code1 = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
+    #     code_verifier1 = self.generate_hash(code1)
+    #     url1 = f"{SSO_URL}/v1.0/endpoint/default/authorize?redirect_uri=fordapp://userauthorized&response_type=code&scope=openid&max_age=3600&client_id=9fb503e0-715b-47e8-adfd-ad4b7770f73b&code_challenge={code_verifier1}&code_challenge_method=S256"
+    #     response1 = session.get(
+    #         url1,
+    #         headers=headers1,
+    #     )
+    #
+    #     test2 = re.findall('data-ibm-login-url="(.*)"\s', response1.text)[0]
+    #     url2 = SSO_URL + test2
+    #
+    #     # Auth Step2
+    #     # ----------------
+    #     headers2 = {
+    #         **defaultHeaders,
+    #         "Content-Type": "application/x-www-form-urlencoded",
+    #     }
+    #     data2 = {
+    #         "operation": "verify",
+    #         "login-form-type": "password",
+    #         "username": self.username,
+    #         "password": self.password
+    #     }
+    #     response2 = session.post(
+    #         url2,
+    #         headers=headers2,
+    #         data=data2,
+    #         allow_redirects=False
+    #     )
+    #
+    #     if response2.status_code == 302:
+    #         url3 = response2.headers["Location"]
+    #     else:
+    #         response2.raise_for_status()
+    #
+    #     # Auth Step3
+    #     # ----------------
+    #     headers3 = {
+    #         **defaultHeaders,
+    #         'Content-Type': 'application/json',
+    #     }
+    #     response3 = session.get(
+    #         url3,
+    #         headers=headers3,
+    #         allow_redirects=False
+    #     )
+    #
+    #     if response3.status_code == 302:
+    #         url4 = response3.headers["Location"]
+    #         query4 = requests.utils.urlparse(url4).query
+    #         params4 = dict(x.split('=') for x in query4.split('&'))
+    #         code4 = params4["code"]
+    #         grant_id4 = params4["grant_id"]
+    #     else:
+    #         response3.raise_for_status()
+    #
+    #     # Auth Step4
+    #     # ----------------
+    #     headers4 = {
+    #         **defaultHeaders,
+    #         "Content-Type": "application/x-www-form-urlencoded",
+    #     }
+    #     data4 = {
+    #         "client_id": "9fb503e0-715b-47e8-adfd-ad4b7770f73b",
+    #         "grant_type": "authorization_code",
+    #         "redirect_uri": 'fordapp://userauthorized',
+    #         "grant_id": grant_id4,
+    #         "code": code4,
+    #         "code_verifier": code1
+    #     }
+    #     response4 = session.post(
+    #         f"{SSO_URL}/oidc/endpoint/default/token",
+    #         headers=headers4,
+    #         data=data4
+    #     )
+    #
+    #     if response4.status_code == 200:
+    #         result4 = response4.json()
+    #         if result4["access_token"]:
+    #             access_token5 = result4["access_token"]
+    #     else:
+    #         response4.raise_for_status()
+    #
+    #     # Auth Step5
+    #     # ----------------
+    #     headers5 = {
+    #         **apiHeaders,
+    #         "Application-Id": self.region
+    #     }
+    #     data5 = {
+    #         "ciToken": access_token5
+    #     }
+    #     response5 = session.post(
+    #         f"{GUARD_URL}/token/v2/cat-with-ci-access-token",
+    #         data=json.dumps(data5),
+    #         headers=headers5,
+    #     )
+    #
+    #     if response5.status_code == 200:
+    #         result5 = response5.json()
+    #
+    #         # we have finally our access token that allows to request ford API's
+    #         self.access_token = result5["access_token"]
+    #         self.refresh_token = result5["refresh_token"]
+    #         if "expires_in" in result5:
+    #             result5["expiry_date"] = time.time() + result5["expires_in"]
+    #             del result5["expires_in"]
+    #             self.expires_at = result5["expiry_date"]
+    #
+    #         if "refresh_expires_in" in result5:
+    #             result5["refresh_expiry_date"] = time.time() + result5["refresh_expires_in"]
+    #             del result5["refresh_expires_in"]
+    #
+    #         auto_token = self._request_auto_token()
+    #         self.auto_access_token = auto_token["access_token"]
+    #         self.auto_refresh_token = auto_token["refresh_token"]
+    #         if "expires_in" in auto_token:
+    #             self.auto_expires_at = time.time() + auto_token["expires_in"]
+    #             del auto_token["expires_in"]
+    #
+    #         if "refresh_expires_in" in auto_token:
+    #             auto_token["refresh_expiry_date"] = time.time() + auto_token["refresh_expires_in"]
+    #             del auto_token["refresh_expires_in"]
+    #
+    #         if self.save_token:
+    #             # we want to store also the 'auto' token data...
+    #             result5["auto_token"] = self.auto_access_token
+    #             result5["auto_refresh_token"] = self.auto_refresh_token
+    #             if self.auto_expires_at is not None:
+    #                 result5["auto_expiry_date"] = self.auto_expires_at
+    #
+    #             self._write_token_to_storage(result5)
+    #
+    #         session.cookies.clear()
+    #         return True
+    #
+    #     response5.raise_for_status()
+    #     return False
 
     def __ensure_valid_tokens(self):
         # Fetch and refresh token as needed
@@ -360,7 +366,7 @@ class Vehicle:
         if self.access_token is None:
             _LOGGER.warning("__ensure_valid_tokens: self.access_token is None -> re_auth() this will probably fail")
             # No existing token exists so refreshing library
-            self.re_auth()
+            self.mark_re_auth_required()
         else:
             _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
 
@@ -423,7 +429,7 @@ class Vehicle:
             return result
         elif response.status_code == 401:
             _LOGGER.warning(f"_request_token: status: {response.status_code} - start re_auth() - this will probably fail")
-            self.re_auth()
+            self.mark_re_auth_required()
             return False
         else:
             _LOGGER.warning(f"_request_token: status: {response.status_code} - no data read? {response.text}")
@@ -490,7 +496,7 @@ class Vehicle:
             return result
         elif response.status_code == 401:
             _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - start re_auth() - this will probably fail")
-            self.re_auth()
+            self.mark_re_auth_required()
             return False
         else:
             _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - no data read? {response.text}")
@@ -522,7 +528,7 @@ class Vehicle:
                 return token
         except ValueError:
             _LOGGER.debug("_read_token_from_storage: Fixing malformed token")
-            self.re_auth()
+            self.mark_re_auth_required()
             with open(self.stored_tokens_location, encoding="utf-8") as token_file:
                 token = json.load(token_file)
                 return token
@@ -539,6 +545,9 @@ class Vehicle:
 
         # make sure that we will read the token data next time...
         self.use_token_data_from_memory = False
+
+        # but when we cleared the tokens... we must mark us as 're-auth' required...
+        self._is_reauth_required = True
 
 
     # fetching the main data...
@@ -574,7 +583,7 @@ class Vehicle:
             return result_state
         elif response_state.status_code == 401:
             _LOGGER.debug(f"status: 401")
-            self.re_auth()
+            self.mark_re_auth_required()
             return None
         else:
             _LOGGER.debug(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
@@ -599,7 +608,7 @@ class Vehicle:
             return result_msg["result"]["messages"]
         elif response_msg.status_code == 401:
             _LOGGER.debug(f"messages: 401")
-            self.re_auth()
+            self.mark_re_auth_required()
             return None
         else:
             _LOGGER.debug(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
@@ -633,7 +642,7 @@ class Vehicle:
             return result_veh
         elif response_veh.status_code == 401:
             _LOGGER.debug(f"vehicles: 401")
-            self.re_auth()
+            self.mark_re_auth_required()
             return None
         else:
             _LOGGER.debug(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")

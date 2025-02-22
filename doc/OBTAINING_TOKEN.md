@@ -27,9 +27,11 @@
 
 2. In your second browser (where you pasted the URL), the Ford Login dialog should be display. 
 
-3. Enter your FordPass credentials and click `Log in`.
+3. Enter your FordPass credentials and click `Sign In`.
 > [!NOTE]
 > After you have pressed the login button, the Ford Login website will just show a spinner and will not continue to load - this is the intended behavior! At this point you are able to obtain the code by using the browser tools (see next step 4).
+
+![webrequst](./../images/003a.png)
 
 4. Now you must use the browser tools and select the `Network tab` of the web console and view the headers section.
    
@@ -43,7 +45,7 @@
 > [!NOTE]
 > Again - the Ford login website will not **fully loaded**. The login page will just continue to spin. 
 
-![webrequst](./../images/003.png)
+![webrequst](./../images/003b.png)
 
 
 ### **Step III:** 

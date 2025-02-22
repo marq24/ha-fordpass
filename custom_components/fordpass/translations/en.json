@@ -2,7 +2,9 @@
     "config": {
         "abort": {
             "already_configured": "Account is already configured",
-            "no_vehicles": "No vehicles on account or all are configured already"
+            "no_vehicles": "No vehicles on account or all are configured already",
+            "reauth_successful": "Re-Autorization was successful",
+            "reauth_unsuccessful": "Re-Autorization FAILED\n\nPlease check the token and try again"
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -16,6 +18,14 @@
             "token": {
                 "title": "Setup Token",
                 "description": "The Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL it into your second browser\r3. Enter your Fordpass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
+                "data": {
+                    "url": "URL: copy this into your browser",
+                    "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
+                }
+            },
+            "reauth_token": {
+                "title": "Re-Authorization required",
+                "description": "Your previous token is invalid - so you must provide anew one:\r\rThe Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL it into your second browser\r3. Enter your Fordpass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
                 "data": {
                     "url": "URL: copy this into your browser",
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
@@ -74,7 +84,7 @@
         },
         "clear_tokens": {
             "name": "Clear Tokens",
-            "description": "Clear the token cache"
+            "description": "Clear the stored token cache (requires an re-authentication afterwards)"
         },
         "reload": {
             "name": "Reload",
