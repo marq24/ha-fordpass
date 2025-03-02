@@ -41,6 +41,9 @@
 
 ## Installation Instructions (3 Steps)
 ### Step 1. HACS add the Integration
+
+[![Open your Home Assistant instance and adding repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=marq24&repository=ha-fordpass&category=integration)
+
 1. In HA HACS, you need to add a new custom repository (via the 'three dots' menu in the top right corner).
 2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
 3. After adding the new repository, you can search for `fordpass` in the search bar.
@@ -49,6 +52,9 @@
 6. Restart HA.
 
 ### Step 2. Setup the Integration
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=fordpass)
+
 7. After the restart go to  `Settings` -> `Devices & Services` area
 8. Add the new integration `Fordpass` and follw the instructions:<br/>
    You will need to provide:
