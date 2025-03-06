@@ -8,10 +8,10 @@
     "homekit": {},
     "integration_type": "device",
     "iot_class": "cloud_polling",
-    "issue_tracker": "https://github.com/marq24/ha-fordpass-ha/issues",
+    "issue_tracker": "https://github.com/marq24/ha-fordpass/issues",
     "loggers": ["custom_components.fordpass"],
     "requirements": [],
     "ssdp": [],
-    "version": "0.1.74",
+    "version": "0.1.75",
     "zeroconf": []
   }

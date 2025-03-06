@@ -94,6 +94,10 @@
     "title": "FordPass",
 
     "entity": {
+        "button": {
+            "update_data": {"name": "Lokaler Sync"},
+            "request_refresh": {"name": "Remote Sync"}
+        },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {

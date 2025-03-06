@@ -68,6 +68,12 @@ SWITCHES = {
     # "guardmode": {"icon": "mdi:shield-key"}
 }
 
+BUTTONS = {
+    "update_data": {"icon": "mdi:refresh"},
+    "request_refresh": {"icon": "mdi:car-connected"}
+}
+
+
 WINDOW_POSITIONS = {
     "CLOSED": {
         "Fully_Closed": "Closed",

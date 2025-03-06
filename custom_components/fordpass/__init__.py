@@ -35,7 +35,7 @@ from .fordpass_new import Vehicle
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
-PLATFORMS = ["lock", "sensor", "switch", "device_tracker"]
+PLATFORMS = ["button", "lock", "sensor", "switch", "device_tracker"]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # simple service implementations (might be moved to separate service.py)
     async def async_refresh_status_service(call: ServiceCall):
         await hass.async_add_executor_job(service_refresh_status, hass, call, coordinator)
-        await asyncio.sleep(45)
+        await asyncio.sleep(15)
         await coordinator.async_refresh()
 
     async def async_clear_tokens_service(call: ServiceCall):
@@ -177,6 +177,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._reauth_requested = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
+    async def async_vehicle_update_request_init(self):
+        await self._hass.services.async_call(DOMAIN, "refresh_status", {})
+
     async def _async_update_data(self):
         """Fetch data from FordPass."""
         if self.vehicle.require_reauth:
@@ -229,6 +232,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     #     with open(f"data/fordpass_data_{time.time()}.json", "w", encoding="utf-8") as outfile:
     #         import json
     #         json.dump(data, outfile)
+
 
 class FordPassEntity(CoordinatorEntity):
     """Defines a base FordPass entity."""

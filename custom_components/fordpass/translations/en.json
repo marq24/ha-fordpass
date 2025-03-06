@@ -40,7 +40,7 @@
                 "data_description": {
                     "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
                     "region": "It's expected that the only working region is `USA` - so it's selected by default. Only change the region, if the default value (USA) doesn't work!"
-                }   
+                }
             },
             "vehicle": {
                 "title": "Select vehicle to add",
@@ -70,7 +70,7 @@
                 "description": "Configure fordpass options"
             }
         }
-    }, 
+    },
     "services": {
         "refresh_status": {
             "name": "Refresh Vehicle Status",
@@ -98,6 +98,10 @@
     "title": "Fordpass",
 
     "entity": {
+        "button": {
+            "update_data": {"name": "Local Sync"},
+            "request_refresh": {"name": "Remote Sync"}
+        },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
@@ -137,4 +141,3 @@
         }
     }
 }
-    
