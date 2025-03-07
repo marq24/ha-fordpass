@@ -120,10 +120,10 @@ class CarSensor(FordPassEntity, SensorEntity):
 
             if self._tag == Tag.DOOR_STATUS:
                 for value in self.metrics.get("doorStatus", []):
-                    if value["value"] in ["CLOSED", "Invalid", "UNKNOWN"]:
+                    if value["value"].upper() in ["CLOSED", "Invalid", "UNKNOWN"]:
                         continue
                     return "Open"
-                if self.metrics.get("hoodStatus", {}).get("value") == "OPEN":
+                if self.metrics.get("hoodStatus", {}).get("value").upper() == "OPEN":
                     return "Open"
                 return "Closed"
 
@@ -190,9 +190,9 @@ class CarSensor(FordPassEntity, SensorEntity):
 
             if self._tag == Tag.DEEPSLEEP:
                 state = self.states.get("commandPreclusion", {}).get("value", {}).get("toState", "Unsupported")
-                if state == "COMMANDS_PRECLUDED":
+                if state.upper() == "COMMANDS_PRECLUDED":
                     return "ACTIVE"
-                elif state == "COMMANDS_PERMITTED":
+                elif state.upper() == "COMMANDS_PERMITTED":
                     return "DISABLED"
                 else:
                     return state
@@ -284,7 +284,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                 doors = {}
                 for value in self.metrics.get(self._tag, []):
                     if "vehicleSide" in value:
-                        if value['vehicleDoor'] == "UNSPECIFIED_FRONT":
+                        if value['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
                             doors[FordPassEntity.camel_case(value['vehicleSide'])] = value['value']
                         else:
                             doors[FordPassEntity.camel_case(value['vehicleDoor'])] = value['value']
@@ -297,7 +297,7 @@ class CarSensor(FordPassEntity, SensorEntity):
             if self._tag == Tag.WINDOW_POSITION:
                 windows = {}
                 for window in self.metrics.get("windowStatus", []):
-                    if window["vehicleWindow"] == "UNSPECIFIED_FRONT":
+                    if window["vehicleWindow"].upper() == "UNSPECIFIED_FRONT":
                         windows[FordPassEntity.camel_case(window["vehicleSide"])] = window
                     else:
                         windows[FordPassEntity.camel_case(window["vehicleWindow"])] = window

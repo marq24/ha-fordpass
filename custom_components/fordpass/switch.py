@@ -64,7 +64,7 @@ class Switch(FordPassEntity, SwitchEntity):
         if self._tag == Tag.IGNITION:
             if (self.coordinator.data["metrics"] is None or self.coordinator.data["metrics"]["ignitionStatus"] is None):
                 return None
-            if self.coordinator.data["metrics"]["ignitionStatus"]["value"] == "OFF":
+            if self.coordinator.data["metrics"]["ignitionStatus"]["value"].upper() == "OFF":
                 return False
         if self._tag == Tag.GUARD_MODE:
             # Need to find the correct response for enabled vs disabled so this may be spotty at the moment

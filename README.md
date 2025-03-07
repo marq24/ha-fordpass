@@ -1,7 +1,23 @@
-# Fordpass Home Assistant Integration (EV dedicated) [v1.7x fork]
+# Fordpass Home Assistant Integration (EV/PHEV dedicated) [v1.7x fork]
 
+<!--
+> [!NOTE]  
+> Highlights information that users should take into account, even when skimming.
 
-[![hacs_badge](https://img.shields.io/badge/HACS-custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+> [!TIP]
+> Optional information to help a user be more successful.
+
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+> [!WARNING]  
+> Critical content demanding immediate user attention due to potential risks.
+
+> [!CAUTION]
+> Negative potential consequences of an action.
+-->
+
+[![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
 
 > [!WARNING]
 > ## Disclaimer - Use could lead to a (temporary) lock of your Fordpass account.
@@ -15,29 +31,31 @@
 > [!NOTE]
 > This fork is WIP - and since I just own a EV (Mustang MachE 2023) I will focus on the features of the electrical vehicle data.
 
-> [!WARNING]
-> ## This fork is **not compatible** with the original Fordpass integration
-> - The entity names have been changed in oder to ensure that the sensor names include the VIN.
-> - The sensor attribute names does not contain spaces anymore to make post-processing easier (using camelcase).
-
-> [!NOTE]
-> ## All credits must go to @itchannel and @SquidBytes
-> There is a new token obtaining system introduced in the origin fordpass repository. This fork has been released in order to provide a release version of the v1.7x that can be installed via the new HACS (2.0) system (where you only can install 'released' integration versions). 
-> 
-> The token used by this integration is currently removed whenever the integration is updated. With this 1.7x update, the token will be wiped during every update, requiring users to manually add the token during the initial setup.
-> 
-> To prevent this issue, we will be moving the token file outside the FordPass directory. This change will ensure that the token is preserved during updates. This will require reconfiguration of your setup.
+> [!IMPORTANT]
+> There is a new access-token obtaining system introduced in the origin fordpass integration repository by @itchannel and @SquidBytes.
+>
+> The access-token used by this forked integration is stored outside the custom integration directory - this will prevent the access-token from being deleted during updates of the integration itself.
+>
 > Please see the Installation section, or the [docs](./doc/OBTAINING_TOKEN.md) for help.
 
-## Credit
-- https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
-- https://github.com/clarkd - Initial Home Assistant automation idea and Python code (Lock/Unlock)
-- https://github.com/pinballnewf - Figuring out the application ID issue
-- https://github.com/degrashopper - Fixing 401 error for certain installs
-- https://github.com/tonesto7 - Extra window statuses and sensors
-- https://github.com/JacobWasFramed - Updated unit conversions
-- https://github.com/heehoo59 - French Translation
-- https://github.com/SquidBytes - EV updates and documentation
+> [!WARNING]
+> ## This fork is **not compatible** with the original Fordpass integration from @itchannel & @SquidBytes 
+> Initially I created this fork in order to provide a _release version of the v1.70 branch_ that can be installed via the HACS v2.0 (where you only can install 'released' integration versions).
+>
+> ### Incompatible changes:
+> - The entity names have been changed in oder to ensure that the sensor names include the VIN.
+> - The sensor attribute names does not contain spaces anymore to make post-processing easier (using camelcase).
+> - The access-token is stored outside the custom integration
+>
+> ### Additional enhancements:
+> - Additional Sensors for EV/PHEV vehicles
+> - Buttons to local/remote refresh data in HA
+> - Sensor to provide EVCC-Charging state [see evcc.io website for details](https://evcc.io)
+> - Translation of Entity names (DE/EN)
+> - Code cleanup & refactoring
+
+## Requirements
+Your car must have the latest onboard modem functionality and have been registered/authorised with the fordpass application.
 
 ## Installation Instructions (3 Steps)
 ### Step 1. HACS add the Integration
@@ -56,9 +74,9 @@
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=fordpass)
 
 7. After the restart go to  `Settings` -> `Devices & Services` area
-8. Add the new integration `Fordpass` and follw the instructions:<br/>
+8. Add the new integration `Fordpass` and follow the instructions:<br/>
    You will need to provide:
-   - Your Fordpass Email
+   - Your Fordpass Email/Account 
    - Select a Fordpass Region (USA, EU, UK, AU) [it's expected that only USA will work right now]
 
 ### Step 3. The hard part - the  **Token Setup**
@@ -75,11 +93,14 @@ More details (how to deal with the browser developer tools) to obtain your token
 
 ## Usage with EVCC
 
-[All information, how to use this integration as provider for Ford EV data can be found in a seperate section.](./doc/EVCC.md)
+[All information, how to use this integration as provider for Ford EV data can be found in a separate section in this repository.](./doc/EVCC.md)
 
 ## Use of a separate Fordpass account is recommended
 
-It's recommended to use a separate Fordpass account for this integration. This is to prevent any issues with the Fordpass account being locked due to the polling of the API. Here are is a short procedure:
+> [!TIP]
+> It's recommended to use a separate Fordpass account for this integration. This is to prevent any issues with the Fordpass account being locked due to the polling of the API.
+
+Here are is a short procedure how to create a second account:
 
 1. Create a new Fordpass account with a different email address (and confirm the account by eMail) - It's important, that you can access this eMail account from your mobile phone with the installed FordPass App!
 2. From the Fordpass app (logged in with your original account), you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
@@ -91,16 +112,8 @@ It's recommended to use a separate Fordpass account for this integration. This i
 8. You can now log out again of the Fordpass app with your second account and re-login with your original Fordpass account.
 9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
 
-
-## **Changelog**
-[Updates](info.md)
-
-## Usage
-Your car must have the latest onboard modem functionality and have registered/authorised the fordpass application
-
 ## Services
-<!-- I haven't looked into these services, but it might be easier to maintain a Wiki with the various services compared to the README. Just a thought. -->
-### Car Refresh
+<!--### Car Refresh
 @itchannel and @SquidBytes have added a service to poll the car for updates, due to the battery drain they have left this up to you to set the interval. The service to be called is "refresh_status" and can be accessed in home assistant using "fordpas.refresh_status". 
 
 Optionally you can add the "vin" parameter followed by your VIN number to only refresh one vehicle. By default, this service will refresh all registered cars in HA.
@@ -109,12 +122,17 @@ Optionally you can add the "vin" parameter followed by your VIN number to only r
 
 ###
 Click on options and choose imperial or metric to display in km/miles. Takes effect on next restart of home assistant. Default is Metric
+-->
 <!-- These might need to be updated since its now different -->
+
 ### Clear Tokens
 If you are experiencing any sign in issues, please trying clearing your tokens using the "clear_tokens" service call.
 
-### Poll API
+### Poll API (local refresh)
 This service allows you to manually refresh/poll the API without waiting the set poll interval. Handy if you need quicker updates e.g. when driving for gps coordinates
+
+### Request Update (remote refresh)
+This service will contact the modem in the vehicle and request to sync data between the vehicle and the ford backends. **Please note, that this will have an impact on the battery of your vehicle.**
 
 ## Sensors
 ### Currently Working
@@ -122,6 +140,7 @@ This service allows you to manually refresh/poll the API without waiting the set
 <!-- Keeping this the same, but it will probably change and update alongside Fordconnect and the new app features -->
 
 - Fuel Level
+- EV-Battery Level (SOC)
 - Odometer
 - Lock/Unlock
 - Oil Status
@@ -135,9 +154,39 @@ This service allows you to manually refresh/poll the API without waiting the set
 - Window Status (Only if your car supports it!)
 - Last Car Refresh status
 - Car Tracker
-- Supports Multiple Regions
+- ~~Supports Multiple Regions~~
 - Electric Vehicle Support
 - TPMS Sensors
-- Guard Mode (Only supported cars)
+- ~~Guard Mode (Only supported cars)~~
 - Deep sleep status
 - Fordpass messages and alerts
+
+## Credits
+- https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
+
+### Credits (of the original integration)
+- https://github.com/SquidBytes - EV updates and documentation
+- https://github.com/clarkd - Initial Home Assistant automation idea and Python code (Lock/Unlock)
+- https://github.com/pinballnewf - Figuring out the application ID issue
+- https://github.com/degrashopper - Fixing 401 error for certain installs
+- https://github.com/tonesto7 - Extra window statuses and sensors
+- https://github.com/JacobWasFramed - Updated unit conversions
+- https://github.com/heehoo59 - French Translation
+
+## **Changelog** (not updated)
+[Updates](info.md)
+
+[hacs]: https://hacs.xyz
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=ccc
+
+[ghs]: https://github.com/sponsors/marq24
+[ghsbadge]: https://img.shields.io/github/sponsors/marq24?style=for-the-badge&logo=github&logoColor=ccc&link=https%3A%2F%2Fgithub.com%2Fsponsors%2Fmarq24&label=Sponsors
+
+[buymecoffee]: https://www.buymeacoffee.com/marquardt24
+[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
+
+[paypal]: https://paypal.me/marq24
+[paypalbadge]: https://img.shields.io/badge/paypal-me-blue.svg?style=for-the-badge&logo=paypal&logoColor=ccc
+
+[hainstall]: https://my.home-assistant.io/redirect/config_flow_start/?domain=fordpass
+[hainstallbadge]: https://img.shields.io/badge/dynamic/json?style=for-the-badge&logo=home-assistant&logoColor=ccc&label=usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.fordpass.total

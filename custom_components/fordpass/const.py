@@ -92,7 +92,7 @@ class Tag(ApiKey, Enum):
 
         # "auxPower": 1116.8,
     TRACKER = ApiKey(key="tracker")
-    DOOR_LOCK = ApiKey(key="doorLock")
+    DOOR_LOCK = ApiKey(key="doorlock")
 
     IGNITION = ApiKey(key="ignition")
     GUARD_MODE = ApiKey(key="guardmode")

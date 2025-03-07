@@ -1,7 +1,7 @@
 {
     "domain": "fordpass",
     "name": "FordPass",
-    "codeowners": ["@itchannel", "@SquidBytes", "@marq24"],
+    "codeowners": ["@marq24", "@itchannel", "@SquidBytes"],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/marq24/ha-fordpass",
@@ -12,6 +12,6 @@
     "loggers": ["custom_components.fordpass"],
     "requirements": [],
     "ssdp": [],
-    "version": "0.1.75",
+    "version": "0.1.76",
     "zeroconf": []
   }
