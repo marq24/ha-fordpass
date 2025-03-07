@@ -31,11 +31,11 @@ So as short example (with all replacements) would look like:
       insecure: true
       ...
 ```
-
+<!--
 ### Additional Template Sensor is need to provide EVCC vehicle status
 
 We need to create a HA sensor that will provide the status of charging - this will be A, B, C, D, E, F as described in the [evcc documentation](https://github.com/evcc-io/evcc/blob/master/api/chargemodestatus.go).
-
+-->
 <!--
 | Status | Code | Fzg. angeschlossen | Laden aktiv | Description                                                                |
 | --- |------|--------------------|-------------|----------------------------------------------------------------------------|
@@ -72,6 +72,7 @@ func (v *Provider) Status() (api.ChargeStatus, error) {
 ```
 -->
 
+<!--
 From the original Ford evcc integration it looks like that we only needs to provide status A, B or C and we can get this from the HA sensor status from `sensor.fordpass_[YOUR-VIN-HERE]_elvehcharging` (you need to adjust the following template sensor if you have a different sensor name).
 
 #### Create the template sensor
@@ -101,7 +102,9 @@ As alternative, you can add the following code to your template section of the `
 
 Make sure that the new created sensor `sensor.fordpass_[YOUR-VIN-HERE]_evcc_charging_code` will provide the correct status code (A, B or C) - you can check this in the HA Developer Tools -> States.
 
-### Finally, the sample evcc.yaml vehicle section for my Ford MachE
+-->
+
+### A sample evcc.yaml vehicle section that I use for my Ford MachE
 
 > [!NOTE]
 > This is my evcc.config vehicle section for **my** Ford MachE - In HA it's configured in the fordpass integration as `fordpass_[YOUR-VIN-HERE]` and so all URL's for the sensors in this yaml are prefixed with `fordpass_wf0tk3r7xpma01234` (obviously you must relace this with your own VIN):
@@ -115,13 +118,13 @@ vehicles:
   capacity: 84.65
   soc:
     source: http
-    uri: http://[YOUR-HA-INSTANCE]:8123/api/states/sensor.fordpass_[YOUR-VIN-HERE]_elveh
+    uri: http://[YOUR-HA-INSTANCE]:8123/api/states/sensor.fordpass_[YOUR-VIN-HERE]_soc
     method: GET
     headers:
       - Authorization: Bearer [YOUR-TOKEN-HERE]
       - Content-Type: application/json
     insecure: true
-    jq: .attributes."batteryCharge" | tonumber
+    jq: .state | tonumber
     timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
 
   range:
@@ -137,7 +140,7 @@ vehicles:
 
   status:
     source: http
-    uri: http://[YOUR-HA-INSTANCE]/api/states/sensor.fordpass_[YOUR-VIN-HERE]_evcc_charging_code
+    uri: http://[YOUR-HA-INSTANCE]/api/states/sensor.fordpass_[YOUR-VIN-HERE]_evccstatus
     method: GET
     headers:
       - Authorization: Bearer [YOUR-TOKEN-HERE]

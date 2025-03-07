@@ -137,7 +137,10 @@
             "events":                   {"name": "Events"},
             "metrics":                  {"name": "Metrics"},
             "states":                   {"name": "States"},
-            "vehicles":                 {"name": "Vehicles"}
+            "vehicles":                 {"name": "Vehicles"},
+
+            "soc":                      {"name": "State of Charge"},
+            "evccstatus":               {"name": "EVCC status code"}
         }
     }
 }

@@ -132,6 +132,9 @@ class Tag(ApiKey, Enum):
     STATES = ApiKey(key="states")
     VEHICLES = ApiKey(key="vehicles")
 
+    SOC = ApiKey(key="soc")
+    EVCC_STATUS = ApiKey(key="evccStatus")
+
 SENSORS = {
     Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": "km"},
     Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": "%"},
@@ -162,7 +165,10 @@ SENSORS = {
     Tag.EVENTS:                 {"icon": "mdi:calendar", "api_key": "events", "sensor_type": "single", "debug": True},
     Tag.METRICS:                {"icon": "mdi:chart-line", "api_key": "metrics", "sensor_type": "single", "debug": True},
     Tag.STATES:                 {"icon": "mdi:car", "api_key": "states", "sensor_type": "single", "debug": True},
-    Tag.VEHICLES:               {"icon": "mdi:car-multiple", "api_key": "vehicles", "sensor_type": "single", "debug": True}
+    Tag.VEHICLES:               {"icon": "mdi:car-multiple", "api_key": "vehicles", "sensor_type": "single", "debug": True},
+
+    Tag.SOC:                   {"icon": "mdi:battery-high", "api_key": "xevBatteryStateOfCharge", "state_class": "measurement", "measurement": "%"},
+    Tag.EVCC_STATUS:           {"icon": "mdi:state-machine", "api_key": "CAN_BE_IGNORED_IF_TYPE_IS_SINGLE", "sensor_type": "single"},
 }
 
 SWITCHES = {

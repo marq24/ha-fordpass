@@ -27,17 +27,20 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     sensors = []
     for a_tag, value in SENSORS.items():
+        if coordinator.tag_not_supported_by_vehicle(a_tag):
+            continue
+
         # make sure that we do not crash on not valid configurations
         if "api_key" in value:
             sensor = CarSensor(coordinator, a_tag, config_entry.options)
             api_key = value["api_key"]
             api_class = value.get("api_class", None)
             sensor_type = value.get("sensor_type", None)
-            string = isinstance(api_key, str)
+            is_string = isinstance(api_key, str)
 
-            if string and sensor_type == "single":
+            if is_string and sensor_type == "single":
                 sensors.append(sensor)
-            elif string:
+            elif is_string:
                 if api_key and api_class and api_key in coordinator.data.get(api_class, {}):
                     sensors.append(sensor)
                     continue
@@ -80,6 +83,12 @@ class CarSensor(FordPassEntity, SensorEntity):
                 fuel_level = self.metrics.get("fuelLevel", {}).get("value")
                 if fuel_level is not None:
                     return round(fuel_level)
+                battery_soc = self.metrics.get("xevBatteryStateOfCharge", {}).get("value")
+                if battery_soc is not None:
+                    return round(battery_soc, 2)
+                return None
+
+            if self._tag == Tag.SOC:
                 battery_soc = self.metrics.get("xevBatteryStateOfCharge", {}).get("value")
                 if battery_soc is not None:
                     return round(battery_soc, 2)
@@ -134,6 +143,18 @@ class CarSensor(FordPassEntity, SensorEntity):
             # SquidBytes: Added elVehCharging
             if self._tag == Tag.ELVEH_CHARGING:
                 return self.metrics.get("xevPlugChargerStatus", {}).get("value", "Unsupported")
+
+            # special sensor for EVCC
+            if self._tag == Tag.EVCC_STATUS:
+                val = self.metrics.get("xevPlugChargerStatus", {}).get("value", "Unsupported").upper()
+                if val == 'DISCONNECTED':
+                    return "A"
+                elif val == 'CONNECTED':
+                    return "B"
+                elif val == 'CHARGING' or val == 'CHARGINGAC':
+                    return "C"
+                else:
+                    return "UNKNOWN"
 
             if self._tag == Tag.ZONE_LIGHTING:
                 return self.metrics("zoneLighting", {}).get("zoneStatusData", {}).get("value", "Unsupported")
@@ -202,20 +223,25 @@ class CarSensor(FordPassEntity, SensorEntity):
 
             if self._tag == Tag.FUEL:
                 fuel = {}
-                fuel_range = self.metrics.get("fuelRange", {}).get("value", 0)
-                battery_range = self.metrics.get("xevBatteryRange", {}).get("value", 0)
-                if fuel_range != 0:
+                fuel_range = self.metrics.get("fuelRange", {}).get("value", -1)
+                battery_range = self.metrics.get("xevBatteryRange", {}).get("value", -1)
+                if fuel_range != -1:
                     # Display fuel range for both Gas and Hybrid (assuming its not 0)
                     fuel["fuelRange"] = self.units.length(fuel_range, UnitOfLength.KILOMETERS)
-                if battery_range != 0:
+                if battery_range != -1:
                     # Display Battery range for EV and Hybrid
                     fuel["batteryRange"] = self.units.length(battery_range, UnitOfLength.KILOMETERS)
                 return fuel
 
+            if self._tag == Tag.SOC:
+                battery_range = self.metrics.get("xevBatteryRange", {}).get("value", -1)
+                if battery_range != -1:
+                    # Display Battery range for EV and Hybrid
+                    return {"batteryRange": self.units.length(battery_range, UnitOfLength.KILOMETERS)}
+                return None
+
             if self._tag == Tag.BATTERY:
-                return {
-                    "BatteryVoltage": self.metrics.get("batteryVoltage", {}).get("value", 0)
-                }
+                return {"BatteryVoltage": self.metrics.get("batteryVoltage", {}).get("value", 0)}
 
             if self._tag == Tag.OIL:
                 return self.metrics.get("oilLifeRemaining", {})
@@ -428,6 +454,9 @@ class CarSensor(FordPassEntity, SensorEntity):
                     cs["estimatedEndTime"] = dt.as_local(cs_est_end_time)
 
                 return cs
+
+            if self._tag == Tag.EVCC_STATUS:
+                return None
 
             if self._tag == Tag.ZONE_LIGHTING:
                 if "zoneLighting" not in self.metrics:

@@ -68,14 +68,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region, update_interval, True)
     await coordinator.async_refresh()  # Get initial data
+    if not coordinator.last_update_success:
+        raise ConfigEntryNotReady
+    else:
+        await coordinator.read_config_on_startup(hass)
 
     fordpass_options_listener = config_entry.add_update_listener(options_update_listener)
 
     if not config_entry.options:
         await async_update_options(hass, config_entry)
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
 
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
@@ -174,7 +175,34 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._available = True
         self._cached_vehicles_data = {}
         self._reauth_requested = False
+        self._engineType = None
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
+
+    def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
+        if a_tag == Tag.FUEL:
+            return self.supportFuel is False
+        if a_tag == Tag.SOC or a_tag == Tag.EVCC_STATUS or a_tag == Tag.ELVEH or a_tag == Tag.ELVEH_CHARGING:
+            return self.supportPureEvOrPluginEv is False
+        return False
+
+    @property
+    def supportPureEvOrPluginEv(self) -> bool:
+        return self._engineType is not None and self._engineType in ["BEV", "PHEV"]
+
+    @property
+    def supportFuel(self) -> bool:
+        return self._engineType is not None and self._engineType != "BEV"
+
+    async def read_config_on_startup(self, hass: HomeAssistant):
+        _LOGGER.debug("read_config_on_startup...")
+        if "vehicles" in self.data:
+            veh_data = self.data["vehicles"]
+            if "vehicleProfile" in veh_data:
+                for vehicle in veh_data["vehicleProfile"]:
+                    if vehicle["VIN"] == self._vin:
+                        self._engineType = vehicle["engineType"]
+                        _LOGGER.debug(f"EngineType is: {self._engineType}")
+                        break
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""

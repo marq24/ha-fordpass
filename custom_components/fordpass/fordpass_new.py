@@ -649,6 +649,36 @@ class Vehicle:
             response_veh.raise_for_status()
             return None
 
+    # def fordconnect_status(self):
+    #     """Get vehicle list from account"""
+    #     self.__ensure_valid_tokens()
+    #     _LOGGER.debug(f"xxl() - access_token exist? {self.access_token is not None}")
+    #
+    #     headers_veh = {
+    #         **apiHeaders,
+    #         "Auth-Token": self.access_token,
+    #         "Application-Id": self.region,
+    #         "Countrycode": self.countrycode,
+    #         "Locale": "en-US"
+    #     }
+    #     response_veh = session.post(
+    #         f"{GUARD_URL}/fordconnect/v1/vehicles/{self.veh_id}/status",
+    #         headers=headers_veh
+    #     )
+    #     if response_veh.status_code == 202 or response_veh.status_code == 200:
+    #         result_veh = response_veh.json()
+    #         if LOG_DATA:
+    #             _LOGGER.debug(f"xxl: JSON: {result_veh}")
+    #         return result_veh
+    #     elif response_veh.status_code == 401:
+    #         _LOGGER.debug(f"xxl: 401")
+    #         self.mark_re_auth_required()
+    #         return None
+    #     else:
+    #         _LOGGER.debug(f"xxl: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
+    #         response_veh.raise_for_status()
+    #         return None
+
     def guard_status(self):
         """Retrieve guard status from API"""
         self.__ensure_valid_tokens()
@@ -783,7 +813,7 @@ class Vehicle:
             )
         else:
             r = session.post(
-                f"{AUTONOMIC_URL}/command/vehicles/{self.vin}/commands",
+                f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
                 data=json.dumps(data),
                 headers=headers
             )

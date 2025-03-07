@@ -133,7 +133,10 @@
             "events":                   {"name": "Ereignisse"},
             "metrics":                  {"name": "Metriken"},
             "states":                   {"name": "Status"},
-            "vehicles":                 {"name": "Fahrzeuge"}
+            "vehicles":                 {"name": "Fahrzeuge"},
+
+            "soc":                      {"name": "Ladestand"},
+            "evccstatus":               {"name": "EVCC Status-Code"}
         }
     }
 }
