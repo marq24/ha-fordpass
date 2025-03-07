@@ -5,7 +5,7 @@ from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 
 from . import FordPassEntity
-from .const import DOMAIN, COORDINATOR
+from .const import DOMAIN, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,14 +17,14 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     # Added a check to see if the car supports GPS
     if "position" in coordinator.data["metrics"] and coordinator.data["metrics"]["position"] is not None:
-        async_add_entities([CarTracker(coordinator, "gps")], True)
+        async_add_entities([CarTracker(coordinator)], True)
     else:
         _LOGGER.debug("Vehicle does not support GPS")
 
 
 class CarTracker(FordPassEntity, TrackerEntity):
-    def __init__(self, coordinator, sensor):
-        super().__init__(internal_key="tracker", coordinator=coordinator)
+    def __init__(self, coordinator):
+        super().__init__(internal_key=Tag.TRACKER.key, coordinator=coordinator)
 
     @property
     def latitude(self):

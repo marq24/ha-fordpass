@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import FordPassDataUpdateCoordinator, FordPassEntity
-from .const import BUTTONS, DOMAIN, COORDINATOR
+from .const import BUTTONS, DOMAIN, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,12 +28,11 @@ class FordpassButton(FordPassEntity, ButtonEntity):
 
     async def async_press(self, **kwargs):
         try:
-            if self._internal_key == "update_data":
+            if self._internal_key == Tag.UPDATE_DATA.key:
                 await self.coordinator.async_request_refresh()
-            elif self._internal_key == "request_refresh":
-                _LOGGER.debug("BUTTON PRESSED called...")
-                await self.coordinator.async_vehicle_update_request_init()
-            #await self.coordinator.async_press_tag(self._internal_key)
+            elif self._internal_key == Tag.REQUEST_REFRESH.key:
+                await self.coordinator.hass.async_add_executor_job(self.coordinator.vehicle.request_update)
+                await self.coordinator.async_request_refresh()
         except ValueError:
             return "unavailable"
 

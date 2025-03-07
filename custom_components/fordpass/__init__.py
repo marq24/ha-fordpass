@@ -167,7 +167,6 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry,
                  user, vin, region, update_interval, save_token=False):
         """Initialize the coordinator and set up the Vehicle object."""
-        self._hass = hass
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
@@ -177,9 +176,6 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._reauth_requested = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
-    async def async_vehicle_update_request_init(self):
-        await self._hass.services.async_call(DOMAIN, "refresh_status", {})
-
     async def _async_update_data(self):
         """Fetch data from FordPass."""
         if self.vehicle.require_reauth:
@@ -187,23 +183,23 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             if not self._reauth_requested:
                 self._reauth_requested = True
                 _LOGGER.warning(f"_async_update_data: VIN {self._vin} requires re-authentication")
-                self._hass.add_job(self._config_entry.async_start_reauth, self._hass)
+                self.hass.add_job(self._config_entry.async_start_reauth, self.hass)
 
             raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
         else:
             try:
                 async with async_timeout.timeout(30):
-                    data = await self._hass.async_add_executor_job(self.vehicle.status)
+                    data = await self.hass.async_add_executor_job(self.vehicle.status)
 
                     # Temporarily removed due to Ford backend API changes
-                    # data["guardstatus"] = await self._hass.async_add_executor_job(self.vehicle.guardStatus)
+                    # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
 
-                    data["messages"] = await self._hass.async_add_executor_job(self.vehicle.messages)
+                    data["messages"] = await self.hass.async_add_executor_job(self.vehicle.messages)
 
                     # only update vehicles data if not present yet
                     if len(self._cached_vehicles_data) == 0:
                         _LOGGER.debug("_async_update_data: request vehicle data...")
-                        self._cached_vehicles_data = await self._hass.async_add_executor_job(self.vehicle.vehicles)
+                        self._cached_vehicles_data = await self.hass.async_add_executor_job(self.vehicle.vehicles)
 
                     if len(self._cached_vehicles_data) > 0:
                         data["vehicles"] = self._cached_vehicles_data

@@ -16,7 +16,7 @@ from homeassistant.const import (
 from homeassistant.util import dt
 
 from . import FordPassEntity
-from .const import CONF_PRESSURE_UNIT, DOMAIN, SENSORS, COORDINATOR
+from .const import CONF_PRESSURE_UNIT, DOMAIN, SENSORS, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,11 +72,11 @@ class CarSensor(FordPassEntity, SensorEntity):
         self.events = self.coordinator.data.get("events", {})
 
         if ftype == "state":
-            if self._internal_key == "odometer":
+            if self._internal_key == Tag.ODOMETER.key:
                 return self.metrics.get("odometer", {}).get("value")
                 # return self.metrics.get("odometer", {}).get("value", {})
 
-            if self._internal_key == "fuel":
+            if self._internal_key == Tag.FUEL.key:
                 fuel_level = self.metrics.get("fuelLevel", {}).get("value")
                 if fuel_level is not None:
                     return round(fuel_level)
@@ -85,31 +85,31 @@ class CarSensor(FordPassEntity, SensorEntity):
                     return round(battery_soc, 2)
                 return None
 
-            if self._internal_key == "battery":
+            if self._internal_key == Tag.BATTERY.key:
                 return round(self.metrics.get("batteryStateOfCharge", {}).get("value", 0))
 
-            if self._internal_key == "oil":
+            if self._internal_key == Tag.OIL.key:
                 return round(self.metrics.get("oilLifeRemaining", {}).get("value", 0))
 
-            if self._internal_key == "tirePressure":
+            if self._internal_key == Tag.TIREPRESSURE.key:
                 return self.metrics.get("tirePressureSystemStatus", [{}])[0].get("value", "Unsupported")
 
-            if self._internal_key == "gps":
+            if self._internal_key == Tag.GPS.key:
                 return self.metrics.get("position", {}).get("value", "Unsupported").get("location", {})
 
-            if self._internal_key == "alarm":
+            if self._internal_key == Tag.ALARM.key:
                 return self.metrics.get("alarmStatus", {}).get("value", "Unsupported")
 
-            if self._internal_key == "ignitionStatus":
+            if self._internal_key == Tag.IGNITIONSTATUS.key:
                 return self.metrics.get("ignitionStatus", {}).get("value", "Unsupported")
 
-            if self._internal_key == "firmwareUpgInProgress":
+            if self._internal_key == Tag.FIRMWAREUPGINPROGRESS.key:
                 return self.metrics.get("firmwareUpgradeInProgress", {}).get("value", "Unsupported")
 
-            if self._internal_key == "deepSleepInProgress":
+            if self._internal_key == Tag.DEEPSLEEPINPROGRESS.key:
                 return self.metrics.get("deepSleepInProgress", {}).get("value", "Unsupported")
 
-            if self._internal_key == "doorStatus":
+            if self._internal_key == Tag.DOORSTATUS.key:
                 for value in self.metrics.get("doorStatus", []):
                     if value["value"] in ["CLOSED", "Invalid", "UNKNOWN"]:
                         continue
@@ -118,56 +118,56 @@ class CarSensor(FordPassEntity, SensorEntity):
                     return "Open"
                 return "Closed"
 
-            if self._internal_key == "windowPosition":
+            if self._internal_key == Tag.WINDOWPOSITION.key:
                 for window in self.metrics.get("windowStatus", []):
                     windowrange = window.get("value", {}).get("doubleRange", {})
                     if windowrange.get("lowerBound", 0.0) != 0.0 or windowrange.get("upperBound", 0.0) != 0.0:
                         return "Open"
                 return "Closed"
 
-            if self._internal_key == "lastRefresh":
+            if self._internal_key == Tag.LASTREFRESH.key:
                 return dt.as_local(dt.parse_datetime(self.coordinator.data.get("updateTime", 0)))
 
-            if self._internal_key == "elVeh" and "xevBatteryRange" in self.metrics:
+            if self._internal_key == Tag.ELVEH.key and "xevBatteryRange" in self.metrics:
                 return round(self.metrics.get("xevBatteryRange", {}).get("value"), 2)
 
             # SquidBytes: Added elVehCharging
-            if self._internal_key == "elVehCharging":
+            if self._internal_key == Tag.ELVEHCHARGING.key:
                 return self.metrics.get("xevPlugChargerStatus", {}).get("value", "Unsupported")
 
-            if self._internal_key == "zoneLighting":
+            if self._internal_key == Tag.ZONELIGHTING.key:
                 return self.metrics("zoneLighting", {}).get("zoneStatusData", {}).get("value", "Unsupported")
 
-            if self._internal_key == "remoteStartStatus":
+            if self._internal_key == Tag.REMOTESTARTSTATUS.key:
                 countdown_timer = self.metrics.get("remoteStartCountdownTimer", {}).get("value", 0)
                 return "Active" if countdown_timer > 0 else "Inactive"
 
-            if self._internal_key == "messages":
+            if self._internal_key == Tag.MESSAGES.key:
                 messages = self.coordinator.data.get("messages")
                 return len(messages) if messages is not None else None
 
-            if self._internal_key == "dieselSystemStatus":
+            if self._internal_key == Tag.DIESELSYSTEMSTATUS.key:
                 return self.metrics.get("dieselExhaustFilterStatus", {}).get("value", "Unsupported")
 
-            if self._internal_key == "exhaustFluidLevel":
+            if self._internal_key == Tag.EXHAUSTFLUIDLEVEL.key:
                 return self.metrics.get("dieselExhaustFluidLevel", {}).get("value", "Unsupported")
 
-            if self._internal_key == "speed":
+            if self._internal_key == Tag.SPEED.key:
                 return self.metrics.get("speed", {}).get("value", "Unsupported")
 
-            if self._internal_key == "indicators":
+            if self._internal_key == Tag.INDICATORS.key:
                 return sum(1 for indicator in self.metrics.get("indicators", {}).values() if indicator.get("value"))
 
-            if self._internal_key == "coolantTemp":
+            if self._internal_key == Tag.COOLANTTEMP.key:
                 return self.metrics.get("engineCoolantTemp", {}).get("value", "Unsupported")
 
-            if self._internal_key == "outsideTemp":
+            if self._internal_key == Tag.OUTSIDETEMP.key:
                 return self.metrics.get("outsideTemperature", {}).get("value", "Unsupported")
 
-            if self._internal_key == "engineOilTemp":
+            if self._internal_key == Tag.ENGINEOILTEMP.key:
                 return self.metrics.get("engineOilTemp", {}).get("value", "Unsupported")
 
-            if self._internal_key == "deepSleep":
+            if self._internal_key == Tag.DEEPSLEEP.key:
                 state = self.states.get("commandPreclusion", {}).get("value", {}).get("toState", "Unsupported")
                 if state == "COMMANDS_PRECLUDED":
                     return "ACTIVE"
@@ -176,31 +176,31 @@ class CarSensor(FordPassEntity, SensorEntity):
                 else:
                     return state
 
-            if self._internal_key == "events":
+            if self._internal_key == Tag.EVENTS.key:
                 return len(self.events)
 
-            if self._internal_key == "states":
+            if self._internal_key == Tag.STATES.key:
                 return len(self.coordinator.data.get("states", {}))
 
-            if self._internal_key == "vehicles":
+            if self._internal_key == Tag.VEHICLES.key:
                 return len(self.coordinator.data.get("vehicles", {}))
 
-            if self._internal_key == "metrics":
+            if self._internal_key == Tag.METRICS.key:
                 return len(self.metrics)
             return None
 
 
         if ftype == "attribute":
-            if self._internal_key == "odometer":
+            if self._internal_key == Tag.ODOMETER.key:
                 return self.metrics.get("odometer", {})
 
-            if self._internal_key == "outsideTemp":
+            if self._internal_key == Tag.OUTSIDETEMP.key:
                 ambient_temp = self.metrics.get("ambientTemp", {}).get("value")
                 if ambient_temp is not None:
                     return {"ambientTemp": ambient_temp}
                 return None
 
-            if self._internal_key == "fuel":
+            if self._internal_key == Tag.FUEL.key:
                 fuel = {}
                 fuel_range = self.metrics.get("fuelRange", {}).get("value", 0)
                 battery_range = self.metrics.get("xevBatteryRange", {}).get("value", 0)
@@ -212,15 +212,15 @@ class CarSensor(FordPassEntity, SensorEntity):
                     fuel["batteryRange"] = self.units.length(battery_range, UnitOfLength.KILOMETERS)
                 return fuel
 
-            if self._internal_key == "battery":
+            if self._internal_key == Tag.BATTERY.key:
                 return {
                     "BatteryVoltage": self.metrics.get("batteryVoltage", {}).get("value", 0)
                 }
 
-            if self._internal_key == "oil":
+            if self._internal_key == Tag.OIL.key:
                 return self.metrics.get("oilLifeRemaining", {})
 
-            if self._internal_key == "tirePressure" and "tirePressure" in self.metrics:
+            if self._internal_key == Tag.TIREPRESSURE.key and "tirePressure" in self.metrics:
                 pressure_unit = self.ford_options.get(CONF_PRESSURE_UNIT)
                 if pressure_unit == "PSI":
                     conversion_factor = 0.1450377377
@@ -239,22 +239,22 @@ class CarSensor(FordPassEntity, SensorEntity):
                     tire_pressures[FordPassEntity.camel_case(value["vehicleWheel"])] = round(float(value["value"]) * conversion_factor, decimal_places)
                 return tire_pressures
 
-            if self._internal_key == "gps":
+            if self._internal_key == Tag.GPS.key:
                 return self.metrics.get("position", {})
 
-            if self._internal_key == "alarm":
+            if self._internal_key == Tag.ALARM.key:
                 return self.metrics.get("alarmStatus", {})
 
-            if self._internal_key == "ignitionStatus":
+            if self._internal_key == Tag.IGNITIONSTATUS.key:
                 return self.metrics.get("ignitionStatus", {})
 
-            if self._internal_key == "firmwareUpgInProgress":
+            if self._internal_key == Tag.FIRMWAREUPGINPROGRESS.key:
                 return self.metrics.get("firmwareUpgradeInProgress", {})
 
-            if self._internal_key == "deepSleep":
+            if self._internal_key == Tag.DEEPSLEEP.key:
                 return None
 
-            if self._internal_key == "doorStatus":
+            if self._internal_key == Tag.DOORSTATUS.key:
                 doors = {}
                 for value in self.metrics.get(self._internal_key, []):
                     if "vehicleSide" in value:
@@ -268,7 +268,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                     doors["hood"] = self.metrics["hoodStatus"]["value"]
                 return doors or None
 
-            if self._internal_key == "windowPosition":
+            if self._internal_key == Tag.WINDOWPOSITION.key:
                 windows = {}
                 for window in self.metrics.get("windowStatus", []):
                     if window["vehicleWindow"] == "UNSPECIFIED_FRONT":
@@ -277,10 +277,10 @@ class CarSensor(FordPassEntity, SensorEntity):
                         windows[FordPassEntity.camel_case(window["vehicleWindow"])] = window
                 return windows
 
-            if self._internal_key == "lastRefresh":
+            if self._internal_key == Tag.LASTREFRESH.key:
                 return None
 
-            if self._internal_key == "elVeh":
+            if self._internal_key == Tag.ELVEH.key:
                 if "xevBatteryRange" not in self.metrics:
                     return None
                 elecs = {}
@@ -372,7 +372,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                 return elecs
 
             # SquidBytes: Added elVehCharging
-            if self._internal_key == "elVehCharging":
+            if self._internal_key == Tag.ELVEHCHARGING.key:
                 if "xevPlugChargerStatus" not in self.metrics:
                     return None
                 cs = {}
@@ -429,7 +429,7 @@ class CarSensor(FordPassEntity, SensorEntity):
 
                 return cs
 
-            if self._internal_key == "zoneLighting":
+            if self._internal_key == Tag.ZONELIGHTING.key:
                 if "zoneLighting" not in self.metrics:
                     return None
                 if (self.metrics[self._internal_key] is not None and self.metrics[self._internal_key]["zoneStatusData"] is not None):
@@ -452,21 +452,21 @@ class CarSensor(FordPassEntity, SensorEntity):
                     return zone
                 return None
 
-            if self._internal_key == "remoteStartStatus":
+            if self._internal_key == Tag.REMOTESTARTSTATUS.key:
                 return {"countdown": self.metrics.get("remoteStartCountdownTimer", {}).get("value", 0)}
 
-            if self._internal_key == "messages":
+            if self._internal_key == Tag.MESSAGES.key:
                 messages = {}
                 for value in self.coordinator.data.get("messages", []):
                     messages[FordPassEntity.camel_case(value["messageSubject"])] = value["createdDate"]
                 return messages
 
-            if self._internal_key == "dieselSystemStatus":
+            if self._internal_key == Tag.DIESELSYSTEMSTATUS.key:
                 if self.metrics.get("indicators", {}).get("dieselExhaustOverTemp", {}).get("value") is not None:
                     return {"dieselExhaustOverTemp": self.metrics["indicators"]["dieselExhaustOverTemp"]["value"]}
                 return None
 
-            if self._internal_key == "exhaustFluidLevel":
+            if self._internal_key == Tag.EXHAUSTFLUIDLEVEL.key:
                 exhaustdata = {}
                 if self.metrics.get("dieselExhaustFluidLevelRangeRemaining", {}).get("value") is not None:
                     exhaustdata["dieselExhaustFluidRange"] = self.metrics["dieselExhaustFluidLevelRangeRemaining"]["value"]
@@ -476,7 +476,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                     exhaustdata["dieselExhaustFluidSystemFault"] = self.metrics["indicators"]["dieselExhaustFluidSystemFault"]["value"]
                 return exhaustdata or None
 
-            if self._internal_key == "speed":
+            if self._internal_key == Tag.SPEED.key:
                 attribs = {}
                 if "acceleratorPedalPosition" in self.metrics:
                     attribs["acceleratorPedalPosition"] = self.metrics["acceleratorPedalPosition"]["value"]
@@ -496,7 +496,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                     attribs["tripFuelEconomy"] = self.metrics["tripFuelEconomy"]["value"]
                 return attribs or None
 
-            if self._internal_key == "indicators":
+            if self._internal_key == Tag.INDICATORS.key:
                 alerts = {}
                 for key, value in self.metrics.get("indicators", {}).items():
                     if value.get("value") is not None:
@@ -504,16 +504,16 @@ class CarSensor(FordPassEntity, SensorEntity):
                         alerts[key] = value["value"]
                 return alerts or None
 
-            if self._internal_key == "events":
+            if self._internal_key == Tag.EVENTS.key:
                 return self.events
 
-            if self._internal_key == "metrics":
+            if self._internal_key == Tag.METRICS.key:
                 return self.metrics
 
-            if self._internal_key == "states":
+            if self._internal_key == Tag.STATES.key:
                 return self.coordinator.data.get("states", {})
 
-            if self._internal_key == "vehicles":
+            if self._internal_key == Tag.VEHICLES.key:
                 return self.coordinator.data.get("vehicles", {})
 
         return None
