@@ -14,7 +14,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     _LOGGER.debug("LOCK async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     if coordinator.data["metrics"]["doorLockStatus"] and coordinator.data["metrics"]["doorLockStatus"][0]["value"] != "ERROR":
-        async_add_entities([Lock(coordinator)], True)
+        async_add_entities([Lock(coordinator)], False)
     else:
         _LOGGER.debug("Ford model doesn't support remote locking")
 
@@ -22,7 +22,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class Lock(FordPassEntity, LockEntity):
     """Defines the vehicle's lock."""
     def __init__(self, coordinator):
-        super().__init__(internal_key=Tag.DOORLOCK.key, coordinator=coordinator)
+        super().__init__(a_tag=Tag.DOOR_LOCK, coordinator=coordinator)
 
     async def async_lock(self, **kwargs):
         """Locks the vehicle."""

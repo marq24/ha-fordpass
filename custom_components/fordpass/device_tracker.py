@@ -24,7 +24,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class CarTracker(FordPassEntity, TrackerEntity):
     def __init__(self, coordinator):
-        super().__init__(internal_key=Tag.TRACKER.key, coordinator=coordinator)
+        super().__init__(a_tag=Tag.TRACKER, coordinator=coordinator)
 
     @property
     def latitude(self):

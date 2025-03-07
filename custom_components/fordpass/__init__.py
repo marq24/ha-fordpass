@@ -29,7 +29,7 @@ from .const import (
     VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
-    COORDINATOR
+    COORDINATOR, Tag
 )
 from .fordpass_new import Vehicle
 
@@ -235,19 +235,18 @@ class FordPassEntity(CoordinatorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, internal_key: str, coordinator: FordPassDataUpdateCoordinator):
+    def __init__(self, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator):
         """Initialize the entity."""
         super().__init__(coordinator)
         self.coordinator = coordinator
         self.coordinator_context = object()
         self.data = coordinator.data.get("metrics", {})
 
-        self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{internal_key}"
-        self._internal_key = internal_key
-        self._name = internal_key
+        self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}"
+        self._tag = a_tag
 
         # ok setting the internal translation key attr (so we can make use of the translation key in the entity)
-        self._attr_translation_key = internal_key.lower()
+        self._attr_translation_key = a_tag.key.lower()
 
     @property
     def device_id(self):
@@ -260,12 +259,12 @@ class FordPassEntity(CoordinatorEntity):
     @property
     def unique_id(self):
         """Return the unique ID of the entity."""
-        return f"fordpass_uid_{self.coordinator._vin.lower()}_{self._internal_key}"
+        return f"fordpass_uid_{self.coordinator._vin.lower()}_{self._tag.key}"
 
     @property
     def device_info(self):
         """Return device information about this device."""
-        if self._internal_key is None:
+        if self._tag is None:
             return None
 
         model = "unknown"

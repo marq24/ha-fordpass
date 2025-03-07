@@ -15,22 +15,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_
     _LOGGER.debug("BUTTON async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     entities = []
-    for key, value in BUTTONS.items():
-        entity = FordpassButton(coordinator=coordinator, button_key=key, options=config_entry.options)
+    for a_tag, value in BUTTONS.items():
+        entity = FordpassButton(coordinator=coordinator, a_tag=a_tag)
         entities.append(entity)
 
     add_entity_cb(entities)
 
 
 class FordpassButton(FordPassEntity, ButtonEntity):
-    def __init__(self, coordinator, button_key:str, options):
-        super().__init__(internal_key=button_key, coordinator=coordinator)
+    def __init__(self, coordinator, a_tag:Tag):
+        super().__init__(a_tag=a_tag, coordinator=coordinator)
 
     async def async_press(self, **kwargs):
         try:
-            if self._internal_key == Tag.UPDATE_DATA.key:
+            if self._tag == Tag.UPDATE_DATA:
                 await self.coordinator.async_request_refresh()
-            elif self._internal_key == Tag.REQUEST_REFRESH.key:
+            elif self._tag == Tag.REQUEST_REFRESH:
                 await self.coordinator.hass.async_add_executor_job(self.coordinator.vehicle.request_update)
                 await self.coordinator.async_request_refresh()
         except ValueError:
@@ -39,4 +39,4 @@ class FordpassButton(FordPassEntity, ButtonEntity):
     @property
     def icon(self):
         """Return sensor icon"""
-        return BUTTONS[self._internal_key]["icon"]
+        return BUTTONS[self._tag]["icon"]

@@ -91,9 +91,11 @@ class Tag(ApiKey, Enum):
         return self.key
 
         # "auxPower": 1116.8,
+    TRACKER = ApiKey(key="tracker")
+    DOOR_LOCK = ApiKey(key="doorLock")
 
     IGNITION = ApiKey(key="ignition")
-    GUARDMODE = ApiKey(key="guardmode")
+    GUARD_MODE = ApiKey(key="guardmode")
 
     UPDATE_DATA = ApiKey(key="update_data")
     REQUEST_REFRESH = ApiKey(key="request_refresh")
@@ -102,27 +104,28 @@ class Tag(ApiKey, Enum):
     FUEL = ApiKey(key="fuel")
     BATTERY = ApiKey(key="battery")
     OIL = ApiKey(key="oil")
-    TIREPRESSURE = ApiKey(key="tirePressure")
+    TIRE_PRESSURE = ApiKey(key="tirePressure")
     GPS = ApiKey(key="gps")
     ALARM = ApiKey(key="alarm")
-    IGNITIONSTATUS = ApiKey(key="ignitionStatus")
-    DOORSTATUS = ApiKey(key="doorStatus")
-    WINDOWPOSITION = ApiKey(key="windowPosition")
-    LASTREFRESH = ApiKey(key="lastRefresh")
+    IGNITION_STATUS = ApiKey(key="ignitionStatus")
+    DOOR_STATUS = ApiKey(key="doorStatus")
+    WINDOW_POSITION = ApiKey(key="windowPosition")
+    LAST_REFRESH = ApiKey(key="lastRefresh")
     ELVEH = ApiKey(key="elVeh")
-    ELVEHCHARGING = ApiKey(key="elVehCharging")
+    ELVEH_CHARGING = ApiKey(key="elVehCharging")
     SPEED = ApiKey(key="speed")
     INDICATORS = ApiKey(key="indicators")
-    COOLANTTEMP = ApiKey(key="coolantTemp")
-    OUTSIDETEMP = ApiKey(key="outsideTemp")
-    ENGINEOILTEMP = ApiKey(key="engineOilTemp")
+    COOLANT_TEMP = ApiKey(key="coolantTemp")
+    OUTSIDE_TEMP = ApiKey(key="outsideTemp")
+    ENGINE_OIL_TEMP = ApiKey(key="engineOilTemp")
     DEEPSLEEP = ApiKey(key="deepSleep")
-    FIRMWAREUPGINPROGRESS = ApiKey(key="firmwareUpgInProgress")
-    REMOTESTARTSTATUS = ApiKey(key="remoteStartStatus")
-    ZONELIGHTING = ApiKey(key="zoneLighting")
+    DEEPSLEEP_IN_PROGRESS = ApiKey(key="deepSleepInProgress")
+    FIRMWAREUPG_IN_PROGRESS = ApiKey(key="firmwareUpgInProgress")
+    REMOTE_START_STATUS = ApiKey(key="remoteStartStatus")
+    ZONE_LIGHTING = ApiKey(key="zoneLighting")
     MESSAGES = ApiKey(key="messages")
-    DIESELSYSTEMSTATUS = ApiKey(key="dieselSystemStatus")
-    EXHAUSTFLUIDLEVEL = ApiKey(key="exhaustFluidLevel")
+    DIESEL_SYSTEM_STATUS = ApiKey(key="dieselSystemStatus")
+    EXHAUST_FLUID_LEVEL = ApiKey(key="exhaustFluidLevel")
     # Debug Sensors (Disabled by default)
     EVENTS = ApiKey(key="events")
     METRICS = ApiKey(key="metrics")
@@ -130,44 +133,44 @@ class Tag(ApiKey, Enum):
     VEHICLES = ApiKey(key="vehicles")
 
 SENSORS = {
-    Tag.ODOMETER.key:           {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": "km"},
-    Tag.FUEL.key:               {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": "%"},
-    Tag.BATTERY.key:            {"icon": "mdi:car-battery", "device_class": "battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": "%"},
-    Tag.OIL.key:                {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": "%"},
-    Tag.TIREPRESSURE.key:       {"icon": "mdi:car-tire-alert", "api_key": "tirePressure"},
-    Tag.GPS.key:                {"icon": "mdi:radar", "api_key": "position"},
-    Tag.ALARM.key:              {"icon": "mdi:bell", "api_key": "alarmStatus"},
-    Tag.IGNITIONSTATUS.key:     {"icon": "hass:power", "api_key": "ignitionStatus"},
-    Tag.DOORSTATUS.key:         {"icon": "mdi:car-door", "api_key": "doorStatus"},
-    Tag.WINDOWPOSITION.key:     {"icon": "mdi:car-door", "api_key": "windowStatus"},
-    Tag.LASTREFRESH.key:        {"icon": "mdi:clock", "device_class": "timestamp", "api_key": "lastRefresh", "sensor_type": "single"},
-    Tag.ELVEH.key:              {"icon": "mdi:ev-station", "api_key": "xevBatteryRange", "device_class": "distance", "state_class": "measurement", "measurement": "km"},
-    Tag.ELVEHCHARGING.key:      {"icon": "mdi:ev-station", "api_key": "xevBatteryChargeDisplayStatus"},
-    Tag.SPEED.key:              {"icon": "mdi:speedometer", "device_class": "speed", "state_class": "measurement", "api_key": "speed", "measurement": "km/h"},
-    Tag.INDICATORS.key:         {"icon": "mdi:engine-outline", "api_key": "indicators"},
-    Tag.COOLANTTEMP.key:        {"icon": "mdi:coolant-temperature", "api_key": "engineCoolantTemp", "state_class": "measurement", "device_class": "temperature", "measurement": "°C"},
-    Tag.OUTSIDETEMP.key:        {"icon": "mdi:thermometer", "state_class": "measurement", "device_class": "temperature", "api_key": "outsideTemperature", "measurement": "°C"},
-    Tag.ENGINEOILTEMP.key:      {"icon": "mdi:oil-temperature", "state_class": "measurement", "device_class": "temperature", "api_key": "engineOilTemp", "measurement": "°C"},
-    Tag.DEEPSLEEP.key:          {"icon": "mdi:power-sleep", "name": "Deep Sleep Mode Active", "api_key": "commandPreclusion", "api_class": "states"},
-    # Tag.FIRMWAREUPGINPROGRESS.key: {"icon": "mdi:one-up", "name": "Firmware Update In Progress"},
-    Tag.REMOTESTARTSTATUS.key:  {"icon": "mdi:remote", "api_key": "remoteStartCountdownTimer"},
-    # Tag.ZONELIGHTING.key:     {"icon": "mdi:spotlight-beam"},
-    Tag.MESSAGES.key:           {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "sensor_type": "single"},
-    Tag.DIESELSYSTEMSTATUS.key: {"icon": "mdi:smoking-pipe", "api_key": "dieselExhaustFilterStatus"},
-    Tag.EXHAUSTFLUIDLEVEL.key:  {"icon": "mdi:barrel", "api_key": "dieselExhaustFluidLevel", "measurement": "%"},
+    Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": "km"},
+    Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": "%"},
+    Tag.BATTERY:                {"icon": "mdi:car-battery", "device_class": "battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": "%"},
+    Tag.OIL:                    {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": "%"},
+    Tag.TIRE_PRESSURE:          {"icon": "mdi:car-tire-alert", "api_key": "tirePressure"},
+    Tag.GPS:                    {"icon": "mdi:radar", "api_key": "position"},
+    Tag.ALARM:                  {"icon": "mdi:bell", "api_key": "alarmStatus"},
+    Tag.IGNITION_STATUS:        {"icon": "hass:power", "api_key": "ignitionStatus"},
+    Tag.DOOR_STATUS:            {"icon": "mdi:car-door", "api_key": "doorStatus"},
+    Tag.WINDOW_POSITION:        {"icon": "mdi:car-door", "api_key": "windowStatus"},
+    Tag.LAST_REFRESH:           {"icon": "mdi:clock", "device_class": "timestamp", "api_key": "lastRefresh", "sensor_type": "single"},
+    Tag.ELVEH:                  {"icon": "mdi:ev-station", "api_key": "xevBatteryRange", "device_class": "distance", "state_class": "measurement", "measurement": "km"},
+    Tag.ELVEH_CHARGING:         {"icon": "mdi:ev-station", "api_key": "xevBatteryChargeDisplayStatus"},
+    Tag.SPEED:                  {"icon": "mdi:speedometer", "device_class": "speed", "state_class": "measurement", "api_key": "speed", "measurement": "km/h"},
+    Tag.INDICATORS:             {"icon": "mdi:engine-outline", "api_key": "indicators"},
+    Tag.COOLANT_TEMP:           {"icon": "mdi:coolant-temperature", "api_key": "engineCoolantTemp", "state_class": "measurement", "device_class": "temperature", "measurement": "°C"},
+    Tag.OUTSIDE_TEMP:           {"icon": "mdi:thermometer", "state_class": "measurement", "device_class": "temperature", "api_key": "outsideTemperature", "measurement": "°C"},
+    Tag.ENGINE_OIL_TEMP:         {"icon": "mdi:oil-temperature", "state_class": "measurement", "device_class": "temperature", "api_key": "engineOilTemp", "measurement": "°C"},
+    Tag.DEEPSLEEP:              {"icon": "mdi:power-sleep", "name": "Deep Sleep Mode Active", "api_key": "commandPreclusion", "api_class": "states"},
+    # Tag.FIRMWAREUPGINPROGRESS: {"icon": "mdi:one-up", "name": "Firmware Update In Progress"},
+    Tag.REMOTE_START_STATUS:    {"icon": "mdi:remote", "api_key": "remoteStartCountdownTimer"},
+    # Tag.ZONELIGHTING:     {"icon": "mdi:spotlight-beam"},
+    Tag.MESSAGES:               {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "sensor_type": "single"},
+    Tag.DIESEL_SYSTEM_STATUS:   {"icon": "mdi:smoking-pipe", "api_key": "dieselExhaustFilterStatus"},
+    Tag.EXHAUST_FLUID_LEVEL:    {"icon": "mdi:barrel", "api_key": "dieselExhaustFluidLevel", "measurement": "%"},
     # Debug Sensors (Disabled by default)
-    Tag.EVENTS.key:     {"icon": "mdi:calendar", "api_key": "events", "sensor_type": "single", "debug": True},
-    Tag.METRICS.key:    {"icon": "mdi:chart-line", "api_key": "metrics", "sensor_type": "single", "debug": True},
-    Tag.STATES.key:     {"icon": "mdi:car", "api_key": "states", "sensor_type": "single", "debug": True},
-    Tag.VEHICLES.key:   {"icon": "mdi:car-multiple", "api_key": "vehicles", "sensor_type": "single", "debug": True}
+    Tag.EVENTS:                 {"icon": "mdi:calendar", "api_key": "events", "sensor_type": "single", "debug": True},
+    Tag.METRICS:                {"icon": "mdi:chart-line", "api_key": "metrics", "sensor_type": "single", "debug": True},
+    Tag.STATES:                 {"icon": "mdi:car", "api_key": "states", "sensor_type": "single", "debug": True},
+    Tag.VEHICLES:               {"icon": "mdi:car-multiple", "api_key": "vehicles", "sensor_type": "single", "debug": True}
 }
 
 SWITCHES = {
-    Tag.IGNITION.key: {"icon": "hass:power"},
-    #Tag.GUARDMODE.key: {"icon": "mdi:shield-key"}
+    Tag.IGNITION: {"icon": "hass:power"},
+    #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
 }
 
 BUTTONS = {
-    Tag.UPDATE_DATA.key:        {"icon": "mdi:refresh"},
-    Tag.REQUEST_REFRESH.key:    {"icon": "mdi:car-connected"}
+    Tag.UPDATE_DATA:        {"icon": "mdi:refresh"},
+    Tag.REQUEST_REFRESH:    {"icon": "mdi:car-connected"}
 }
