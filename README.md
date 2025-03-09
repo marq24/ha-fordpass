@@ -173,8 +173,8 @@ This service will contact the modem in the vehicle and request to sync data betw
 - https://github.com/JacobWasFramed - Updated unit conversions
 - https://github.com/heehoo59 - French Translation
 
-## **Changelog** (not updated)
-[Updates](info.md)
+## Changelog
+See the seperate [Updates](info.md) file for the changelog.
 
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=ccc

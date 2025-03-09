@@ -1,4 +1,37 @@
 ## **Changelog**
+
+### Version 2025.3.0
+- Another bugfix for `DoorStatus` (caused by bad refactoring) - Issue #8
+- changed version scheme - so that it will match all my (marq24) other integrations
+
+### Version 1.77
+- bugfix for refactor issue (missing `states` object) (caused by bad refactoring) - Issue #7
+
+### Version 1.76
+- added separate SOC Sensor for EV/PHEV vehicles
+- added sensor that will provide EVCC charging-state information: A,B,C [makes template sensor obsolete]
+- determine vehicle engine type (at startup) and add only corresponding sensors (e.g. no Fuel for EV's)
+- internal refactoring [introduced "tag's"]
+
+### Version 1.75
+- First bugfix was required #5
+- Added `Local Sync` button: Request the integration to refresh it's data against Ford APIs (when you don't want to wait for the next update interval)
+- Added `Remote Sync` button: Request an update from the vehicle - this will train for sure the battery of your vehicle - since the internal components must be awakened - once the remote sync request have been successfully confirmed by the Ford backend, the integration will update its data after a pause of 15 seconds (same as manually press the `Local Sync`).
+
+### Version 1.74
+It could happen (e.g. when the integration is not running for a while, that the TOKEN REFRESH will not work (cause of an expired refresh token) - in this case the Integration will now allow you to re-enter the initial token-request (that requires the login via the web browser (where you must capture a code via the developers tools)
+
+Additionally, the documentation have been updated (https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md)
+
+### Version 1.73
+Only internal stuff have been updated - reduced the number of token-refresh requests - and enhanced further the debug logging output more refactoring some of the internal API stuff (just to learn how the internals are working).
+
+### Version 1.72
+Only internal stuff have been updated - mainly the debug logging output have been cleaned up and I have refactored some of the internal API stuff (just to learn how the internals are working).
+
+### Version 1.71
+Initial fork version ()
+
 ### Version 1.70
 - New config flow to allow for a user to generate a token in their browser then enter into the application, bypasses WAF. 
 ### Version 1.69

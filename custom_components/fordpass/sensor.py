@@ -121,7 +121,7 @@ class CarSensor(FordPassEntity, SensorEntity):
 
             if self._tag == Tag.DOOR_STATUS:
                 for value in self.data_metrics.get("doorStatus", []):
-                    if value["value"].upper() in ["CLOSED", "Invalid", "UNKNOWN"]:
+                    if value["value"].upper() in ["CLOSED", "INVALID", "UNKNOWN"]:
                         continue
                     return "Open"
                 if self.data_metrics.get("hoodStatus", {}).get("value").upper() == "OPEN":
@@ -284,7 +284,7 @@ class CarSensor(FordPassEntity, SensorEntity):
 
             if self._tag == Tag.DOOR_STATUS:
                 doors = {}
-                for value in self.data_metrics.get(self._tag, []):
+                for value in self.data_metrics.get("doorStatus", []):
                     if "vehicleSide" in value:
                         if value['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
                             doors[FordPassEntity.camel_case(value['vehicleSide'])] = value['value']
