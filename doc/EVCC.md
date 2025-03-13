@@ -146,6 +146,6 @@ vehicles:
       - Authorization: Bearer [YOUR-TOKEN-HERE]
       - Content-Type: application/json
     insecure: true
-    jq: .state
+    jq: .state[0:1]
     timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
 ```
