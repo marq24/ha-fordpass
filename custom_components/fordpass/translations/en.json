@@ -121,6 +121,7 @@
             "windowposition":           {"name": "Window Position"},
             "lastrefresh":              {"name": "last refresh"},
             "elveh":                    {"name": "EV"},
+            "elvehplug":                {"name": "EV Plug"},
             "elvehcharging":            {"name": "EV Charging"},
             "speed":                    {"name": "Speed"},
             "indicators":               {"name": "Indicators"},

@@ -142,8 +142,11 @@ class CarSensor(FordPassEntity, SensorEntity):
                 return round(self.data_metrics.get("xevBatteryRange", {}).get("value"), 2)
 
             # SquidBytes: Added elVehCharging
-            if self._tag == Tag.ELVEH_CHARGING:
+            if self._tag == Tag.ELVEH_PLUG:
                 return self.data_metrics.get("xevPlugChargerStatus", {}).get("value", "Unsupported")
+
+            if self._tag == Tag.ELVEH_CHARGING:
+                return self.data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", "Unsupported")
 
             # special sensor for EVCC
             if self._tag == Tag.EVCC_STATUS:
@@ -151,6 +154,12 @@ class CarSensor(FordPassEntity, SensorEntity):
                 if val == 'DISCONNECTED':
                     return "A"
                 elif val == 'CONNECTED':
+                    # when 'xevPlugChargerStatus' is CONNECTED we want to check the attribute
+                    # 'xevBatteryChargeDisplayStatus' - since 'xevPlugChargerStatus' is just the PLUG status!
+                    if "xevBatteryChargeDisplayStatus" in self.data_metrics:
+                        secondary_val = self.data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", "Unsupported").upper()
+                        if secondary_val == "IN_PROGRESS":
+                            return "C"
                     return "B"
                 elif val == 'CHARGING' or val == 'CHARGINGAC':
                     return "C"
@@ -401,7 +410,7 @@ class CarSensor(FordPassEntity, SensorEntity):
 
             # SquidBytes: Added elVehCharging
             if self._tag == Tag.ELVEH_CHARGING:
-                if "xevPlugChargerStatus" not in self.data_metrics:
+                if "xevBatteryChargeDisplayStatus" not in self.data_metrics:
                     return None
                 cs = {}
 
@@ -454,6 +463,19 @@ class CarSensor(FordPassEntity, SensorEntity):
                     cs_update_time = dt.parse_datetime(self.data_metrics.get("xevBatteryTimeToFullCharge", {}).get("updateTime", 0))
                     cs_est_end_time = cs_update_time + timedelta(minutes=self.data_metrics.get("xevBatteryTimeToFullCharge", {}).get("value", 0))
                     cs["estimatedEndTime"] = dt.as_local(cs_est_end_time)
+
+                return cs
+
+            if self._tag == Tag.ELVEH_PLUG:
+                if "xevPlugChargerStatus" not in self.data_metrics:
+                    return None
+                cs = {}
+
+                if "xevChargeStationCommunicationStatus" in self.data_metrics:
+                    cs["ChargeStationCommunicationStatus"] = self.data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", "Unsupported")
+
+                if "xevChargeStationPowerType" in self.data_metrics:
+                    cs["chargeStationPowerType"] = self.data_metrics.get("xevChargeStationPowerType", {}).get("value", "Unsupported")
 
                 return cs
 

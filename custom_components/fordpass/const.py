@@ -113,6 +113,7 @@ class Tag(ApiKey, Enum):
     LAST_REFRESH = ApiKey(key="lastRefresh")
     ELVEH = ApiKey(key="elVeh")
     ELVEH_CHARGING = ApiKey(key="elVehCharging")
+    ELVEH_PLUG = ApiKey(key="elVehPlug")
     SPEED = ApiKey(key="speed")
     INDICATORS = ApiKey(key="indicators")
     COOLANT_TEMP = ApiKey(key="coolantTemp")
@@ -135,6 +136,17 @@ class Tag(ApiKey, Enum):
     SOC = ApiKey(key="soc")
     EVCC_STATUS = ApiKey(key="evccStatus")
 
+
+# tags that are only available for electric vehicles...
+EV_ONLY_TAGS = [
+    Tag.SOC,
+    Tag.EVCC_STATUS,
+    Tag.ELVEH,
+    Tag.ELVEH_PLUG,
+    Tag.ELVEH_CHARGING
+]
+
+
 SENSORS = {
     Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": "km"},
     Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": "%"},
@@ -149,6 +161,7 @@ SENSORS = {
     Tag.LAST_REFRESH:           {"icon": "mdi:clock", "device_class": "timestamp", "api_key": "lastRefresh", "sensor_type": "single"},
     Tag.ELVEH:                  {"icon": "mdi:ev-station", "api_key": "xevBatteryRange", "device_class": "distance", "state_class": "measurement", "measurement": "km"},
     Tag.ELVEH_CHARGING:         {"icon": "mdi:ev-station", "api_key": "xevBatteryChargeDisplayStatus"},
+    Tag.ELVEH_PLUG:             {"icon": "mdi:connection", "api_key": "xevPlugChargerStatus"},
     Tag.SPEED:                  {"icon": "mdi:speedometer", "device_class": "speed", "state_class": "measurement", "api_key": "speed", "measurement": "km/h"},
     Tag.INDICATORS:             {"icon": "mdi:engine-outline", "api_key": "indicators"},
     Tag.COOLANT_TEMP:           {"icon": "mdi:coolant-temperature", "api_key": "engineCoolantTemp", "state_class": "measurement", "device_class": "temperature", "measurement": "°C"},

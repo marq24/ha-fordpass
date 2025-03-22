@@ -29,7 +29,7 @@ from .const import (
     VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
-    COORDINATOR, Tag
+    COORDINATOR, Tag, EV_ONLY_TAGS
 )
 from .fordpass_new import Vehicle
 
@@ -161,7 +161,6 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     return False
 
-
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
 
@@ -181,7 +180,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag == Tag.FUEL:
             return self.supportFuel is False
-        if a_tag == Tag.SOC or a_tag == Tag.EVCC_STATUS or a_tag == Tag.ELVEH or a_tag == Tag.ELVEH_CHARGING:
+        if a_tag in EV_ONLY_TAGS:
             return self.supportPureEvOrPluginEv is False
         return False
 
