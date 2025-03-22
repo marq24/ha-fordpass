@@ -1,5 +1,10 @@
 ## **Changelog**
 
+### Version 2025.3.1
+- Added separate Sensor for EV Plug state
+- 'EV Charging' returns now the real 'charging state' of the vehicle - previously the plug state [DISCONNECTED/CONNECTED] was returned
+- EVCC-Status can now also return status 'C' (since we are now really looking at the charging state of the vehicle)
+
 ### Version 2025.3.0
 - Another bugfix for `DoorStatus` (caused by bad refactoring) - Issue #8
 - changed version scheme - so that it will match all my (marq24) other integrations
