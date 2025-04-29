@@ -586,7 +586,7 @@ class Vehicle:
             self.mark_re_auth_required()
             return None
         else:
-            _LOGGER.debug(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
+            _LOGGER.warning(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
             response_state.raise_for_status()
             return None
 
@@ -611,7 +611,7 @@ class Vehicle:
             self.mark_re_auth_required()
             return None
         else:
-            _LOGGER.debug(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
+            _LOGGER.warning(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
             response_msg.raise_for_status()
             return None
 
@@ -645,7 +645,7 @@ class Vehicle:
             self.mark_re_auth_required()
             return None
         else:
-            _LOGGER.debug(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
+            _LOGGER.warning(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
             response_veh.raise_for_status()
             return None
 

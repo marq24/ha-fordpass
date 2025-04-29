@@ -217,32 +217,34 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             try:
                 async with async_timeout.timeout(30):
                     data = await self.hass.async_add_executor_job(self.vehicle.status)
+                    if data is not None:
+                        # Temporarily removed due to Ford backend API changes
+                        # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
 
-                    # Temporarily removed due to Ford backend API changes
-                    # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
+                        data["messages"] = await self.hass.async_add_executor_job(self.vehicle.messages)
 
-                    data["messages"] = await self.hass.async_add_executor_job(self.vehicle.messages)
+                        # only update vehicle data if not present yet
+                        if len(self._cached_vehicles_data) == 0:
+                            _LOGGER.debug("_async_update_data: request vehicle data...")
+                            self._cached_vehicles_data = await self.hass.async_add_executor_job(self.vehicle.vehicles)
 
-                    # only update vehicles data if not present yet
-                    if len(self._cached_vehicles_data) == 0:
-                        _LOGGER.debug("_async_update_data: request vehicle data...")
-                        self._cached_vehicles_data = await self.hass.async_add_executor_job(self.vehicle.vehicles)
+                        if len(self._cached_vehicles_data) > 0:
+                            data["vehicles"] = self._cached_vehicles_data
 
-                    if len(self._cached_vehicles_data) > 0:
-                        data["vehicles"] = self._cached_vehicles_data
+                        if "metrics" in data and data["metrics"] is not None:
+                            _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")
+                        else:
+                            _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
 
-                    if "metrics" in data and data["metrics"] is not None:
-                        _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")
+                        # only for private debugging
+                        #self.write_data_debug(data)
+
+                        # If data has now been fetched but was previously unavailable, log and reset
+                        if not self._available:
+                            _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
+                            self._available = True
                     else:
-                        _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
-
-                    # only for private debugging
-                    #self.write_data_debug(data)
-
-                    # If data has now been fetched but was previously unavailable, log and reset
-                    if not self._available:
-                        _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
-                        self._available = True
+                        _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin}")
 
                     return data
             except Exception as ex:
