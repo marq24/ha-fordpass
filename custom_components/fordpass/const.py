@@ -2,6 +2,8 @@
 from enum import Enum
 from typing import NamedTuple
 
+from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE
+
 DOMAIN = "fordpass"
 
 VIN = "vin"
@@ -9,13 +11,13 @@ VIN = "vin"
 MANUFACTURER = "Ford Motor Company"
 
 DEFAULT_PRESSURE_UNIT = "kPa"
-DEFAULT_DISTANCE_UNIT = "km"
+DEFAULT_DISTANCE_UNIT = UnitOfLength.KILOMETERS
 
 CONF_PRESSURE_UNIT = "pressure_unit"
 CONF_DISTANCE_UNIT = "distance_unit"
 
 PRESSURE_UNITS = ["PSI", "kPa", "BAR"]
-DISTANCE_UNITS = ["mi", "km"]
+DISTANCE_UNITS = ["mi", UnitOfLength.KILOMETERS]
 DISTANCE_CONVERSION_DISABLED = "distance_conversion"
 DISTANCE_CONVERSION_DISABLED_DEFAULT = False
 
@@ -148,10 +150,10 @@ EV_ONLY_TAGS = [
 
 
 SENSORS = {
-    Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": "km"},
-    Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": "%"},
-    Tag.BATTERY:                {"icon": "mdi:car-battery", "device_class": "battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": "%"},
-    Tag.OIL:                    {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": "%"},
+    Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": UnitOfLength.KILOMETERS},
+    Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": PERCENTAGE},
+    Tag.BATTERY:                {"icon": "mdi:car-battery", "device_class": "battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": PERCENTAGE},
+    Tag.OIL:                    {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": PERCENTAGE},
     Tag.TIRE_PRESSURE:          {"icon": "mdi:car-tire-alert", "api_key": "tirePressure"},
     Tag.GPS:                    {"icon": "mdi:radar", "api_key": "position"},
     Tag.ALARM:                  {"icon": "mdi:bell", "api_key": "alarmStatus"},
@@ -159,28 +161,28 @@ SENSORS = {
     Tag.DOOR_STATUS:            {"icon": "mdi:car-door", "api_key": "doorStatus"},
     Tag.WINDOW_POSITION:        {"icon": "mdi:car-door", "api_key": "windowStatus"},
     Tag.LAST_REFRESH:           {"icon": "mdi:clock", "device_class": "timestamp", "api_key": "lastRefresh", "sensor_type": "single"},
-    Tag.ELVEH:                  {"icon": "mdi:ev-station", "api_key": "xevBatteryRange", "device_class": "distance", "state_class": "measurement", "measurement": "km"},
+    Tag.ELVEH:                  {"icon": "mdi:ev-station", "api_key": "xevBatteryRange", "device_class": "distance", "state_class": "measurement", "measurement": UnitOfLength.KILOMETERS},
     Tag.ELVEH_CHARGING:         {"icon": "mdi:ev-station", "api_key": "xevBatteryChargeDisplayStatus"},
     Tag.ELVEH_PLUG:             {"icon": "mdi:connection", "api_key": "xevPlugChargerStatus"},
-    Tag.SPEED:                  {"icon": "mdi:speedometer", "device_class": "speed", "state_class": "measurement", "api_key": "speed", "measurement": "km/h"},
+    Tag.SPEED:                  {"icon": "mdi:speedometer", "device_class": "speed", "state_class": "measurement", "api_key": "speed", "measurement": UnitOfSpeed.METERS_PER_SECOND},
     Tag.INDICATORS:             {"icon": "mdi:engine-outline", "api_key": "indicators"},
-    Tag.COOLANT_TEMP:           {"icon": "mdi:coolant-temperature", "api_key": "engineCoolantTemp", "state_class": "measurement", "device_class": "temperature", "measurement": "°C"},
-    Tag.OUTSIDE_TEMP:           {"icon": "mdi:thermometer", "state_class": "measurement", "device_class": "temperature", "api_key": "outsideTemperature", "measurement": "°C"},
-    Tag.ENGINE_OIL_TEMP:         {"icon": "mdi:oil-temperature", "state_class": "measurement", "device_class": "temperature", "api_key": "engineOilTemp", "measurement": "°C"},
+    Tag.COOLANT_TEMP:           {"icon": "mdi:coolant-temperature", "api_key": "engineCoolantTemp", "state_class": "measurement", "device_class": "temperature", "measurement": UnitOfTemperature.CELSIUS},
+    Tag.OUTSIDE_TEMP:           {"icon": "mdi:thermometer", "state_class": "measurement", "device_class": "temperature", "api_key": "outsideTemperature", "measurement": UnitOfTemperature.CELSIUS},
+    Tag.ENGINE_OIL_TEMP:         {"icon": "mdi:oil-temperature", "state_class": "measurement", "device_class": "temperature", "api_key": "engineOilTemp", "measurement": UnitOfTemperature.CELSIUS},
     Tag.DEEPSLEEP:              {"icon": "mdi:power-sleep", "name": "Deep Sleep Mode Active", "api_key": "commandPreclusion", "api_class": "states"},
     # Tag.FIRMWAREUPGINPROGRESS: {"icon": "mdi:one-up", "name": "Firmware Update In Progress"},
     Tag.REMOTE_START_STATUS:    {"icon": "mdi:remote", "api_key": "remoteStartCountdownTimer"},
     # Tag.ZONELIGHTING:     {"icon": "mdi:spotlight-beam"},
     Tag.MESSAGES:               {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "sensor_type": "single"},
     Tag.DIESEL_SYSTEM_STATUS:   {"icon": "mdi:smoking-pipe", "api_key": "dieselExhaustFilterStatus"},
-    Tag.EXHAUST_FLUID_LEVEL:    {"icon": "mdi:barrel", "api_key": "dieselExhaustFluidLevel", "measurement": "%"},
+    Tag.EXHAUST_FLUID_LEVEL:    {"icon": "mdi:barrel", "api_key": "dieselExhaustFluidLevel", "measurement": PERCENTAGE},
     # Debug Sensors (Disabled by default)
     Tag.EVENTS:                 {"icon": "mdi:calendar", "api_key": "events", "sensor_type": "single", "debug": True},
     Tag.METRICS:                {"icon": "mdi:chart-line", "api_key": "metrics", "sensor_type": "single", "debug": True},
     Tag.STATES:                 {"icon": "mdi:car", "api_key": "states", "sensor_type": "single", "debug": True},
     Tag.VEHICLES:               {"icon": "mdi:car-multiple", "api_key": "vehicles", "sensor_type": "single", "debug": True},
 
-    Tag.SOC:                   {"icon": "mdi:battery-high", "api_key": "xevBatteryStateOfCharge", "state_class": "measurement", "measurement": "%"},
+    Tag.SOC:                   {"icon": "mdi:battery-high", "api_key": "xevBatteryStateOfCharge", "state_class": "measurement", "measurement": PERCENTAGE},
     Tag.EVCC_STATUS:           {"icon": "mdi:state-machine", "api_key": "CAN_BE_IGNORED_IF_TYPE_IS_SINGLE", "sensor_type": "single"},
 }
 
