@@ -96,7 +96,7 @@ class Vehicle:
             f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{self.country_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
-            verify=False
+            verify=True
         )
 
         # do not check the status code here - since it's not always return http 200!
@@ -116,7 +116,7 @@ class Vehicle:
             f"{GUARD_URL}/token/v2/cat-with-b2c-access-token",
             data=json.dumps(data),
             headers=headers,
-            verify=False
+            verify=True
         )
 
         # do not check the status code here - since it's not always return http 200!

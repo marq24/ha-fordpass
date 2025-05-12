@@ -96,7 +96,7 @@ async def validate_vin(hass: core.HomeAssistant, data):
     return False
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for FordPass."""
 
     VERSION = 1
@@ -338,45 +338,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
-        return OptionsFlow(config_entry)
+        return FordPassOptionsFlowHandler(config_entry)
 
 
-class OptionsFlow(config_entries.OptionsFlow):
+class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry):
         """Initialize options flow."""
-        self.config_entry = config_entry
+        if len(dict(config_entry.options)) == 0:
+            self._options = dict(config_entry.data)
+        else:
+            self._options = dict(config_entry.options)
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
+
         options = {
-            vol.Optional(
-                CONF_PRESSURE_UNIT,
-                default=self.config_entry.options.get(
-                    CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT
-                ),
-            ): vol.In(PRESSURE_UNITS),
-            vol.Optional(
-                CONF_DISTANCE_UNIT,
-                default=self.config_entry.options.get(
-                    CONF_DISTANCE_UNIT, DEFAULT_DISTANCE_UNIT
-                ),
-            ): vol.In(DISTANCE_UNITS),
-            vol.Optional(
-                DISTANCE_CONVERSION_DISABLED,
-                default=self.config_entry.options.get(
-                    DISTANCE_CONVERSION_DISABLED, DISTANCE_CONVERSION_DISABLED_DEFAULT
-                ),
-            ): bool,
-            vol.Optional(
-                UPDATE_INTERVAL,
-                default=self.config_entry.options.get(
-                    UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT
-                ),
-            ): int,
-
+            vol.Optional(CONF_PRESSURE_UNIT,
+                         default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
+            vol.Optional(CONF_DISTANCE_UNIT,
+                         default=self._options.get(CONF_DISTANCE_UNIT, DEFAULT_DISTANCE_UNIT),): vol.In(DISTANCE_UNITS),
+            vol.Optional(DISTANCE_CONVERSION_DISABLED,
+                         default=self._options.get(DISTANCE_CONVERSION_DISABLED, DISTANCE_CONVERSION_DISABLED_DEFAULT),): bool,
+            vol.Optional(UPDATE_INTERVAL,
+                         default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int,
         }
-
         return self.async_show_form(step_id="init", data_schema=vol.Schema(options))
 
 
