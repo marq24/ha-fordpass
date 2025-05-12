@@ -607,6 +607,12 @@ class CarSensor(FordPassEntity, SensorEntity):
     @property
     def device_class(self):
         """Return sensor device class for statistics"""
+        if self._tag == Tag.SOC:
+            return SensorDeviceClass.BATTERY
+
+        if self._tag == Tag.BATTERY and not self.coordinator.supportPureEvOrPluginEv():
+            return SensorDeviceClass.BATTERY
+
         if "device_class" in SENSORS[self._tag]:
             if SENSORS[self._tag]["device_class"] == "distance":
                 return SensorDeviceClass.DISTANCE
@@ -614,8 +620,6 @@ class CarSensor(FordPassEntity, SensorEntity):
                 return SensorDeviceClass.TIMESTAMP
             if SENSORS[self._tag]["device_class"] == "temperature":
                 return SensorDeviceClass.TEMPERATURE
-            if SENSORS[self._tag]["device_class"] == "battery":
-                return SensorDeviceClass.BATTERY
             if SENSORS[self._tag]["device_class"] == "speed":
                 return SensorDeviceClass.SPEED
         return None

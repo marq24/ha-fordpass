@@ -152,7 +152,7 @@ EV_ONLY_TAGS = [
 SENSORS = {
     Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": UnitOfLength.KILOMETERS},
     Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": PERCENTAGE},
-    Tag.BATTERY:                {"icon": "mdi:car-battery", "device_class": "battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": PERCENTAGE},
+    Tag.BATTERY:                {"icon": "mdi:car-battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": PERCENTAGE},
     Tag.OIL:                    {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": PERCENTAGE},
     Tag.TIRE_PRESSURE:          {"icon": "mdi:car-tire-alert", "api_key": "tirePressure"},
     Tag.GPS:                    {"icon": "mdi:radar", "api_key": "position"},
