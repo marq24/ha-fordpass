@@ -15,11 +15,8 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (  # pylint:disable=unused-import
-    CONF_DISTANCE_UNIT,
     CONF_PRESSURE_UNIT,
-    DEFAULT_DISTANCE_UNIT,
     DEFAULT_PRESSURE_UNIT,
-    DISTANCE_UNITS,
     DOMAIN,
     PRESSURE_UNITS,
     REGION,
@@ -28,9 +25,7 @@ from .const import (  # pylint:disable=unused-import
     REGIONS,
     VIN,
     UPDATE_INTERVAL,
-    UPDATE_INTERVAL_DEFAULT,
-    DISTANCE_CONVERSION_DISABLED,
-    DISTANCE_CONVERSION_DISABLED_DEFAULT
+    UPDATE_INTERVAL_DEFAULT
 )
 from .fordpass_new import Vehicle
 
@@ -356,10 +351,6 @@ class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
         options = {
             vol.Optional(CONF_PRESSURE_UNIT,
                          default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
-            vol.Optional(CONF_DISTANCE_UNIT,
-                         default=self._options.get(CONF_DISTANCE_UNIT, DEFAULT_DISTANCE_UNIT),): vol.In(DISTANCE_UNITS),
-            vol.Optional(DISTANCE_CONVERSION_DISABLED,
-                         default=self._options.get(DISTANCE_CONVERSION_DISABLED, DISTANCE_CONVERSION_DISABLED_DEFAULT),): bool,
             vol.Optional(UPDATE_INTERVAL,
                          default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int,
         }

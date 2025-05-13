@@ -10,16 +10,9 @@ VIN = "vin"
 
 MANUFACTURER = "Ford Motor Company"
 
-DEFAULT_PRESSURE_UNIT = "kPa"
-DEFAULT_DISTANCE_UNIT = UnitOfLength.KILOMETERS
-
 CONF_PRESSURE_UNIT = "pressure_unit"
-CONF_DISTANCE_UNIT = "distance_unit"
-
+DEFAULT_PRESSURE_UNIT = "kPa"
 PRESSURE_UNITS = ["PSI", "kPa", "BAR"]
-DISTANCE_UNITS = ["mi", UnitOfLength.KILOMETERS]
-DISTANCE_CONVERSION_DISABLED = "distance_conversion"
-DISTANCE_CONVERSION_DISABLED_DEFAULT = False
 
 UPDATE_INTERVAL = "update_interval"
 UPDATE_INTERVAL_DEFAULT = 290 # looks like that the default auto-access_token expires after 5 minutes (300 seconds)

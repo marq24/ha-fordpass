@@ -52,7 +52,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                         sensors.append(sensor)
                         continue
 
-    _LOGGER.debug(hass.config.units)
+    _LOGGER.debug(f"Configured HA units-system ('hass.config.units'): {hass.config.units}")
     async_add_entities(sensors, True)
 
 
@@ -67,9 +67,11 @@ class CarSensor(FordPassEntity, SensorEntity):
         self.data_metrics = {}
         self.data_events = {}
         self.data_states = {}
+
     def get_value(self, ftype):
         """Get sensor value and attributes from coordinator data"""
-        self.units = self.coordinator.hass.config.units
+        if self.units is None:
+            self.units = self.coordinator.hass.config.units
 
         self.data_metrics = self.coordinator.data.get("metrics", {})
         self.data_events = self.coordinator.data.get("events", {})
@@ -139,6 +141,8 @@ class CarSensor(FordPassEntity, SensorEntity):
                 return dt.as_local(dt.parse_datetime(self.coordinator.data.get("updateTime", 0)))
 
             if self._tag == Tag.ELVEH and "xevBatteryRange" in self.data_metrics:
+                # we don't want to use the units' helper here, since we want to return the raw value [and when
+                # user wants a different unit, he should use the conversion helper in the frontend]
                 return round(self.data_metrics.get("xevBatteryRange", {}).get("value"), 2)
 
             # SquidBytes: Added elVehCharging
@@ -154,7 +158,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                 if val == 'DISCONNECTED':
                     return "A"
                 elif val == 'CONNECTED':
-                    # when 'xevPlugChargerStatus' is CONNECTED we want to check the attribute
+                    # when 'xevPlugChargerStatus' is CONNECTED, we want to check the attribute
                     # 'xevBatteryChargeDisplayStatus' - since 'xevPlugChargerStatus' is just the PLUG status!
                     if "xevBatteryChargeDisplayStatus" in self.data_metrics:
                         secondary_val = self.data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", "Unsupported").upper()
@@ -237,7 +241,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                 fuel_range = self.data_metrics.get("fuelRange", {}).get("value", -1)
                 battery_range = self.data_metrics.get("xevBatteryRange", {}).get("value", -1)
                 if fuel_range != -1:
-                    # Display fuel range for both Gas and Hybrid (assuming its not 0)
+                    # Display fuel range for both Gas and Hybrid (assuming it's not 0)
                     fuel["fuelRange"] = self.units.length(fuel_range, UnitOfLength.KILOMETERS)
                 if battery_range != -1:
                     # Display Battery range for EV and Hybrid
@@ -610,7 +614,7 @@ class CarSensor(FordPassEntity, SensorEntity):
         if self._tag == Tag.SOC:
             return SensorDeviceClass.BATTERY
 
-        if self._tag == Tag.BATTERY and not self.coordinator.supportPureEvOrPluginEv():
+        if self._tag == Tag.BATTERY and not self.coordinator.supportPureEvOrPluginEv:
             return SensorDeviceClass.BATTERY
 
         if "device_class" in SENSORS[self._tag]:

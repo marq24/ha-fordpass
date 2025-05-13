@@ -1,5 +1,18 @@
 ## **Changelog**
 
+### Version 2025.5.1
+- For EV-Vehicles, the Integration now uses the SOC (State of Charge) as global battery level (and not the level of the 12 V battery)
+- clean up some configuration code
+- fixing log Warnings as reported in #17 and #18
+
+### Version 2025.5.0
+- Speed is measured in m/s (not in km/h) - so the `native_unit_of_measurement` is now m/s
+
+### Version 2025.4.0
+- Enhanced startup behavior
+  - Sometimes (at least at HA restart) Ford API might not return initial data - this situation is now handled and logged appropriate
+- No other features/functions have been added
+
 ### Version 2025.3.1
 - Added separate Sensor for EV Plug state
 - 'EV Charging' returns now the real 'charging state' of the vehicle - previously the plug state [DISCONNECTED/CONNECTED] was returned
