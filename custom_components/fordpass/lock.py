@@ -3,17 +3,27 @@ import logging
 
 from homeassistant.components.lock import LockEntity
 
-from . import FordPassEntity
-from .const import DOMAIN, COORDINATOR, Tag
+from custom_components.fordpass import FordPassEntity
+from custom_components.fordpass.const import DOMAIN, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
+def has_door_lock_value(coordinator) -> bool:
+    if (coordinator.data is None or
+            coordinator.data["metrics"] is None or
+            coordinator.data["metrics"]["doorLockStatus"] is None or
+            len(coordinator.data["metrics"]["doorLockStatus"]) == 0 or
+            coordinator.data["metrics"]["doorLockStatus"][0]["value"] is None
+    ) :
+        return False
+    else:
+        return True
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the lock from the config."""
     _LOGGER.debug("LOCK async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-    if coordinator.data["metrics"]["doorLockStatus"] and coordinator.data["metrics"]["doorLockStatus"][0]["value"].upper() != "ERROR":
+    if has_door_lock_value(coordinator) and coordinator.data["metrics"]["doorLockStatus"][0]["value"].upper() != "ERROR":
         async_add_entities([Lock(coordinator)], False)
     else:
         _LOGGER.debug("Ford model doesn't support remote locking")
@@ -47,9 +57,10 @@ class Lock(FordPassEntity, LockEntity):
     @property
     def is_locked(self):
         """Determine if the lock is locked."""
-        if self.coordinator.data["metrics"] is None or self.coordinator.data["metrics"]["doorLockStatus"] is None:
-            return None
-        return self.coordinator.data["metrics"]["doorLockStatus"][0]["value"].upper() == "LOCKED"
+        if has_door_lock_value(self.coordinator):
+            return self.coordinator.data["metrics"]["doorLockStatus"][0]["value"].upper() == "LOCKED"
+
+        return None
 
     @property
     def icon(self):

@@ -3,8 +3,8 @@ import logging
 
 from homeassistant.components.switch import SwitchEntity
 
-from . import FordPassEntity
-from .const import DOMAIN, SWITCHES, COORDINATOR, Tag
+from custom_components.fordpass import FordPassEntity
+from custom_components.fordpass.const import DOMAIN, SWITCHES, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +62,9 @@ class Switch(FordPassEntity, SwitchEntity):
     def is_on(self):
         """Check status of switch"""
         if self._tag == Tag.IGNITION:
-            if (self.coordinator.data["metrics"] is None or self.coordinator.data["metrics"]["ignitionStatus"] is None):
+            if (self.coordinator.data["metrics"] is None or
+                self.coordinator.data["metrics"]["ignitionStatus"] is None or
+                self.coordinator.data["metrics"]["ignitionStatus"]["value"] is None):
                 return None
             if self.coordinator.data["metrics"]["ignitionStatus"]["value"].upper() == "OFF":
                 return False
@@ -70,8 +72,8 @@ class Switch(FordPassEntity, SwitchEntity):
             # Need to find the correct response for enabled vs disabled so this may be spotty at the moment
             guardstatus = self.coordinator.data["guardstatus"]
             _LOGGER.debug(f"is_on guardstatus: {guardstatus}")
-            if guardstatus["returnCode"] == 200:
-                if "gmStatus" in guardstatus:
+            if "returnCode" in guardstatus and guardstatus["returnCode"] == 200:
+                if "session" in guardstatus and "gmStatus" in guardstatus["session"]:
                     if guardstatus["session"]["gmStatus"] == "enable":
                         return True
                     return False

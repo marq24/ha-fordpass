@@ -8,7 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .const import REGIONS
+from custom_components.fordpass.const import REGIONS
 
 _LOGGER = logging.getLogger(__name__)
 defaultHeaders = {

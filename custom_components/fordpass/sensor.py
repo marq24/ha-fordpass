@@ -15,8 +15,8 @@ from homeassistant.const import (
 )
 from homeassistant.util import dt
 
-from . import FordPassEntity
-from .const import CONF_PRESSURE_UNIT, DOMAIN, SENSORS, COORDINATOR, Tag
+from custom_components.fordpass import FordPassEntity
+from custom_components.fordpass.const import CONF_PRESSURE_UNIT, DOMAIN, SENSORS, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                     if value["value"].upper() in ["CLOSED", "INVALID", "UNKNOWN"]:
                         continue
                     return "Open"
-                if self.data_metrics.get("hoodStatus", {}).get("value").upper() == "OPEN":
+                if self.data_metrics.get("hoodStatus", {}).get("value", "Unsupported").upper() == "OPEN":
                     return "Open"
                 return "Closed"
 
@@ -276,8 +276,8 @@ class CarSensor(FordPassEntity, SensorEntity):
                     conversion_factor = 1
                     decimal_places = 0
                 tire_pressures = {}
-                for value in self.data_metrics["tirePressure"]:
-                    tire_pressures[FordPassEntity.camel_case(value["vehicleWheel"])] = round(float(value["value"]) * conversion_factor, decimal_places)
+                for a_tire in self.data_metrics["tirePressure"]:
+                    tire_pressures[FordPassEntity.camel_case(a_tire["vehicleWheel"])] = round(float(a_tire["value"]) * conversion_factor, decimal_places)
                 return tire_pressures
 
             if self._tag == Tag.GPS:
@@ -296,27 +296,30 @@ class CarSensor(FordPassEntity, SensorEntity):
                 return None
 
             if self._tag == Tag.DOOR_STATUS:
-                doors = {}
-                for value in self.data_metrics.get("doorStatus", []):
-                    if "vehicleSide" in value:
-                        if value['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
-                            doors[FordPassEntity.camel_case(value['vehicleSide'])] = value['value']
+                ret_doors = {}
+                for a_door in self.data_metrics.get("doorStatus", []):
+                    if "vehicleSide" in a_door:
+                        if "vehicleDoor" in a_door and a_door['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
+                            ret_doors[FordPassEntity.camel_case(a_door['vehicleSide'])] = a_door['value']
                         else:
-                            doors[FordPassEntity.camel_case(value['vehicleDoor'])] = value['value']
+                            ret_doors[FordPassEntity.camel_case(a_door['vehicleDoor'])] = a_door['value']
                     else:
-                        doors[FordPassEntity.camel_case(value["vehicleDoor"])] = value['value']
-                if "hoodStatus" in self.data_metrics:
-                    doors["hood"] = self.data_metrics["hoodStatus"]["value"]
-                return doors or None
+                        ret_doors[FordPassEntity.camel_case(a_door["vehicleDoor"])] = a_door['value']
+
+                if "hoodStatus" in self.data_metrics and "value" in self.data_metrics["hoodStatus"]:
+                    ret_doors["hood"] = self.data_metrics["hoodStatus"]["value"]
+
+                return ret_doors or None
 
             if self._tag == Tag.WINDOW_POSITION:
-                windows = {}
-                for window in self.data_metrics.get("windowStatus", []):
-                    if window["vehicleWindow"].upper() == "UNSPECIFIED_FRONT":
-                        windows[FordPassEntity.camel_case(window["vehicleSide"])] = window
+                ret_windows = {}
+                for a_window in self.data_metrics.get("windowStatus", []):
+                    if "vehicleWindow" in ret_windows and a_window["vehicleWindow"].upper() == "UNSPECIFIED_FRONT":
+                        ret_windows[FordPassEntity.camel_case(a_window["vehicleSide"])] = a_window
                     else:
-                        windows[FordPassEntity.camel_case(window["vehicleWindow"])] = window
-                return windows
+                        ret_windows[FordPassEntity.camel_case(a_window["vehicleWindow"])] = a_window
+
+                return ret_windows
 
             if self._tag == Tag.LAST_REFRESH:
                 return None

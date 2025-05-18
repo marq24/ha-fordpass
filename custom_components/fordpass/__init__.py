@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .const import (
+from custom_components.fordpass.const import (
     CONF_PRESSURE_UNIT,
     DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION,
@@ -29,7 +29,7 @@ from .const import (
     UPDATE_INTERVAL_DEFAULT,
     COORDINATOR, Tag, EV_ONLY_TAGS
 )
-from .fordpass_new import Vehicle
+from custom_components.fordpass.fordpass_new import Vehicle
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
@@ -158,6 +158,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     return False
 
+
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
 
@@ -234,7 +235,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
 
                         # only for private debugging
-                        #self.write_data_debug(data)
+                        # self.write_data_debug(data)
 
                         # If data has now been fetched but was previously unavailable, log and reset
                         if not self._available:
@@ -326,7 +327,7 @@ class FordPassEntity(CoordinatorEntity):
         # return f"{device_name} {name}" if device_name else name
         if device_entry.name_by_user is not None:
             return f"{device_entry.name_by_user} {name}" if device_name else name
-        #elif self.coordinator.include_fordpass_prefix:
+        # elif self.coordinator.include_fordpass_prefix:
         #    return f"[fordpass] {name}"
         else:
             return name

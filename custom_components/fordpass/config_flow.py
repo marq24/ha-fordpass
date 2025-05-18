@@ -14,7 +14,7 @@ from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import (  # pylint:disable=unused-import
+from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_PRESSURE_UNIT,
     DEFAULT_PRESSURE_UNIT,
     DOMAIN,
@@ -27,7 +27,7 @@ from .const import (  # pylint:disable=unused-import
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT
 )
-from .fordpass_new import Vehicle
+from custom_components.fordpass.fordpass_new import Vehicle
 
 _LOGGER = logging.getLogger(__name__)
 

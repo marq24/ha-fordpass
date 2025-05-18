@@ -4,8 +4,8 @@ import logging
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 
-from . import FordPassEntity
-from .const import DOMAIN, COORDINATOR, Tag
+from custom_components.fordpass import FordPassEntity
+from custom_components.fordpass.const import DOMAIN, COORDINATOR, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
