@@ -299,6 +299,9 @@ class CarSensor(FordPassEntity, SensorEntity):
                 ret_doors = {}
                 for a_door in self.data_metrics.get("doorStatus", []):
                     if "vehicleSide" in a_door:
+                        # for whatever reason for DoorStatus the vehicleSide is not always present... instead
+                        # the backend sends the vehicleDoor as UNSPECIFIED_FRONT
+                        # Then the vehicleSide is used to determine the door LEFT or RIGHT
                         if "vehicleDoor" in a_door and a_door['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
                             ret_doors[FordPassEntity.camel_case(a_door['vehicleSide'])] = a_door['value']
                         else:
@@ -314,10 +317,20 @@ class CarSensor(FordPassEntity, SensorEntity):
             if self._tag == Tag.WINDOW_POSITION:
                 ret_windows = {}
                 for a_window in self.data_metrics.get("windowStatus", []):
-                    if "vehicleWindow" in ret_windows and a_window["vehicleWindow"].upper() == "UNSPECIFIED_FRONT":
-                        ret_windows[FordPassEntity.camel_case(a_window["vehicleSide"])] = a_window
+                    # in contrast to the doorStatus, the windowStatus always has the vehicleSide [DRIVER or PASSENGER]...
+                    # but then the vehicleWindow is start with UNSPECIFIED_...
+                    if "value" in a_window:
+                        if "vehicleWindow" in a_window and a_window["vehicleWindow"].upper().startswith("UNSPECIFIED_"):
+                            front_or_rear_txt = a_window["vehicleWindow"].split("_")[1]
+                            if front_or_rear_txt.upper() == "FRONT":
+                                ret_windows[FordPassEntity.camel_case(a_window["vehicleSide"])] = a_window["value"]
+                            else:
+                                ret_windows[FordPassEntity.camel_case(front_or_rear_txt+"_"+a_window["vehicleSide"])] = a_window["value"]
+                        else:
+                            ret_windows[FordPassEntity.camel_case(a_window["vehicleWindow"])] = a_window["value"]
                     else:
-                        ret_windows[FordPassEntity.camel_case(a_window["vehicleWindow"])] = a_window
+                        # just as fallback impl...
+                        ret_windows[FordPassEntity.camel_case(a_window["vehicleWindow"]+"_")+a_window["vehicleSide"]] = a_window
 
                 return ret_windows
 
