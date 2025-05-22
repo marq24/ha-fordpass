@@ -393,17 +393,27 @@ class CarSensor(FordPassEntity, SensorEntity):
                 if "tripXevBatteryRangeRegenerated" in self.data_metrics:
                     elecs["tripRangeRegenerated"] = self.units.length(self.data_metrics.get("tripXevBatteryRangeRegenerated", {}).get("value", 0), UnitOfLength.KILOMETERS)
 
-                if "customMetrics" in self.data_metrics and "xevBatteryCapacity" in self.data_metrics:
+                if "customMetrics" in self.data_metrics:
                     for key in self.data_metrics.get("customMetrics", {}):
                         if "accumulated-vehicle-speed-cruising-coaching-score" in key:
                             elecs["tripSpeedScore"] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
                         if "accumulated-deceleration-coaching-score" in key:
                             elecs["tripDecelerationScore"] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
                         if "accumulated-acceleration-coaching-score" in key:
                             elecs["tripAccelerationScore"] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
                         if "custom:vehicle-electrical-efficiency" in key:
                             # Still don't know what this value is, but if I add it and get more data it could help to figure it out
                             elecs["tripElectricalEfficiency"] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                        if "custom:xevRemoteDataResponseStatus" in key:
+                            elecs["remoteDataResponseStatus"] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                        if ":custom:xev-" in key:
+                            entryName = FordPassEntity.camel_case(key.split(":custom:xev-")[1])
+                            elecs[entryName] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if "customEvents" in self.data_events:
                     tripDataStr = self.data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
@@ -483,6 +493,14 @@ class CarSensor(FordPassEntity, SensorEntity):
                     cs_update_time = dt.parse_datetime(self.data_metrics.get("xevBatteryTimeToFullCharge", {}).get("updateTime", 0))
                     cs_est_end_time = cs_update_time + timedelta(minutes=self.data_metrics.get("xevBatteryTimeToFullCharge", {}).get("value", 0))
                     cs["estimatedEndTime"] = dt.as_local(cs_est_end_time)
+
+                if "xevBatteryChargerEnergyOutput" in self.data_metrics:
+                    cs["chargerEnergyOutput"] = self.data_metrics.get("xevBatteryChargerEnergyOutput", {}).get("value", 0)
+
+                if "customMetrics" in self.data_metrics:
+                    for key in self.data_metrics.get("customMetrics", {}):
+                        if "custom:charge-power-kw" in key:
+                            cs["chargePowerKw"] = self.data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 return cs
 
