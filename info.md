@@ -1,5 +1,23 @@
 ## **Changelog**
 
+### Version 2025.5.5
+- General backend-communication enhancements: the integration now should handel the situation, when the HA instance might not have a stable internet connection.
+
+### Version 2025.5.4
+- Added additional EVData & EVCharging attributes (might not be present for all vehicles)
+
+  <br/>The in the backend response JSON some additional (custom) data fields have been found and so they will be added to the attribute list of the EVData & EVCharging Sensor entities.
+
+### Version 2025.5.3
+- BreakingChange - Window Positions only return "value" (when present)
+
+  <br/>While debugging my window position information, I realized that in contract to the `doorStatus` the `windowStatus` return `UNSPECIFIED_FRONT` and `UNSPECIFIED_REAR`... 
+  
+  <br/>This must be handled - and while I am already at this section of the code, I decided to include only the value object per window - since the attribute name (Passenger, Driver, ReadPassenger & ReadDriver) should be enough to locate the window.
+
+### Version 2025.5.2
+- Support for none existing `hoodStatus` - fixing #21
+
 ### Version 2025.5.1
 - For EV-Vehicles, the Integration now uses the SOC (State of Charge) as global battery level (and not the level of the 12 V battery)
 - clean up some configuration code

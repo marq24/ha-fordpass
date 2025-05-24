@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+from typing import Final
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -32,12 +33,13 @@ loginHeaders = {
 
 LOG_DATA = False
 
-BASE_URL = "https://usapi.cv.ford.com/api"
-GUARD_URL = "https://api.mps.ford.com/api"
-SSO_URL = "https://sso.ci.ford.com"
-AUTONOMIC_URL = "https://api.autonomic.ai/v1"
-AUTONOMIC_ACCOUNT_URL = "https://accounts.autonomic.ai/v1"
-FORD_LOGIN_URL = "https://login.ford.com"
+BASE_URL: Final = "https://usapi.cv.ford.com/api"
+GUARD_URL: Final = "https://api.mps.ford.com/api"
+SSO_URL: Final = "https://sso.ci.ford.com"
+AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
+AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
+FORD_LOGIN_URL: Final = "https://login.ford.com"
+ERROR: Final = "ERROR"
 
 session = requests.Session()
 
@@ -54,6 +56,7 @@ class Vehicle:
         self.countrycode = REGIONS[region]["countrycode"]
         self.vin = vin
 
+        self._HAS_COM_ERROR = False
         self.access_token = None
         self.refresh_token = None
         self.expires_at = None
@@ -306,6 +309,7 @@ class Vehicle:
     def __ensure_valid_tokens(self):
         # Fetch and refresh token as needed
         _LOGGER.debug("__ensure_valid_tokens()")
+        self._HAS_COM_ERROR = False
         # If file exists read in token file and check it's valid
         if self.save_token:
             # do not access every time the file system - since we are the only one
@@ -352,8 +356,11 @@ class Vehicle:
         if self.expires_at and now_time > self.expires_at:
             _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {now_time - self.expires_at} -> requesting new token")
             refreshed_token = self.refresh_token_func(prev_token_data)
-            _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
-            self.refresh_auto_token_func(refreshed_token)
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
+            else:
+                _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+                self.refresh_auto_token_func(refreshed_token)
 
         if self.auto_access_token is None or self.auto_expires_at is None:
             _LOGGER.debug(f"__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
@@ -365,17 +372,36 @@ class Vehicle:
 
         if self.access_token is None:
             _LOGGER.warning("__ensure_valid_tokens: self.access_token is None -> re_auth() this will probably fail")
-            # No existing token exists so refreshing library
+            # No existing access_token so we probably need to refresh the library
             self.mark_re_auth_required()
         else:
-            _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
+            # it could be that there has been 'exceptions' when trying to update the tokens
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug("__ensure_valid_tokens: COMM ERROR")
+            else:
+                _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
 
     def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
         _LOGGER.debug(f"refresh_token_func()")
 
         token_data = self._request_token(prev_token_data)
-        if token_data is not False:
+        if token_data is None or token_data is False:
+            self.access_token = None
+            self.refresh_token = None
+            self.expires_at = None
+
+            # also invalidating the auto-tokens...
+            self.auto_access_token = None
+            self.auto_refresh_token = None
+            self.auto_expires_at = None
+            _LOGGER.debug(f"refresh_token_func: FAILED!")
+
+        elif token_data == ERROR:
+            _LOGGER.warning(f"refresh_token_func: COMM ERROR")
+            return ERROR
+        else:
+            # it looks like that the token could be requested successfully...
 
             # re-write the 'expires_in' to 'expiry_date'...
             if "expires_in" in token_data:
@@ -396,50 +422,57 @@ class Vehicle:
             _LOGGER.debug("refresh_token_func: OK")
             return token_data
 
-        else:
-            self.access_token = None
-            self.refresh_token = None
-            self.expires_at = None
-
-            # also invalidating the auto-tokens...
-            self.auto_access_token = None
-            self.auto_refresh_token = None
-            self.auto_expires_at = None
-            _LOGGER.debug(f"refresh_token_func: FAILED!")
-
     def _request_token(self, prev_token_data):
-        _LOGGER.debug("_request_token()")
-
-        headers = {
-            **apiHeaders,
-            "Application-Id": self.region
-        }
-        data = {
-            "refresh_token": prev_token_data["refresh_token"]
-        }
-        response = session.post(
-            f"{GUARD_URL}/token/v2/cat-with-refresh-token",
-            data=json.dumps(data),
-            headers=headers,
-        )
-
-        if response.status_code == 200:
-            result = response.json()
-            _LOGGER.debug(f"_request_token: status OK")
-            return result
-        elif response.status_code == 401:
-            _LOGGER.warning(f"_request_token: status: {response.status_code} - start re_auth() - this will probably fail")
-            self.mark_re_auth_required()
-            return False
+        if self._HAS_COM_ERROR:
+            return ERROR
         else:
-            _LOGGER.warning(f"_request_token: status: {response.status_code} - no data read? {response.text}")
-            response.raise_for_status()
-            return False
+            try:
+                _LOGGER.debug("_request_token()")
+
+                headers = {
+                    **apiHeaders,
+                    "Application-Id": self.region
+                }
+                data = {
+                    "refresh_token": prev_token_data["refresh_token"]
+                }
+                response = session.post(
+                    f"{GUARD_URL}/token/v2/cat-with-refresh-token",
+                    data=json.dumps(data),
+                    headers=headers,
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+                    _LOGGER.debug(f"_request_token: status OK")
+                    return result
+                elif response.status_code == 401:
+                    _LOGGER.warning(f"_request_token: status: {response.status_code} - start re_auth() - this will probably fail")
+                    self.mark_re_auth_required()
+                    return False
+                else:
+                    _LOGGER.warning(f"_request_token: status: {response.status_code} - no data read? {response.text}")
+                    response.raise_for_status()
+                    return False
+
+            except BaseException as e:
+                _LOGGER.warning(f"Error while '_request_token' for vehicle {self.vin} {e}")
+                self._HAS_COM_ERROR = True
+                return ERROR
 
     def refresh_auto_token_func(self, cur_token_data):
         _LOGGER.debug(f"refresh_auto_token_func()")
         auto_token = self._request_auto_token()
-        if auto_token is not False:
+        if auto_token is None or auto_token is False:
+            self.auto_access_token = None
+            self.auto_refresh_token = None
+            self.auto_expires_at = None
+            _LOGGER.debug(f"refresh_auto_token_func: FAILED!")
+
+        elif auto_token == ERROR:
+            _LOGGER.warning(f"refresh_auto_token_func: COMM ERROR")
+        else:
+            # it looks like that the auto token could be requested successfully...
             if "expires_in" in auto_token:
                 # re-write the 'expires_in' to 'expiry_date'...
                 auto_token["expiry_date"] = time.time() + auto_token["expires_in"]
@@ -456,52 +489,56 @@ class Vehicle:
 
                 self._write_token_to_storage(cur_token_data)
 
-            # finally setting our internal values...
+            # finally, setting our internal values...
             self.auto_access_token = auto_token["access_token"]
             self.auto_refresh_token = auto_token["refresh_token"]
             self.auto_expires_at = auto_token["expiry_date"]
 
             _LOGGER.debug("refresh_auto_token_func: OK")
-        else:
-            self.auto_access_token = None
-            self.auto_refresh_token = None
-            self.auto_expires_at = None
-            _LOGGER.debug(f"refresh_auto_token_func: FAILED!")
 
     def _request_auto_token(self):
         """Get token from new autonomic API"""
-        _LOGGER.debug("_request_auto_token()")
-        headers = {
-            "accept": "*/*",
-            "content-type": "application/x-www-form-urlencoded"
-        }
-        # looks like, that the auto_refresh_token is useless here...
-        # but for now I (marq24) keep this in the code...
-        data = {
-            "subject_token": self.access_token,
-            "subject_issuer": "fordpass",
-            "client_id": "fordpass-prod",
-            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
-        }
-        response = session.post(
-            f"{AUTONOMIC_ACCOUNT_URL}/auth/oidc/token",
-            data=data,
-            headers=headers
-        )
-
-        if response.status_code == 200:
-            result = response.json()
-            _LOGGER.debug(f"_request_auto_token: status OK")
-            return result
-        elif response.status_code == 401:
-            _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - start re_auth() - this will probably fail")
-            self.mark_re_auth_required()
-            return False
+        if self._HAS_COM_ERROR:
+            return ERROR
         else:
-            _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - no data read? {response.text}")
-            response.raise_for_status()
-            return False
+            try:
+                _LOGGER.debug("_request_auto_token()")
+                headers = {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                }
+                # looks like, that the auto_refresh_token is useless here...
+                # but for now I (marq24) keep this in the code...
+                data = {
+                    "subject_token": self.access_token,
+                    "subject_issuer": "fordpass",
+                    "client_id": "fordpass-prod",
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+                }
+                response = session.post(
+                    f"{AUTONOMIC_ACCOUNT_URL}/auth/oidc/token",
+                    data=data,
+                    headers=headers
+                )
+
+                if response.status_code == 200:
+                    result = response.json()
+                    _LOGGER.debug(f"_request_auto_token: status OK")
+                    return result
+                elif response.status_code == 401:
+                    _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - start re_auth() - this will probably fail")
+                    self.mark_re_auth_required()
+                    return False
+                else:
+                    _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - no data read? {response.text}")
+                    response.raise_for_status()
+                    return False
+
+            except BaseException as e:
+                _LOGGER.warning(f"Error while '_request_auto_token' for vehicle {self.vin} {e}")
+                self._HAS_COM_ERROR = True
+                return ERROR
 
     def _write_token_to_storage(self, token):
         """Save token to file for reuse"""
@@ -549,140 +586,142 @@ class Vehicle:
         # but when we cleared the tokens... we must mark us as 're-auth' required...
         self._is_reauth_required = True
 
-
     # fetching the main data...
     def status(self):
         """Get Vehicle status from API"""
+        try:
+            # API-Reference?!
+            # https://www.high-mobility.com/car-api/ford-data-api
+            # https://github.com/mlaanderson/fordpass-api-doc
 
-        # API-Reference?!
-        # https://www.high-mobility.com/car-api/ford-data-api
-        # https://github.com/mlaanderson/fordpass-api-doc
+            self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"status() - COMM ERROR")
+                return None
+            else:
+                #_LOGGER.debug(f"status: using token: {self.auto_token}")
+                _LOGGER.debug(f"status() - auto_access_token exist? {self.auto_access_token is not None}")
 
-        self.__ensure_valid_tokens()
-        #_LOGGER.debug(f"status: using token: {self.auto_token}")
-        _LOGGER.debug(f"status() - auto_access_token exist? {self.auto_access_token is not None}")
+            headers_state = {
+                **apiHeaders,
+                "authorization": f"Bearer {self.auto_access_token}",
+                "Application-Id": self.region,
+            }
+            params_state = {
+                "lrdt": "01-01-1970 00:00:00"
+            }
+            response_state = session.get(
+                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
+                params=params_state,
+                headers=headers_state
+            )
 
-        headers_state = {
-            **apiHeaders,
-            "authorization": f"Bearer {self.auto_access_token}",
-            "Application-Id": self.region,
-        }
-        params_state = {
-            "lrdt": "01-01-1970 00:00:00"
-        }
-        response_state = session.get(
-            f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
-            params=params_state,
-            headers=headers_state
-        )
+            if response_state.status_code == 200:
+                result_state = response_state.json()
+                if LOG_DATA:
+                    _LOGGER.debug(f"status: JSON: {result_state}")
+                return result_state
+            elif response_state.status_code == 401:
+                _LOGGER.debug(f"status: 401")
+                self.mark_re_auth_required()
+                return None
+            else:
+                _LOGGER.warning(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
+                response_state.raise_for_status()
+                return None
 
-        if response_state.status_code == 200:
-            result_state = response_state.json()
-            if LOG_DATA:
-                _LOGGER.debug(f"status: JSON: {result_state}")
-            return result_state
-        elif response_state.status_code == 401:
-            _LOGGER.debug(f"status: 401")
-            self.mark_re_auth_required()
-            return None
-        else:
-            _LOGGER.warning(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
-            response_state.raise_for_status()
+        except BaseException as e:
+            _LOGGER.warning(f"Error while fetching status for vehicle {self.vin} {e}")
+            self._HAS_COM_ERROR = True
             return None
 
     def messages(self):
         """Get Vehicle messages from API"""
-        self.__ensure_valid_tokens()
-        _LOGGER.debug(f"messages() - access_token exist? {self.access_token is not None}")
+        try:
+            self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"messages() - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"messages() - access_token exist? {self.access_token is not None}")
 
-        headers_msg = {
-            **apiHeaders,
-            "Auth-Token": self.access_token,
-            "Application-Id": self.region,
-        }
-        response_msg = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
-        if response_msg.status_code == 200:
-            result_msg = response_msg.json()
-            if LOG_DATA:
-                _LOGGER.debug(f"messages: JSON: {result_msg}")
-            return result_msg["result"]["messages"]
-        elif response_msg.status_code == 401:
-            _LOGGER.debug(f"messages: 401")
-            self.mark_re_auth_required()
-            return None
-        else:
-            _LOGGER.warning(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
-            response_msg.raise_for_status()
+            headers_msg = {
+                **apiHeaders,
+                "Auth-Token": self.access_token,
+                "Application-Id": self.region,
+            }
+            response_msg = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
+            if response_msg.status_code == 200:
+                result_msg = response_msg.json()
+                if LOG_DATA:
+                    _LOGGER.debug(f"messages: JSON: {result_msg}")
+                return result_msg["result"]["messages"]
+            elif response_msg.status_code == 401:
+                _LOGGER.debug(f"messages: 401")
+                self.mark_re_auth_required()
+                return None
+            else:
+                _LOGGER.warning(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
+                response_msg.raise_for_status()
+                return None
+
+        except BaseException as e:
+            _LOGGER.warning(f"Error while fetching message for vehicle {self.vin} {e}")
+            self._HAS_COM_ERROR = True
             return None
 
     def vehicles(self):
-        """Get vehicle list from account"""
-        self.__ensure_valid_tokens()
-        _LOGGER.debug(f"vehicles() - access_token exist? {self.access_token is not None}")
+        """Get the vehicle list from the ford account"""
+        try:
+            self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                return None
+                _LOGGER.debug(f"vehicles() - COMM ERROR")
+            else:
+                _LOGGER.debug(f"vehicles() - access_token exist? {self.access_token is not None}")
 
-        headers_veh = {
-            **apiHeaders,
-            "Auth-Token": self.access_token,
-            "Application-Id": self.region,
-            "Countrycode": self.countrycode,
-            "Locale": "en-US"
-        }
-        data_veh = {
-            "dashboardRefreshRequest": "All"
-        }
-        response_veh = session.post(
-            f"{GUARD_URL}/expdashboard/v1/details/",
-            headers=headers_veh,
-            data=json.dumps(data_veh)
-        )
-        if response_veh.status_code == 207 or response_veh.status_code == 200:
-            result_veh = response_veh.json()
-            if LOG_DATA:
-                _LOGGER.debug(f"vehicles: JSON: {result_veh}")
-            return result_veh
-        elif response_veh.status_code == 401:
-            _LOGGER.debug(f"vehicles: 401")
-            self.mark_re_auth_required()
-            return None
-        else:
-            _LOGGER.warning(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
-            response_veh.raise_for_status()
-            return None
+            headers_veh = {
+                **apiHeaders,
+                "Auth-Token": self.access_token,
+                "Application-Id": self.region,
+                "Countrycode": self.countrycode,
+                "Locale": "en-US"
+            }
+            data_veh = {
+                "dashboardRefreshRequest": "All"
+            }
+            response_veh = session.post(
+                f"{GUARD_URL}/expdashboard/v1/details/",
+                headers=headers_veh,
+                data=json.dumps(data_veh)
+            )
+            if response_veh.status_code == 207 or response_veh.status_code == 200:
+                result_veh = response_veh.json()
+                if LOG_DATA:
+                    _LOGGER.debug(f"vehicles: JSON: {result_veh}")
+                return result_veh
+            elif response_veh.status_code == 401:
+                _LOGGER.debug(f"vehicles: 401")
+                self.mark_re_auth_required()
+                return None
+            else:
+                _LOGGER.warning(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
+                response_veh.raise_for_status()
+                return None
 
-    # def fordconnect_status(self):
-    #     """Get vehicle list from account"""
-    #     self.__ensure_valid_tokens()
-    #     _LOGGER.debug(f"xxl() - access_token exist? {self.access_token is not None}")
-    #
-    #     headers_veh = {
-    #         **apiHeaders,
-    #         "Auth-Token": self.access_token,
-    #         "Application-Id": self.region,
-    #         "Countrycode": self.countrycode,
-    #         "Locale": "en-US"
-    #     }
-    #     response_veh = session.post(
-    #         f"{GUARD_URL}/fordconnect/v1/vehicles/{self.veh_id}/status",
-    #         headers=headers_veh
-    #     )
-    #     if response_veh.status_code == 202 or response_veh.status_code == 200:
-    #         result_veh = response_veh.json()
-    #         if LOG_DATA:
-    #             _LOGGER.debug(f"xxl: JSON: {result_veh}")
-    #         return result_veh
-    #     elif response_veh.status_code == 401:
-    #         _LOGGER.debug(f"xxl: 401")
-    #         self.mark_re_auth_required()
-    #         return None
-    #     else:
-    #         _LOGGER.debug(f"xxl: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
-    #         response_veh.raise_for_status()
-    #         return None
+        except BaseException as e:
+            _LOGGER.warning(f"Error while fetching vehicle {e}")
+            self._HAS_COM_ERROR = True
+            return None
 
     def guard_status(self):
         """Retrieve guard status from API"""
         self.__ensure_valid_tokens()
-        _LOGGER.debug(f"guard_status() - access_token exist? {self.access_token is not None}")
+        if self._HAS_COM_ERROR:
+            return None
+            _LOGGER.debug(f"guard_status() - COMM ERROR")
+        else:
+            _LOGGER.debug(f"guard_status() - access_token exist? {self.access_token is not None}")
 
         headers_gs = {
             **apiHeaders,
@@ -697,7 +736,6 @@ class Vehicle:
             headers=headers_gs,
         )
         return response_gs.json()
-
 
     # operations
     def start(self):
@@ -729,6 +767,8 @@ class Vehicle:
         Enable Guard mode on supported models
         """
         self.__ensure_valid_tokens()
+        if self._HAS_COM_ERROR:
+            return None
 
         response = self.__make_request(
             "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
@@ -741,6 +781,9 @@ class Vehicle:
         Disable Guard mode on supported models
         """
         self.__ensure_valid_tokens()
+        if self._HAS_COM_ERROR:
+            return None
+
         response = self.__make_request(
             "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
         )
@@ -757,105 +800,115 @@ class Vehicle:
         status = self.__request_and_poll_command("statusRefresh", vin_to_requst)
         return status
 
-
     # core functions...
     def __make_request(self, method, url, data, params):
         """
         Make a request to the given URL, passing data/params as needed
         """
+        if self._HAS_COM_ERROR:
+            return None
+        else:
+            try:
+                headers = {
+                    **apiHeaders,
+                    "auth-token": self.access_token,
+                    "Application-Id": self.region,
+                }
+                return getattr(requests, method.lower())(url, headers=headers, data=data, params=params)
 
-        headers = {
-            **apiHeaders,
-            "auth-token": self.access_token,
-            "Application-Id": self.region,
-        }
-
-        return getattr(requests, method.lower())(
-            url, headers=headers, data=data, params=params
-        )
+            except BaseException as e:
+                _LOGGER.warning(f"Error while '__make_request' for vehicle {self.vin} {e}")
+                self._HAS_COM_ERROR = True
+                return None
 
     def __poll_status(self, url, command_id):
         """
         Poll the given URL with the given command ID until the command is completed
         """
         status = self.__make_request("GET", f"{url}/{command_id}", None, None)
-        result = status.json()
-        if result["status"] == 552:
-            _LOGGER.debug("__poll_status: Command is pending")
-            time.sleep(5)
-            return self.__poll_status(url, command_id)  # retry after 5s
-        if result["status"] == 200:
-            _LOGGER.debug("__poll_status: Command completed successfully")
-            return True
+        if status is not None:
+            result = status.json()
+            if result["status"] == 552:
+                _LOGGER.debug("__poll_status: Command is pending")
+                time.sleep(5)
+                return self.__poll_status(url, command_id)  # retry after 5s
+
+            if result["status"] == 200:
+                _LOGGER.debug("__poll_status: Command completed successfully")
+                return True
+
         _LOGGER.debug("__poll_status: Command failed")
         return False
 
     def __request_and_poll_command(self, command, vin=None):
         """Send command to the new Command endpoint"""
-        self.__ensure_valid_tokens()
-        headers = {
-            **apiHeaders,
-            "Application-Id": self.region,
-            "authorization": f"Bearer {self.auto_access_token}"
-        }
+        try:
+            self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                return False
+                _LOGGER.debug(f"__request_and_poll_command() - COMM ERROR")
+            else:
+                _LOGGER.debug(f"__request_and_poll_command(): auto_access_token exist? {self.auto_access_token is not None}")
 
-        data = {
-            "properties": {},
-            "tags": {},
-            "type": command,
-            "wakeUp": True
-        }
-        if vin is None:
-            r = session.post(
-                f"{AUTONOMIC_URL}/command/vehicles/{self.vin}/commands",
-                data=json.dumps(data),
-                headers=headers
-            )
-        else:
-            r = session.post(
-                f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
-                data=json.dumps(data),
-                headers=headers
-            )
+            headers = {
+                **apiHeaders,
+                "Application-Id": self.region,
+                "authorization": f"Bearer {self.auto_access_token}"
+            }
 
-        _LOGGER.debug(f"__request_and_poll_command: Testing command status: {r.status_code} content: {r.text}")
-        if r.status_code == 201:
-            # New code to handle checking states table from vehicle data
-            response = r.json()
-            command_id = response["id"]
-            i = 1
-            while i < 14:
-                # Check status every 10 seconds for 90 seconds until command completes or time expires
-                status = self.status()
-                _LOGGER.debug(f"__request_and_poll_command: STATUS {status}")
+            data = {
+                "properties": {},
+                "tags": {},
+                "type": command,
+                "wakeUp": True
+            }
+            if vin is None:
+                r = session.post(
+                    f"{AUTONOMIC_URL}/command/vehicles/{self.vin}/commands",
+                    data=json.dumps(data),
+                    headers=headers
+                )
+            else:
+                r = session.post(
+                    f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
+                    data=json.dumps(data),
+                    headers=headers
+                )
 
-                if "states" in status:
-                    _LOGGER.debug("__request_and_poll_command: States located")
-                    if f"{command}Command" in status["states"]:
-                        _LOGGER.debug(f"__request_and_poll_command: Found command {status["states"][f"{command}Command"]["commandId"]}")
-                        if status["states"][f"{command}Command"]["commandId"] == command_id:
-                            _LOGGER.debug(f"__request_and_poll_command: Making progress {status["states"][f"{command}Command"]}")
-                            if status["states"][f"{command}Command"]["value"]["toState"] == "success":
-                                _LOGGER.debug("__request_and_poll_command: Command succeeded")
-                                return True
-                            if status["states"][f"{command}Command"]["value"]["toState"] == "expired":
-                                _LOGGER.debug("__request_and_poll_command: Command expired")
-                                return False
-                i += 1
-                _LOGGER.debug("__request_and_poll_command: Looping again")
-                time.sleep(10)
-            # time.sleep(90)
+            _LOGGER.debug(f"__request_and_poll_command: Testing command status: {r.status_code} content: {r.text}")
+            if r.status_code == 201:
+                # New code to handle checking states table from vehicle data
+                response = r.json()
+                command_id = response["id"]
+                i = 1
+                while i < 14:
+                    # Check status every 10 seconds for 90 seconds until command completes or time expires
+                    status = self.status()
+                    _LOGGER.debug(f"__request_and_poll_command: STATUS {status}")
+
+                    if status is not None and "states" in status:
+                        _LOGGER.debug("__request_and_poll_command: States located")
+                        if f"{command}Command" in status["states"]:
+                            _LOGGER.debug(f"__request_and_poll_command: Found command {status["states"][f"{command}Command"]["commandId"]}")
+                            if status["states"][f"{command}Command"]["commandId"] == command_id:
+                                _LOGGER.debug(f"__request_and_poll_command: Making progress {status["states"][f"{command}Command"]}")
+                                if status["states"][f"{command}Command"]["value"]["toState"] == "success":
+                                    _LOGGER.debug("__request_and_poll_command: Command succeeded")
+                                    return True
+                                if status["states"][f"{command}Command"]["value"]["toState"] == "expired":
+                                    _LOGGER.debug("__request_and_poll_command: Command expired")
+                                    return False
+                    i += 1
+                    _LOGGER.debug(f"__request_and_poll_command: Looping again - COMM ERRORS? {self._HAS_COM_ERROR}")
+                    if self._HAS_COM_ERROR:
+                        time.sleep(60)
+                    else:
+                        time.sleep(10)
+                # time.sleep(90)
+                return False
             return False
-        return False
 
-    # def __request_and_poll(self, method, url):
-    #     """Poll API until status code is reached, locking + remote start"""
-    #     self.__acquire_token()
-    #     command = self.__make_request(method, url, None, None)
-    #
-    #     if command.status_code == 200:
-    #         result = command.json()
-    #         if "commandId" in result:
-    #             return self.__poll_status(url, result["commandId"])
-    #
-    #     return False
+        except BaseException as e:
+            _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle {self.vin} {e}")
+            self._HAS_COM_ERROR = True
+            return False
