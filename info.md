@@ -1,5 +1,10 @@
 ## **Changelog**
 
+### Version 2025.5.7
+- PEV support (Fixed): The integration supports PEV (Plug-in Electric Vehicle). It looks like that in previous releases, there was an issue when adding sensors for this vehicle type.
+
+  <br/>This means that the integration will now handle Electric Vehicle [EV] (with SOC info), PEV's (with SOC & fuel info) and vehicles with a combustion engine (fuel info), providing the appropriate sensors and attributes for each engine type.
+
 ### Version 2025.5.6
 - Bugfix for #22 
 

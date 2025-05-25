@@ -34,23 +34,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if "api_key" in value:
             sensor = CarSensor(coordinator, a_tag, config_entry.options)
             api_key = value["api_key"]
-            api_class = value.get("api_class", None)
-            sensor_type = value.get("sensor_type", None)
-            is_string = isinstance(api_key, str)
 
-            if is_string and sensor_type == "single":
+            if "skip_existence_check" in value and value["skip_existence_check"]:
                 sensors.append(sensor)
-            elif is_string:
-                if api_key and api_class and api_key in coordinator.data.get(api_class, {}):
-                    sensors.append(sensor)
-                    continue
-                if api_key and api_key in coordinator.data.get("metrics", {}):
-                    sensors.append(sensor)
-            else:
-                for key in api_key:
-                    if key and key in coordinator.data.get("metrics", {}):
-                        sensors.append(sensor)
-                        continue
+            elif "api_class" in value and api_key in coordinator.data.get(value["api_class"], {}):
+                sensors.append(sensor)
+            elif api_key in coordinator.data.get("metrics", {}):
+                sensors.append(sensor)
 
     _LOGGER.debug(f"Configured HA units-system ('hass.config.units'): {hass.config.units}")
     async_add_entities(sensors, True)
@@ -203,6 +193,7 @@ class CarSensor(FordPassEntity, SensorEntity):
                 return self.data_metrics.get("engineOilTemp", {}).get("value", "Unsupported")
 
             if self._tag == Tag.DEEPSLEEP:
+                # currently ONLY 'DEEPSLEEP' will be read from `data_states` (and not from 'data_metrics'
                 state = self.data_states.get("commandPreclusion", {}).get("value", {}).get("toState", "Unsupported")
                 if state.upper() == "COMMANDS_PRECLUDED":
                     return "ACTIVE"

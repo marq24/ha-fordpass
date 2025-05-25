@@ -144,7 +144,7 @@ EV_ONLY_TAGS = [
 
 SENSORS = {
     Tag.ODOMETER:               {"icon": "mdi:counter", "state_class": "total", "device_class": "distance", "api_key": "odometer", "measurement": UnitOfLength.KILOMETERS},
-    Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": ["fuelLevel", "xevBatteryStateOfCharge"], "measurement": PERCENTAGE},
+    Tag.FUEL:                   {"icon": "mdi:gas-station", "api_key": "fuelLevel", "measurement": PERCENTAGE},
     Tag.BATTERY:                {"icon": "mdi:car-battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": PERCENTAGE},
     Tag.OIL:                    {"icon": "mdi:oil", "api_key": "oilLifeRemaining", "measurement": PERCENTAGE},
     Tag.TIRE_PRESSURE:          {"icon": "mdi:car-tire-alert", "api_key": "tirePressure"},
@@ -153,7 +153,7 @@ SENSORS = {
     Tag.IGNITION_STATUS:        {"icon": "hass:power", "api_key": "ignitionStatus"},
     Tag.DOOR_STATUS:            {"icon": "mdi:car-door", "api_key": "doorStatus"},
     Tag.WINDOW_POSITION:        {"icon": "mdi:car-door", "api_key": "windowStatus"},
-    Tag.LAST_REFRESH:           {"icon": "mdi:clock", "device_class": "timestamp", "api_key": "lastRefresh", "sensor_type": "single"},
+    Tag.LAST_REFRESH:           {"icon": "mdi:clock", "device_class": "timestamp", "api_key": "lastRefresh", "skip_existence_check": True},
     Tag.ELVEH:                  {"icon": "mdi:ev-station", "api_key": "xevBatteryRange", "device_class": "distance", "state_class": "measurement", "measurement": UnitOfLength.KILOMETERS},
     Tag.ELVEH_CHARGING:         {"icon": "mdi:ev-station", "api_key": "xevBatteryChargeDisplayStatus"},
     Tag.ELVEH_PLUG:             {"icon": "mdi:connection", "api_key": "xevPlugChargerStatus"},
@@ -161,22 +161,22 @@ SENSORS = {
     Tag.INDICATORS:             {"icon": "mdi:engine-outline", "api_key": "indicators"},
     Tag.COOLANT_TEMP:           {"icon": "mdi:coolant-temperature", "api_key": "engineCoolantTemp", "state_class": "measurement", "device_class": "temperature", "measurement": UnitOfTemperature.CELSIUS},
     Tag.OUTSIDE_TEMP:           {"icon": "mdi:thermometer", "state_class": "measurement", "device_class": "temperature", "api_key": "outsideTemperature", "measurement": UnitOfTemperature.CELSIUS},
-    Tag.ENGINE_OIL_TEMP:         {"icon": "mdi:oil-temperature", "state_class": "measurement", "device_class": "temperature", "api_key": "engineOilTemp", "measurement": UnitOfTemperature.CELSIUS},
+    Tag.ENGINE_OIL_TEMP:        {"icon": "mdi:oil-temperature", "state_class": "measurement", "device_class": "temperature", "api_key": "engineOilTemp", "measurement": UnitOfTemperature.CELSIUS},
     Tag.DEEPSLEEP:              {"icon": "mdi:power-sleep", "name": "Deep Sleep Mode Active", "api_key": "commandPreclusion", "api_class": "states"},
     # Tag.FIRMWAREUPGINPROGRESS: {"icon": "mdi:one-up", "name": "Firmware Update In Progress"},
     Tag.REMOTE_START_STATUS:    {"icon": "mdi:remote", "api_key": "remoteStartCountdownTimer"},
     # Tag.ZONELIGHTING:     {"icon": "mdi:spotlight-beam"},
-    Tag.MESSAGES:               {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "sensor_type": "single"},
+    Tag.MESSAGES:               {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "skip_existence_check": True},
     Tag.DIESEL_SYSTEM_STATUS:   {"icon": "mdi:smoking-pipe", "api_key": "dieselExhaustFilterStatus"},
     Tag.EXHAUST_FLUID_LEVEL:    {"icon": "mdi:barrel", "api_key": "dieselExhaustFluidLevel", "measurement": PERCENTAGE},
     # Debug Sensors (Disabled by default)
-    Tag.EVENTS:                 {"icon": "mdi:calendar", "api_key": "events", "sensor_type": "single", "debug": True},
-    Tag.METRICS:                {"icon": "mdi:chart-line", "api_key": "metrics", "sensor_type": "single", "debug": True},
-    Tag.STATES:                 {"icon": "mdi:car", "api_key": "states", "sensor_type": "single", "debug": True},
-    Tag.VEHICLES:               {"icon": "mdi:car-multiple", "api_key": "vehicles", "sensor_type": "single", "debug": True},
+    Tag.EVENTS:                 {"icon": "mdi:calendar", "api_key": "events", "skip_existence_check": True, "debug": True},
+    Tag.METRICS:                {"icon": "mdi:chart-line", "api_key": "metrics", "skip_existence_check": True, "debug": True},
+    Tag.STATES:                 {"icon": "mdi:car", "api_key": "states", "skip_existence_check": True, "debug": True},
+    Tag.VEHICLES:               {"icon": "mdi:car-multiple", "api_key": "vehicles", "skip_existence_check": True, "debug": True},
 
-    Tag.SOC:                   {"icon": "mdi:battery-high", "api_key": "xevBatteryStateOfCharge", "state_class": "measurement", "measurement": PERCENTAGE},
-    Tag.EVCC_STATUS:           {"icon": "mdi:state-machine", "api_key": "CAN_BE_IGNORED_IF_TYPE_IS_SINGLE", "sensor_type": "single"},
+    Tag.SOC:                    {"icon": "mdi:battery-high", "api_key": "xevBatteryStateOfCharge", "state_class": "measurement", "measurement": PERCENTAGE},
+    Tag.EVCC_STATUS:            {"icon": "mdi:state-machine", "api_key": "CAN_BE_IGNORED_IF_TYPE_IS_SINGLE", "skip_existence_check": True},
 }
 
 SWITCHES = {
