@@ -358,14 +358,15 @@ class CarSensor(FordPassEntity, SensorEntity):
 
                 if "xevBatteryVoltage" in self.data_metrics:
                     elecs["batteryVoltage"] = float(self.data_metrics.get("xevBatteryVoltage", {}).get("value", 0))
-                    batt_volt = elecs.get("batteryVoltage", 0)
 
                 if "xevBatteryIoCurrent" in self.data_metrics:
                     elecs["batteryAmperage"] = float(self.data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
-                    batt_amps = elecs.get("batteryAmperage", 0)
 
                 # Returning 0 in else - to prevent attribute from not displaying
                 if "xevBatteryIoCurrent" in self.data_metrics and "xevBatteryVoltage" in self.data_metrics:
+                    batt_volt = elecs.get("batteryVoltage", 0)
+                    batt_amps = elecs.get("batteryAmperage", 0)
+
                     if batt_volt != 0 and batt_amps != 0:
                         elecs["batterykW"] = round((batt_volt * batt_amps) / 1000, 2)
                     else:
@@ -373,14 +374,14 @@ class CarSensor(FordPassEntity, SensorEntity):
 
                 if "xevTractionMotorVoltage" in self.data_metrics:
                     elecs["motorVoltage"] = float(self.data_metrics.get("xevTractionMotorVoltage", {}).get("value", 0))
-                    motor_volt = elecs.get("motorVoltage", 0)
 
                 if "xevTractionMotorCurrent" in self.data_metrics:
                     elecs["motorAmperage"] = float(self.data_metrics.get("xevTractionMotorCurrent", {}).get("value", 0))
-                    motor_amps = elecs.get("motorAmperage", 0)
 
                 # Returning 0 in else - to prevent attribute from not displaying
                 if "xevTractionMotorVoltage" in self.data_metrics and "xevTractionMotorCurrent" in self.data_metrics:
+                    motor_volt = elecs.get("motorVoltage", 0)
+                    motor_amps = elecs.get("motorAmperage", 0)
                     if motor_volt != 0 and motor_amps != 0:
                         elecs["motorkW"] = round((motor_volt * motor_amps) / 1000, 2)
                     else:
@@ -461,25 +462,24 @@ class CarSensor(FordPassEntity, SensorEntity):
 
                 if "xevBatteryChargerVoltageOutput" in self.data_metrics:
                     cs["chargingVoltage"] = float(self.data_metrics.get("xevBatteryChargerVoltageOutput", {}).get("value", 0))
-                    ch_volt = cs["chargingVoltage"]
 
                 if "xevBatteryChargerCurrentOutput" in self.data_metrics:
                     cs["chargingAmperage"] = float(self.data_metrics.get("xevBatteryChargerCurrentOutput", {}).get("value", 0))
-                    ch_amps = cs["chargingAmperage"]
 
-                # Returning 0 in else - to prevent attribute from not displaying
                 if "xevBatteryChargerVoltageOutput" in self.data_metrics and "xevBatteryChargerCurrentOutput" in self.data_metrics:
+                    ch_volt = cs.get("chargingVoltage", 0)
+                    ch_amps = cs.get("chargingAmperage", 0)
 
-                    # Get Battery Io Current for DC Charging calculation
-                    if "xevBatteryIoCurrent" in self.data_metrics:
-                        batt_amps = float(self.data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
-
-                    # AC Charging calculation
                     if ch_volt != 0 and ch_amps != 0:
                         cs["chargingkW"] = round((ch_volt * ch_amps) / 1000, 2)
-                    # DC Charging calculation: Use absolute value for amperage to handle negative values
-                    elif ch_volt != 0 and batt_amps != 0:
-                        cs["chargingkW"] = round((ch_volt * abs(batt_amps)) / 1000, 2)
+                    elif ch_volt != 0 and "xevBatteryIoCurrent" in self.data_metrics:
+                        # Get Battery Io Current for DC Charging calculation
+                        batt_amps = float(self.data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
+                        # DC Charging calculation: Use absolute value for amperage to handle negative values
+                        if batt_amps != 0:
+                            cs["chargingkW"] = round((ch_volt * abs(batt_amps)) / 1000, 2)
+                        else:
+                            cs["chargingkW"] = 0
                     else:
                         cs["chargingkW"] = 0
 

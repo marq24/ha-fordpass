@@ -1,7 +1,10 @@
 ## **Changelog**
 
+### Version 2025.5.6
+- Bugfix for #22 
+
 ### Version 2025.5.5
-- General backend-communication enhancements: the integration now should handel the situation, when the HA instance might not have a stable internet connection.
+- General backend-communication enhancements: The integration now should handle the situation, when the HA instance might not have a stable internet connection (and just retry to update the data with the next refresh cycle)
 
 ### Version 2025.5.4
 - Added additional EVData & EVCharging attributes (might not be present for all vehicles)
