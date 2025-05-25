@@ -161,6 +161,20 @@ This service will contact the modem in the vehicle and request to sync data betw
 - Deep sleep status
 - Fordpass messages and alerts
 
+## I need You!
+This might be a quite unusual request, but I would like to ask you to consider supporting the testing of this integration by granting me access to your car data. 
+
+It's correct that this implies that you are willing to share your vehicle data (like the location) with me and I would __fully understand if you are not willing to do so__. But at least it must be allowed to ask. Since I can't afford to buy another Ford vehicle (nor do I actually have the space), it would be great if I would be able to test (besides with my EV, also) PEV's, DIESEL and GAS vehicles with this integration.
+
+You can do this by adding my Fordpass account to your existing vehicle as it's described here in the section [Use of a separate Fordpass account is recommended](#use-of-a-separate-fordpass-account-is-recommended).
+
+So if you are willing to help, please send me a short eMail and I will send you my Fordpass account eMail address, so you can add me to your vehicle (and can accept your invite). You can end the sharing at any time by removing my account from your vehicle in your Fordpass app.
+
+## Supporting the development
+If you like this integration and want to support the development, please consider supporting me on [GitHub Sponsors][ghs] or [BuyMeACoffee][buymecoffee] or [PayPal][paypal]. 
+
+[![GitHub Sponsors][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal]
+
 ## Credits
 - https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
 
@@ -174,7 +188,7 @@ This service will contact the modem in the vehicle and request to sync data betw
 - https://github.com/heehoo59 - French Translation
 
 ## Changelog
-See the seperate [Updates](info.md) file for the changelog.
+See the separate [Updates](info.md) file for the changelog.
 
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=ccc
