@@ -20,31 +20,31 @@
 [![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
 
 > [!WARNING]
-> ## Disclaimer - Use could lead to a (temporary) lock of your Fordpass account.
+> ## Disclaimer - The use of this HA integration could lead to a (temporary) lock of your Fordpass account.
 > **This integration is not officially supported by Ford and as such using this integration could result in your account being locked out!** 
 > 
-> Please be aware, that we are developing this integration to best of our knowledge and belief, but cant give a guarantee. Therefore, use this integration **at your own risk**!
+> Please be aware that we are developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
 > 
 > - It's recommended to use/create a **separate Fordpass account** for this integration (see step-by-step procedure further below).
 > - It's recommended to use an **update interval of 240 seconds or higher** to prevent a lock of your Fordpass account.
 
 > [!NOTE]
-> This fork is WIP - and since I just own a EV (Mustang MachE 2023) I will focus on the features of the electrical vehicle data.
+> Since I just own an EV (Mustang MachE 2023) I will focus on the features of the electrical vehicle data. 
 
 > [!IMPORTANT]
 > There is a new access-token obtaining system introduced in the origin fordpass integration repository by @itchannel and @SquidBytes.
 >
-> The access-token used by this forked integration is stored outside the custom integration directory - this will prevent the access-token from being deleted during updates of the integration itself.
+> The access-token used by this forked integration is stored __outside__ the custom integration directory - this will prevent the access-token file from being deleted during updates of the integration itself.
 >
-> Please see the Installation section, or the [docs](./doc/OBTAINING_TOKEN.md) for help.
+> Please see the Installation section, or the [docs](./doc/OBTAINING_TOKEN.md) for additional help.
 
 > [!WARNING]
 > ## This fork is **not compatible** with the original Fordpass integration from @itchannel & @SquidBytes 
-> Initially I created this fork in order to provide a _release version of the v1.70 branch_ that can be installed via the HACS v2.0 (where you only can install 'released' integration versions).
+> Initially, I created this fork to provide a _release version of the v1.70 branch_ that can be installed via the HACS v2.0 (where you only can install 'released' integration versions).
 >
 > ### Incompatible changes:
 > - The entity names have been changed in oder to ensure that the sensor names include the VIN.
-> - The sensor attribute names does not contain spaces anymore to make post-processing easier (using camelcase).
+> - The sensor attribute names do not contain spaces anymore to make post-processing easier (using camelcase).
 > - The access-token is stored outside the custom integration
 >
 > ### Additional enhancements:
@@ -55,7 +55,14 @@
 > - Code cleanup & refactoring
 
 ## Requirements
-Your car must have the latest onboard modem functionality and have been registered/authorised with the fordpass application.
+1. Your car must have the latest onboard modem functionality and have been registered/authorized with the fordpass application.
+2. You need a Home Assistant instance (v2023.9 or higher) with the [HACS](https://hacs.xyz) custom integration installed.
+
+> [!IMPORTANT]
+> This is a HACS custom integration — not a Home Assistant Add-on. Don't try to add this repository as an add-on in Home Assistant.
+> 
+> The IMHO simplest way to install this integration is via the two buttons below ('_OPEN HACS REPOSITORY ON MY HA_' and '_ADD INTEGRATION TO MY HA_').
+
 
 ## Installation Instructions (3 Steps)
 ### Step 1. HACS add the Integration
@@ -65,8 +72,8 @@ Your car must have the latest onboard modem functionality and have been register
 1. In HA HACS, you need to add a new custom repository (via the 'three dots' menu in the top right corner).
 2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
 3. After adding the new repository, you can search for `fordpass` in the search bar.
-4. Important there is already a default HACS fordpass integration - Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork optimized for EVCC].
-5. Install the 'correct' (aka 'this') fordpass integration (v1.71 or higher).
+4. Important there is already a default HACS fordpass integration — Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork optimized for EVCC]_.
+5. Install the 'correct' (aka 'this') fordpass integration (v2025.5.0 or higher).
 6. Restart HA.
 
 ### Step 2. Setup the Integration
@@ -77,9 +84,9 @@ Your car must have the latest onboard modem functionality and have been register
 8. Add the new integration `Fordpass` and follow the instructions:<br/>
    You will need to provide:
    - Your Fordpass Email/Account 
-   - Select a Fordpass Region (USA, EU, UK, AU) [it's expected that only USA will work right now]
+   - Select a Fordpass Region (USA, EU, UK, AU) [it's expected that only 'USA' will work right now]
 
-### Step 3. The hard part - the  **Token Setup**
+### Step 3. The hard part — the  **Token Setup**
 The actual token request requires an external browser to get finally the Fordpass access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
 
 Please follow the steps:
@@ -87,7 +94,7 @@ Please follow the steps:
 2. Open a new browser (with enabled developer tools) and paste the copied URL it into your second browser
 3. In this second browser: Enter your Fordpass credentials (again) and press the login button
 4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but it's not important)
-5. Copy the full `Request-URL` from this `?code=` request from the browsers developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... `]
+5. Copy the full `Request-URL` from this `?code=` request from the browser's developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... `]
 
 More details (how to deal with the browser developer tools) to obtain your token can be found in the [docs](./doc/OBTAINING_TOKEN.md).
 
@@ -116,7 +123,7 @@ Here are is a short procedure how to create a second account:
 <!--### Car Refresh
 @itchannel and @SquidBytes have added a service to poll the car for updates, due to the battery drain they have left this up to you to set the interval. The service to be called is "refresh_status" and can be accessed in home assistant using "fordpas.refresh_status". 
 
-Optionally you can add the "vin" parameter followed by your VIN number to only refresh one vehicle. By default, this service will refresh all registered cars in HA.
+Optionally, you can add the "vin" parameter followed by your VIN number to only refresh one vehicle. By default, this service will refresh all registered cars in HA.
 
 **This will take up to 5 mins to update from the car once the service has been run**
 
