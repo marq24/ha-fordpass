@@ -137,7 +137,8 @@
             "vehicles":                 {"name": "Fahrzeuge"},
 
             "soc":                      {"name": "Ladestand"},
-            "evccstatus":               {"name": "EVCC Status-Code"}
+            "evccstatus":               {"name": "EVCC Status-Code"},
+            "seatbelt":                 {"name": "Gurt-Status"}
         }
     }
 }

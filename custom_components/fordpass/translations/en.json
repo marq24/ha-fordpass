@@ -141,7 +141,8 @@
             "vehicles":                 {"name": "Vehicles"},
 
             "soc":                      {"name": "State of Charge"},
-            "evccstatus":               {"name": "EVCC status code"}
+            "evccstatus":               {"name": "EVCC status code"},
+            "seatbelt":                 {"name": "Belt status"}
         }
     }
 }

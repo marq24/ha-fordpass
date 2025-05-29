@@ -2,20 +2,21 @@
 import asyncio
 import logging
 from datetime import timedelta
-from re import sub
 
 import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME
+from homeassistant.const import CONF_USERNAME, UnitOfPressure
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
     UpdateFailed,
 )
+from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
     CONF_PRESSURE_UNIT,
@@ -27,7 +28,7 @@ from custom_components.fordpass.const import (
     VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
-    COORDINATOR, Tag, EV_ONLY_TAGS
+    COORDINATOR, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS
 )
 from custom_components.fordpass.fordpass_new import Vehicle
 
@@ -173,10 +174,36 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._cached_vehicles_data = {}
         self._reauth_requested = False
         self._engineType = None
+
+        # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
+        self.units:UnitSystem = hass.config.units
+        if CONF_PRESSURE_UNIT in config_entry.options:
+            user_pressure_unit = config_entry.options.get(CONF_PRESSURE_UNIT, None)
+            if user_pressure_unit is not None and user_pressure_unit in PRESSURE_UNITS:
+                local_pressure_unit = UnitOfPressure.KPA
+                if user_pressure_unit == "PSI":
+                    local_pressure_unit = UnitOfPressure.PSI
+                elif user_pressure_unit == "BAR":
+                    local_pressure_unit = UnitOfPressure.BAR
+
+                orig = hass.config.units
+                self.units = UnitSystem(
+                    f"{orig._name}_fordpass",
+                    accumulated_precipitation=orig.accumulated_precipitation_unit,
+                    area=orig.area_unit,
+                    conversions=orig._conversions,
+                    length=orig.length_unit,
+                    mass=orig.mass_unit,
+                    pressure=local_pressure_unit,
+                    temperature=orig.temperature_unit,
+                    volume=orig.volume_unit,
+                    wind_speed=orig.wind_speed_unit,
+                )
+
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
-        if a_tag == Tag.FUEL:
+        if a_tag in FUEL_OR_PEV_ONLY_TAGS:
             return self.supportFuel is False
         if a_tag in EV_ONLY_TAGS:
             return self.supportPureEvOrPluginEv is False
@@ -192,6 +219,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def read_config_on_startup(self, hass: HomeAssistant):
         _LOGGER.debug("read_config_on_startup...")
+        # we are reading here from the global coordinator data object!
         if "vehicles" in self.data:
             veh_data = self.data["vehicles"]
             if "vehicleProfile" in veh_data:
@@ -200,6 +228,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                         self._engineType = vehicle["engineType"]
                         _LOGGER.debug(f"EngineType is: {self._engineType}")
                         break
+            else:
+                _LOGGER.warning(f"No vehicleProfile in 'vehicles' found in coordinator data - no engineType available! {self.data["vehicles"]}")
+        else:
+            _LOGGER.warning(f"No vehicles data found in coordinator data - no engineType available! {self.data}")
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
@@ -262,18 +294,22 @@ class FordPassEntity(CoordinatorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator):
+    def __init__(self, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator, description: EntityDescription | None = None):
         """Initialize the entity."""
-        super().__init__(coordinator)
-        self.coordinator = coordinator
-        self.coordinator_context = object()
-        self.data = coordinator.data.get("metrics", {})
-
-        self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}"
-        self._tag = a_tag
+        super().__init__(coordinator, description)
 
         # ok setting the internal translation key attr (so we can make use of the translation key in the entity)
         self._attr_translation_key = a_tag.key.lower()
+        if description is not None:
+            self.entity_description = description
+            # if an 'entity_description' is present and the description has a translation key - we use it!
+            if hasattr(description, "translation_key") and description.translation_key is not None:
+                self._attr_translation_key = description.translation_key.lower()
+
+        self.coordinator: FordPassDataUpdateCoordinator = coordinator
+        self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}"
+        self._tag = a_tag
+
 
     @property
     def device_id(self):
@@ -331,12 +367,3 @@ class FordPassEntity(CoordinatorEntity):
         #    return f"[fordpass] {name}"
         else:
             return name
-
-    @staticmethod
-    def camel_case(s):
-        # Use regular expression substitution to replace underscores and hyphens with spaces,
-        # then title case the string (capitalize the first letter of each word), and remove spaces
-        s = sub(r"(_|-)+", " ", s).title().replace(" ", "")
-
-        # Join the string, ensuring the first letter is lowercase
-        return ''.join([s[0].lower(), s[1:]])
