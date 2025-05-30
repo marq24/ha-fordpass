@@ -79,6 +79,7 @@ class Vehicle:
             self.stored_tokens_location = tokens_location
 
         self._is_reauth_required = False
+        self.status_updates_allowed = True
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
 
@@ -144,167 +145,6 @@ class Vehicle:
 
     def mark_re_auth_required(self):
         self._is_reauth_required = True
-
-    # def base64_url_encode(self, data):
-    #     """Encode string to base64"""
-    #     return urlsafe_b64encode(data).rstrip(b'=')
-    #
-    # def generate_hash(self, code):
-    #     """Generate hash for login"""
-    #     hashengine = hashlib.sha256()
-    #     hashengine.update(code.encode('utf-8'))
-    #     return self.base64_url_encode(hashengine.digest()).decode('utf-8')
-    #
-    # # IMHO (marq24) this can't work - since with the latest (1.7x versions we do not have the password from the user...
-    # # so there is IMHO no wqy to get access again (if our tokens are invalidated)...
-    # def re_auth(self):
-    #     """New Authentication System """
-    #     _LOGGER.debug("auth: New System")
-    #
-    #     # Auth Step1
-    #     # ----------------
-    #     headers1 = {
-    #         **defaultHeaders,
-    #         'Content-Type': 'application/json',
-    #     }
-    #     code1 = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
-    #     code_verifier1 = self.generate_hash(code1)
-    #     url1 = f"{SSO_URL}/v1.0/endpoint/default/authorize?redirect_uri=fordapp://userauthorized&response_type=code&scope=openid&max_age=3600&client_id=9fb503e0-715b-47e8-adfd-ad4b7770f73b&code_challenge={code_verifier1}&code_challenge_method=S256"
-    #     response1 = session.get(
-    #         url1,
-    #         headers=headers1,
-    #     )
-    #
-    #     test2 = re.findall('data-ibm-login-url="(.*)"\s', response1.text)[0]
-    #     url2 = SSO_URL + test2
-    #
-    #     # Auth Step2
-    #     # ----------------
-    #     headers2 = {
-    #         **defaultHeaders,
-    #         "Content-Type": "application/x-www-form-urlencoded",
-    #     }
-    #     data2 = {
-    #         "operation": "verify",
-    #         "login-form-type": "password",
-    #         "username": self.username,
-    #         "password": self.password
-    #     }
-    #     response2 = session.post(
-    #         url2,
-    #         headers=headers2,
-    #         data=data2,
-    #         allow_redirects=False
-    #     )
-    #
-    #     if response2.status_code == 302:
-    #         url3 = response2.headers["Location"]
-    #     else:
-    #         response2.raise_for_status()
-    #
-    #     # Auth Step3
-    #     # ----------------
-    #     headers3 = {
-    #         **defaultHeaders,
-    #         'Content-Type': 'application/json',
-    #     }
-    #     response3 = session.get(
-    #         url3,
-    #         headers=headers3,
-    #         allow_redirects=False
-    #     )
-    #
-    #     if response3.status_code == 302:
-    #         url4 = response3.headers["Location"]
-    #         query4 = requests.utils.urlparse(url4).query
-    #         params4 = dict(x.split('=') for x in query4.split('&'))
-    #         code4 = params4["code"]
-    #         grant_id4 = params4["grant_id"]
-    #     else:
-    #         response3.raise_for_status()
-    #
-    #     # Auth Step4
-    #     # ----------------
-    #     headers4 = {
-    #         **defaultHeaders,
-    #         "Content-Type": "application/x-www-form-urlencoded",
-    #     }
-    #     data4 = {
-    #         "client_id": "9fb503e0-715b-47e8-adfd-ad4b7770f73b",
-    #         "grant_type": "authorization_code",
-    #         "redirect_uri": 'fordapp://userauthorized',
-    #         "grant_id": grant_id4,
-    #         "code": code4,
-    #         "code_verifier": code1
-    #     }
-    #     response4 = session.post(
-    #         f"{SSO_URL}/oidc/endpoint/default/token",
-    #         headers=headers4,
-    #         data=data4
-    #     )
-    #
-    #     if response4.status_code == 200:
-    #         result4 = response4.json()
-    #         if result4["access_token"]:
-    #             access_token5 = result4["access_token"]
-    #     else:
-    #         response4.raise_for_status()
-    #
-    #     # Auth Step5
-    #     # ----------------
-    #     headers5 = {
-    #         **apiHeaders,
-    #         "Application-Id": self.region
-    #     }
-    #     data5 = {
-    #         "ciToken": access_token5
-    #     }
-    #     response5 = session.post(
-    #         f"{GUARD_URL}/token/v2/cat-with-ci-access-token",
-    #         data=json.dumps(data5),
-    #         headers=headers5,
-    #     )
-    #
-    #     if response5.status_code == 200:
-    #         result5 = response5.json()
-    #
-    #         # we have finally our access token that allows to request ford API's
-    #         self.access_token = result5["access_token"]
-    #         self.refresh_token = result5["refresh_token"]
-    #         if "expires_in" in result5:
-    #             result5["expiry_date"] = time.time() + result5["expires_in"]
-    #             del result5["expires_in"]
-    #             self.expires_at = result5["expiry_date"]
-    #
-    #         if "refresh_expires_in" in result5:
-    #             result5["refresh_expiry_date"] = time.time() + result5["refresh_expires_in"]
-    #             del result5["refresh_expires_in"]
-    #
-    #         auto_token = self._request_auto_token()
-    #         self.auto_access_token = auto_token["access_token"]
-    #         self.auto_refresh_token = auto_token["refresh_token"]
-    #         if "expires_in" in auto_token:
-    #             self.auto_expires_at = time.time() + auto_token["expires_in"]
-    #             del auto_token["expires_in"]
-    #
-    #         if "refresh_expires_in" in auto_token:
-    #             auto_token["refresh_expiry_date"] = time.time() + auto_token["refresh_expires_in"]
-    #             del auto_token["refresh_expires_in"]
-    #
-    #         if self.save_token:
-    #             # we want to store also the 'auto' token data...
-    #             result5["auto_token"] = self.auto_access_token
-    #             result5["auto_refresh_token"] = self.auto_refresh_token
-    #             if self.auto_expires_at is not None:
-    #                 result5["auto_expiry_date"] = self.auto_expires_at
-    #
-    #             self._write_token_to_storage(result5)
-    #
-    #         session.cookies.clear()
-    #         return True
-    #
-    #     response5.raise_for_status()
-    #     return False
 
     def __ensure_valid_tokens(self):
         # Fetch and refresh token as needed
@@ -507,7 +347,7 @@ class Vehicle:
                     "accept": "*/*",
                     "content-type": "application/x-www-form-urlencoded"
                 }
-                # looks like, that the auto_refresh_token is useless here...
+                # it looks like, that the auto_refresh_token is useless here...
                 # but for now I (marq24) keep this in the code...
                 data = {
                     "subject_token": self.access_token,
@@ -557,7 +397,7 @@ class Vehicle:
         self.use_token_data_from_memory = False
 
     def _read_token_from_storage(self):
-        """Read saved token from file"""
+        """Read saved token from a file"""
         _LOGGER.debug(f"_read_token_from_storage()")
         try:
             with open(self.stored_tokens_location, encoding="utf-8") as token_file:
@@ -738,13 +578,13 @@ class Vehicle:
         return response_gs.json()
 
     # operations
-    def start(self):
+    def remote_start(self):
         """
         Issue a start command to the engine
         """
         return self.__request_and_poll_command("remoteStart")
 
-    def stop(self):
+    def cancel_remote_start(self):
         """
         Issue a stop command to the engine
         """
@@ -842,9 +682,11 @@ class Vehicle:
 
     def __request_and_poll_command(self, command, vin=None):
         """Send command to the new Command endpoint"""
+        self.status_updates_allowed = False
         try:
             self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
+                self.status_updates_allowed = True
                 return False
                 _LOGGER.debug(f"__request_and_poll_command() - COMM ERROR")
             else:
@@ -880,35 +722,81 @@ class Vehicle:
                 # New code to handle checking states table from vehicle data
                 response = r.json()
                 command_id = response["id"]
+
+                # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
+                time.sleep(2)
+
                 i = 1
                 while i < 14:
-                    # Check status every 10 seconds for 90 seconds until command completes or time expires
-                    status = self.status()
-                    _LOGGER.debug(f"__request_and_poll_command: STATUS {status}")
+                    a_delay = 5
+                    if i > 5:
+                        a_delay = 10
 
-                    if status is not None and "states" in status:
-                        _LOGGER.debug("__request_and_poll_command: States located")
-                        if f"{command}Command" in status["states"]:
-                            _LOGGER.debug(f"__request_and_poll_command: Found command {status["states"][f"{command}Command"]["commandId"]}")
-                            if status["states"][f"{command}Command"]["commandId"] == command_id:
-                                _LOGGER.debug(f"__request_and_poll_command: Making progress {status["states"][f"{command}Command"]}")
-                                if status["states"][f"{command}Command"]["value"]["toState"] == "success":
-                                    _LOGGER.debug("__request_and_poll_command: Command succeeded")
-                                    return True
-                                if status["states"][f"{command}Command"]["value"]["toState"] == "expired":
-                                    _LOGGER.debug("__request_and_poll_command: Command expired")
-                                    return False
+                    # requesting the status... [to see the process about our command that we just have sent]
+                    updated_data = self.status()
+
+                    if updated_data is not None and "states" in updated_data:
+                        states = updated_data["states"]
+                        if LOG_DATA:
+                            _LOGGER.debug(f"__request_and_poll_command: States located states: {states}")
+
+                        if f"{command}Command" in states:
+                            command_obj = states[f"{command}Command"]
+                            _LOGGER.debug(f"__request_and_poll_command: Found an command obj")
+
+                            if "commandId" in command_obj:
+                                if command_obj["commandId"] == command_id:
+                                    _LOGGER.debug(f"__request_and_poll_command: Found the commandId")
+
+                                    if "value" in command_obj and "toState" in command_obj["value"]:
+                                        to_state = command_obj["value"]["toState"]
+                                        if to_state == "success":
+                                            _LOGGER.debug("__request_and_poll_command: EXCELLENT! command succeeded")
+                                            self.status_updates_allowed = True
+                                            return True
+                                        if to_state == "expired":
+                                            _LOGGER.debug("__request_and_poll_command: Command expired")
+                                            self.status_updates_allowed = True
+                                            return False
+
+                                        if to_state == "request_queued":
+                                            a_delay = 10
+                                            _LOGGER.debug(f"__request_and_poll_command: toState: '{to_state}' - let's wait (10sec)!")
+                                        elif "in_progress" in to_state:
+                                            a_delay = 5
+                                            _LOGGER.debug(f"__request_and_poll_command: toState: '{to_state}' - let's wait (5sec)!")
+                                        else:
+                                            _LOGGER.info(f"__request_and_poll_command: Unknown 'toState': {to_state}")
+
+                                    else:
+                                        _LOGGER.debug(f"__request_and_poll_command: no 'value' or 'toState' in command object {command_obj} - waiting for next loop")
+                                else:
+                                    _LOGGER.info(f"__request_and_poll_command: The {command_id} does not match {command_obj["commandId"]} -> object dump: {command_obj}")
+                            else:
+                                _LOGGER.info(f"__request_and_poll_command: No 'commandId' found in : {command_obj}")
+
                     i += 1
-                    _LOGGER.debug(f"__request_and_poll_command: Looping again - COMM ERRORS? {self._HAS_COM_ERROR}")
+                    _LOGGER.debug(f"__request_and_poll_command: Looping again [{i}] - COMM ERRORS occurred? {self._HAS_COM_ERROR}")
                     if self._HAS_COM_ERROR:
-                        time.sleep(60)
-                    else:
-                        time.sleep(10)
-                # time.sleep(90)
+                        a_delay = 60
+
+                    time.sleep(a_delay)
+
+                # this is after the while-loop...
+                self.status_updates_allowed = True
                 return False
-            return False
+
+            elif r.status_code == 401 or r.status_code == 403:
+                _LOGGER.info(f"__request_and_poll_command: '{command}' returned {r.status_code} - wft!")
+                self.status_updates_allowed = True
+                return False
+            else:
+                _LOGGER.info(f"__request_and_poll_command: '{command}' returned unknown Status code {r.status_code}!")
+                self.status_updates_allowed = True
+                return False
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle {self.vin} {e}")
+            _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle '{self.vin}' command: '{command}' -> {e}")
             self._HAS_COM_ERROR = True
+            self.status_updates_allowed = True
             return False

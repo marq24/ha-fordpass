@@ -1,5 +1,11 @@
 # **Changelog**
 
+## Version 2025.5.9 - HA-Switch/DeviceTracker/Lock implementation refactored
+Same procedure as yesterday (2025.5.8) — this time for DeviceTracker, Switch and Lock entities.
+
+While testing the 'Ignition' switch, I realized that the 'Ignition' switch changing the ignition state. Instead, the 'remote start state' is changes — that make plenty of sense when you look a bit deeper into the code and realize that the switch will send a `RemoteStart` command to the vehicle. So I have renamed the switch to `Remote Start` and changed the icon (but for compatibility reasons I have kept the original entity name).
+
+
 ## Version 2025.5.8 - HA-Sensor implementation refactored
 The integration now uses the standard Home Assistant SensorEntityDescription objects to define the sensors. This allows for a more consistent and maintainable codebase, as well as better compatibility with Home Assistant's features of the future.
 
@@ -29,8 +35,8 @@ While I was working on the refactoring, I have found some additional data in the
 No major change without incompatible changes — sorry for that!
 
 - Battery Sensor: Attribute 'BatteryVoltage' has been renamed to 'batteryVoltage' (starting now with lowercase)
-- Indicator Sensor: The attribute keys can end with the 'additionalInfo' property [appended with a '_' (underscore)]. This 'additionalInfo' looks to me like a service key or something similar that might can become handy when you want to visit a workshop.
-- Message Sensor: Attributes will be 'numbered' list of all messages — Including 'Date', 'Type' 'Subject' and 'Content'. The keys will start with 'msgNNN_' (where NNN is the message number starting with 001)
+- Indicator Sensor: The attribute keys can end with the 'additionalInfo' property [appended with an '_' (underscore)]. This 'additionalInfo' looks to me like a service key or something similar that might can become handy when you want to visit a workshop.
+- Message Sensor: Attributes will be 'numbered' list of all messages — including the fields: 'Date', 'Type' 'Subject' and 'Content'. The keys will start with 'msgNNN_' (where NNN is the message number starting with 001)
 
 ### I need you!
 It would be cool if you could take some additional minutes and read: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#i-need-you

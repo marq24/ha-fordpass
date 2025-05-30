@@ -105,7 +105,7 @@
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
-            "ignition":                 {"name": "Ignition"},
+            "ignition":                 {"name": "Remote Start (❄|☀)"},
             "guardmode":                {"name": "Guard Mode"}
         },
         "sensor": {

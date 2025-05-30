@@ -101,7 +101,7 @@
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {
-            "ignition":                 {"name": "Zündung"},
+            "ignition":                 {"name": "Fernstart (❄|☀)"},
             "guardmode":                {"name": "Alarmanlage"}
         },
         "sensor": {

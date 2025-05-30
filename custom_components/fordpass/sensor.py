@@ -6,10 +6,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator
-from custom_components.fordpass.const import (
-    DOMAIN, SENSORS, COORDINATOR, UNSUPPORTED,
-    ExtSensorEntityDescription
-)
+from custom_components.fordpass.const import DOMAIN, SENSORS, COORDINATOR, ExtSensorEntityDescription
+from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 

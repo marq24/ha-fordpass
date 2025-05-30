@@ -27,7 +27,7 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT
 )
-from custom_components.fordpass.fordpass_new import Vehicle
+from custom_components.fordpass.fordpass_bridge import Vehicle
 
 _LOGGER = logging.getLogger(__name__)
 
