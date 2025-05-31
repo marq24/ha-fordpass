@@ -72,7 +72,7 @@
 1. In HA HACS, you need to add a new custom repository (via the 'three dots' menu in the top right corner).
 2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
 3. After adding the new repository, you can search for `fordpass` in the search bar.
-4. Important there is already a default HACS fordpass integration — Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork optimized for EVCC]_.
+4. Important there is already a default HACS fordpass integration — Please make sure to select the 'correct' one with the description: _Fordpass integration for Home Assistant [fork optimized for EV's & EVCC]_.
 5. Install the 'correct' (aka 'this') fordpass integration (v2025.5.0 or higher).
 6. Restart HA.
 
@@ -167,6 +167,22 @@ This service will contact the modem in the vehicle and request to sync data betw
 - ~~Guard Mode (Only supported cars)~~
 - Deep sleep status
 - Fordpass messages and alerts
+
+## Want to report an issue?
+
+Please use the [GitHub Issues](https://github.com/marq24/ha-fordpass/issues) for reporting any issues you encounter with this integration. Please be so kind before creating a new issues, check the closed ones if your problem has been already reported (& solved).
+
+To speed up the support process, you might like to already prepare and provide DEBUG log output. In the case of a technical issue, I would need this DEBUG log output to be able to help/fix the issue. There is a short [tutorial/guide 'How to provide DEBUG log' here](https://github.com/marq24/ha-senec-v3/blob/master/docs/HA_DEBUG.md) — please take the time to quickly go through it.
+
+For this integration, you need to add:
+```
+logger:
+  default: warning
+  logs:
+    custom_components.fordpass: debug
+```
+
+---
 
 ## I need You!
 This might be a quite unusual request, but I would like to ask you to consider supporting the testing of this integration by granting me access to your car data. 
