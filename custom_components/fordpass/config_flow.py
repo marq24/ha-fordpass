@@ -100,6 +100,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     username = None
     code_verifier = None
     cached_login_input = {}
+    _vehicles = None
+    _vehicle_name = None
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -147,14 +149,19 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self.cached_login_input = user_input
 
                     if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
-                        self.vehicles = info["userVehicles"]["vehicleDetails"]
+                        self._vehicles = info["userVehicles"]["vehicleDetails"]
+                        self._vehicle_name = {}
+                        if "vehicleProfile" in info:
+                            for a_vehicle in info["vehicleProfile"]:
+                                if "VIN" in a_vehicle and "year" in a_vehicle and "model" in a_vehicle:
+                                    self._vehicle_name[a_vehicle["VIN"]] = f"{a_vehicle['year']} {a_vehicle['model']}"
+
+                        _LOGGER.debug(f"Extracted vehicle names:  {self._vehicle_name}")
                         return await self.async_step_vehicle()
                     else:
                         _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
-                        self.vehicles = None
+                        self._vehicles = None
                         return await self.async_step_vin()
-
-
                 else:
                     errors["base"] = "invalid_token"
 
@@ -217,7 +224,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
 
             if vehicle:
-                return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.cached_login_input)
+                # create the config entry without the vehicle type/name...
+                return self.async_create_entry(title=f"VIN: {user_input[VIN]}", data=self.cached_login_input)
 
         _LOGGER.debug(f"{self.self.cached_login_input}")
         return self.async_show_form(step_id="vin", data_schema=VIN_SCHEME, errors=errors)
@@ -225,22 +233,32 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_vehicle(self, user_input=None):
         if user_input is not None:
             _LOGGER.debug("Checking Vehicle is accessible")
-            self.cached_login_input[VIN] = user_input["vin"]
+            self.cached_login_input[VIN] = user_input[VIN]
             _LOGGER.debug(f"{self.cached_login_input}")
-            return self.async_create_entry(title=f"VIN: ({user_input[VIN]})", data=self.cached_login_input)
 
-        _LOGGER.debug(f"async_step_vehicle with vehicles: {self.vehicles}")
+            if user_input[VIN] in self._vehicle_name:
+                a_title = f"{self._vehicle_name[user_input[VIN]]} VIN: {user_input[VIN]}"
+            else:
+                a_title = f"VIN: {user_input[VIN]}"
+
+            return self.async_create_entry(title=a_title, data=self.cached_login_input)
+
+        _LOGGER.debug(f"async_step_vehicle with vehicles: {self._vehicles}")
 
         configured = configured_vehicles(self.hass)
         _LOGGER.debug(f"configured: {configured}")
         available_vehicles = {}
-        for vehicle in self.vehicles:
-            _LOGGER.debug(f"a vehicle: {vehicle}")
-            if vehicle["VIN"] not in configured:
-                if "nickName" in vehicle:
-                    available_vehicles[vehicle["VIN"]] = vehicle["nickName"] + f" ({vehicle['VIN']})"
+        for a_vehicle in self._vehicles:
+            _LOGGER.debug(f"a vehicle: {a_vehicle}")
+            a_veh_vin = a_vehicle["VIN"]
+            if a_veh_vin not in configured:
+                if a_veh_vin in self._vehicle_name:
+                    available_vehicles[a_veh_vin] = f"{self._vehicle_name[a_veh_vin]} - {a_veh_vin}"
+                elif "nickName" in a_vehicle:
+                    self._vehicle_name[a_veh_vin] = a_vehicle["nickName"]
+                    available_vehicles[a_veh_vin] = f"{a_vehicle['nickName']} - {a_veh_vin}"
                 else:
-                    available_vehicles[vehicle["VIN"]] = f" ({vehicle['VIN']})"
+                    available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
 
         if not available_vehicles:
             _LOGGER.debug("No Vehicles?")

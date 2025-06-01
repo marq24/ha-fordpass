@@ -27,7 +27,7 @@ from custom_components.fordpass.const import (
     COORDINATOR, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS
 )
 from custom_components.fordpass.fordpass_bridge import Vehicle
-from custom_components.fordpass.fordpass_handler import ROOT_VEHICLES, FordpassDataHandler
+from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
@@ -244,19 +244,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
                 # check, if RemoteStart is supported
                 if "vehicleCapabilities" in veh_data:
-                    for a_vehicle_capability in veh_data["vehicleCapabilities"]:
-                        if a_vehicle_capability["VIN"] == self._vin:
-                            self._supports_REMOTE_START = False
-                            if "remoteStart" in a_vehicle_capability and a_vehicle_capability["remoteStart"] is not None:
-                                val = a_vehicle_capability["remoteStart"]
-                                if val.upper() == "DISPLAY":
-                                    self._supports_REMOTE_START = True
-                                elif val.upper() == "NODISPLAY":
-                                    self._supports_REMOTE_START = False
-
-                                _LOGGER.debug(f"Is RemoteStart supported?: {self._supports_REMOTE_START} - {val}")
-                            else:
-                                _LOGGER.warning(f"No RemoteStart data found for VIN {self._vin} - assuming not supported")
+                    for capability_obj in veh_data["vehicleCapabilities"]:
+                        if capability_obj["VIN"] == self._vin:
+                            self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
+                            self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             break
                 else:
                     _LOGGER.warning(f"No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data["vehicles"]}")
@@ -268,6 +259,19 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning(f"No vehicles data found in coordinator data - no engineType available! {self.data}")
         else:
             _LOGGER.warning(f"DATA is NONE!!! - {self.data}")
+
+    def _check_if_veh_capability_supported(self, a_capability: str, capabilities: dict) -> bool:
+        """Check if a specific vehicle capability is supported."""
+        is_supported = False
+        if a_capability in capabilities and capabilities[a_capability] is not None:
+            val = capabilities[a_capability]
+            if (isinstance(val, bool) and val) or val.upper() == "DISPLAY":
+                is_supported = True
+            _LOGGER.debug(f"Is '{a_capability}' supported?: {is_supported} - {val}")
+        else:
+            _LOGGER.warning(f"No '{a_capability}' data found for VIN {self._vin} - assuming not supported")
+
+        return is_supported
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
@@ -288,7 +292,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             # Temporarily removed due to Ford backend API changes
                             # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
 
-                            data["messages"] = await self.hass.async_add_executor_job(self.vehicle.messages)
+                            data[ROOT_MESSAGES] = await self.hass.async_add_executor_job(self.vehicle.messages)
 
                             # only update vehicle data if not present yet
                             if len(self._cached_vehicles_data) == 0:
@@ -296,12 +300,12 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 self._cached_vehicles_data = await self.hass.async_add_executor_job(self.vehicle.vehicles)
 
                             if len(self._cached_vehicles_data) > 0:
-                                data["vehicles"] = self._cached_vehicles_data
+                                data[ROOT_VEHICLES] = self._cached_vehicles_data
 
-                            if "metrics" in data and data["metrics"] is not None:
-                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data["metrics"])} messages: {len(data["messages"])}")
+                            if ROOT_METRICS in data and data[ROOT_METRICS] is not None:
+                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data[ROOT_METRICS])} messages: {len(data[ROOT_MESSAGES])}")
                             else:
-                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data["messages"])}")
+                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data[ROOT_MESSAGES])}")
 
                             # only for private debugging
                             # self.write_data_debug(data)

@@ -636,14 +636,13 @@ class FordpassDataHandler:
 
     # GUARD_MODE state + on_off (and is_supported_check)
     def is_guard_mode_supported(data):
-        # marq24: need to find a vehicle that still supports 'quard' mode to test this...
+        # marq24: need to find a vehicle that still supports 'guard' mode to test this...
         # Need to find the correct response for enabled vs. disabled, so this may be spotty at the moment
         guard_status_data = data.get("guardstatus", {})
-        _LOGGER.debug(f"guardstatus: {guard_status_data}")
         return "returnCode" in guard_status_data and guard_status_data["returnCode"] == 200
 
     def get_guard_mode_state(data):
-        # marq24: need to find a vehicle that still supports 'quard' mode to test this...
+        # marq24: need to find a vehicle that still supports 'guard' mode to test this...
         # Need to find the correct response for enabled vs. disabled, so this may be spotty at the moment
         guard_status_data = data.get("guardstatus", {})
         _LOGGER.debug(f"guardstatus: {guard_status_data}")
