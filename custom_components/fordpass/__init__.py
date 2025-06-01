@@ -315,7 +315,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
                                 self._available = True
                         else:
-                            _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
+                            if self.vehicle is not None and self.vehicle._HAS_COM_ERROR:
+                                _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
+                            else:
+                                _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
                             data = self.data
                     else:
                         _LOGGER.info(f"_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")

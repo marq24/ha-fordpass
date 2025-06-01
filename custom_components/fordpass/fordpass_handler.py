@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import timedelta
+from numbers import Number
 from re import sub
 from typing import Final
 
@@ -15,7 +16,7 @@ ROOT_EVENTS: Final = "events"
 ROOT_METRICS: Final = "metrics"
 ROOT_VEHICLES: Final = "vehicles"
 ROOT_MESSAGES: Final = "messages"
-UNSUPPORTED: Final = "Unsupported"
+UNSUPPORTED: Final = str("Unsupported")
 
 class FordpassDataHandler:
     # Helper functions to simplify the callable implementations
@@ -68,14 +69,28 @@ class FordpassDataHandler:
 
     @staticmethod
     def localize_distance(value, units):
-        if value is not None and value != -1:
-            return units.length(value, UnitOfLength.KILOMETERS)
+        if value is not None and value != UNSUPPORTED:
+            try:
+                if not isinstance(value, Number):
+                    value = float(value)
+                return units.length(value, UnitOfLength.KILOMETERS)
+            except ValueError as ve:
+                _LOGGER.debug(f"Invalid distance value: '{value}' caused {ve}")
+            except BaseException as e:
+                _LOGGER.debug(f"Invalid distance value: '{value}' caused {type(e)} {e}")
         return None
 
     @staticmethod
     def localize_temperature(value, units):
-        if value is not None and value != -1:
-            return units.temperature(value, UnitOfTemperature.CELSIUS)
+        if value is not None and value != UNSUPPORTED:
+            try:
+                if not isinstance(value, Number):
+                    value = float(value)
+                return units.temperature(value, UnitOfTemperature.CELSIUS)
+            except ValueError as ve:
+                _LOGGER.debug(f"Invalid temperature value: '{value}' caused {ve}")
+            except BaseException as e:
+                _LOGGER.debug(f"Invalid temperature value: '{value}' caused {type(e)} {e}")
         return None
 
     ###########################################################
@@ -151,10 +166,14 @@ class FordpassDataHandler:
             digits = 2
 
         for a_tire in data_metrics["tirePressure"]:
-            attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = f"{round(units.pressure(a_tire["value"], UnitOfPressure.KPA), digits)} {units.pressure_unit}"
+            a_val = a_tire.get("value", UNSUPPORTED)
+            if a_val is not None and a_val != UNSUPPORTED and isinstance(a_val, Number):
+                attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
 
         for a_tire in data_metrics["tirePressureStatus"]:
-            attrs[f"{FordpassDataHandler.to_camel(a_tire["vehicleWheel"])}_state"] = a_tire["value"]
+            a_val = a_tire.get("value", UNSUPPORTED)
+            if a_val is not None and a_val != UNSUPPORTED:
+                attrs[f"{FordpassDataHandler.to_camel(a_tire["vehicleWheel"])}_state"] = a_val
 
         return attrs
 
@@ -616,7 +635,7 @@ class FordpassDataHandler:
     # OUTSIDE_TEMP attributes
     def get_outside_temp_attrs(data, units:UnitSystem):
         ambient_temp = FordpassDataHandler.get_value_for_metrics_key(data, "ambientTemp")
-        if ambient_temp is not None:
+        if ambient_temp is not None and ambient_temp != UNSUPPORTED:
             return {"ambientTemp": FordpassDataHandler.localize_temperature(ambient_temp, units)}
         return None
 

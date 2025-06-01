@@ -58,12 +58,14 @@ class Vehicle:
         self.countrycode = REGIONS[region]["countrycode"]
         self.vin = vin
 
-        self._FOUR_NULL_ONE_COUNTER = 0
         self._HAS_COM_ERROR = False
+
+        self._FOUR_NULL_ONE_COUNTER = 0
         self.access_token = None
         self.refresh_token = None
         self.expires_at = None
 
+        self._AUTO_FOUR_NULL_ONE_COUNTER = 0
         self.auto_access_token = None
         self.auto_refresh_token = None
         self.auto_expires_at = None
@@ -222,14 +224,12 @@ class Vehicle:
             _LOGGER.debug(f"__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {now_time - self.auto_expires_at} -> requesting new auto-token")
             self.refresh_auto_token_func(prev_token_data)
 
-        if self.access_token is None:
-            _LOGGER.warning("__ensure_valid_tokens: self.access_token is None -> mark_re_auth_required()")
-            # No existing access_token so we probably need to refresh the library
-            self.mark_re_auth_required()
+        # it could be that there has been 'exceptions' when trying to update the tokens
+        if self._HAS_COM_ERROR:
+            _LOGGER.debug("__ensure_valid_tokens: COMM ERROR")
         else:
-            # it could be that there has been 'exceptions' when trying to update the tokens
-            if self._HAS_COM_ERROR:
-                _LOGGER.debug("__ensure_valid_tokens: COMM ERROR")
+            if self.access_token is None:
+                _LOGGER.warning("__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
             else:
                 _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
 
@@ -382,18 +382,18 @@ class Vehicle:
 
                 if response.status_code == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    self._FOUR_NULL_ONE_COUNTER = 0
+                    self._AUTO_FOUR_NULL_ONE_COUNTER = 0
 
                     result = response.json()
                     _LOGGER.debug(f"_request_auto_token: status OK")
                     return result
                 elif response.status_code == 401:
-                    self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
-                    if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                    self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
+                    if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                         _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.info(f"_request_auto_token: status_code: {response.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.info(f"_request_auto_token: status_code: {response.status_code} - AUTO 401 counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
 
                     return False
                 else:
@@ -463,7 +463,6 @@ class Vehicle:
                 _LOGGER.debug(f"status() - COMM ERROR")
                 return None
             else:
-                #_LOGGER.debug(f"status: using token: {self.auto_token}")
                 _LOGGER.debug(f"status() - auto_access_token exist? {self.auto_access_token is not None}")
 
             headers_state = {
@@ -482,24 +481,24 @@ class Vehicle:
 
             if response_state.status_code == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                self._FOUR_NULL_ONE_COUNTER = 0
+                self._AUTO_FOUR_NULL_ONE_COUNTER = 0
 
                 result_state = response_state.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"status: JSON: {result_state}")
                 return result_state
             elif response_state.status_code == 401:
-                self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
-                if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
+                if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.warning(f"status: status_code: {response_state.status_code} - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"status: status_code: {response_state.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.info(f"status: status_code: {response_state.status_code} - AUTO 401 counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:
                 _LOGGER.warning(f"status: status_code (not 200 or 401) {response_state.status_code} {response_state.text}")
-                response_state.raise_for_status()
+                self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
@@ -542,7 +541,7 @@ class Vehicle:
                 return None
             else:
                 _LOGGER.warning(f"messages: status_code (not 200 or 401) {response_msg.status_code} {response_msg.text}")
-                response_msg.raise_for_status()
+                self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
