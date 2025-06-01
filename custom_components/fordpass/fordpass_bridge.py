@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+import traceback
 from typing import Final
 
 import requests
@@ -144,19 +145,27 @@ class Vehicle:
         return self._is_reauth_required
 
     def mark_re_auth_required(self):
+        stack_trace = traceback.format_stack()
+        stack_trace_str = ''.join(stack_trace[:-1])  # Exclude the call to this function
+        _LOGGER.warnig(f"mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
         self._is_reauth_required = True
 
     def __ensure_valid_tokens(self):
         # Fetch and refresh token as needed
         _LOGGER.debug("__ensure_valid_tokens()")
         self._HAS_COM_ERROR = False
-        # If file exists read in token file and check it's valid
+        # If a file exists, read in the token file and check it's valid
         if self.save_token:
             # do not access every time the file system - since we are the only one
             # using the vehicle object, we can keep the token in memory (and
             # invalidate it if needed)
             if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
                 prev_token_data = self._read_token_from_storage()
+                if prev_token_data is None:
+                    # no token data could be read!
+                    _LOGGER.info("__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
+                    return
+
                 self.use_token_data_from_memory = True
                 _LOGGER.debug(f"__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
 
@@ -175,32 +184,33 @@ class Vehicle:
                     self.auto_expires_at = None
             else:
                 # we will use the token data from memory...
-                prev_token_data = {}
-                prev_token_data["access_token"] = self.access_token
-                prev_token_data["refresh_token"] = self.refresh_token
-                prev_token_data["expiry_date"] = self.expires_at
-                prev_token_data["auto_token"] = self.auto_access_token
-                prev_token_data["auto_refresh_token"] = self.auto_refresh_token
-                prev_token_data["auto_expiry_date"] = self.auto_expires_at
+                prev_token_data = {"access_token": self.access_token,
+                                   "refresh_token": self.refresh_token,
+                                   "expiry_date": self.expires_at,
+                                   "auto_token": self.auto_access_token,
+                                   "auto_refresh_token": self.auto_refresh_token,
+                                   "auto_expiry_date": self.auto_expires_at}
         else:
-            prev_token_data = {}
-            prev_token_data["access_token"] = self.access_token
-            prev_token_data["refresh_token"] = self.refresh_token
-            prev_token_data["expiry_date"] = self.expires_at
-            prev_token_data["auto_token"] = self.auto_access_token
-            prev_token_data["auto_refresh_token"] = self.auto_refresh_token
-            prev_token_data["auto_expiry_date"] = self.auto_expires_at
+            prev_token_data = {"access_token": self.access_token,
+                               "refresh_token": self.refresh_token,
+                               "expiry_date": self.expires_at,
+                               "auto_token": self.auto_access_token,
+                               "auto_refresh_token": self.auto_refresh_token,
+                               "auto_expiry_date": self.auto_expires_at}
 
         # checking token data (and refreshing if needed)
-        now_time = time.time()
+        now_time = time.time() - 7 # (so we will invalidate tokens if they will expire in the next 7 seconds)
         if self.expires_at and now_time > self.expires_at:
             _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {now_time - self.expires_at} -> requesting new token")
             refreshed_token = self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
             else:
-                _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
-                self.refresh_auto_token_func(refreshed_token)
+                if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
+                    _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+                    self.refresh_auto_token_func(refreshed_token)
+                else:
+                    _LOGGER.warning(f"__ensure_valid_tokens: result for new token: ERROR, None or False")
 
         if self.auto_access_token is None or self.auto_expires_at is None:
             _LOGGER.debug(f"__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
@@ -211,7 +221,7 @@ class Vehicle:
             self.refresh_auto_token_func(prev_token_data)
 
         if self.access_token is None:
-            _LOGGER.warning("__ensure_valid_tokens: self.access_token is None -> re_auth() this will probably fail")
+            _LOGGER.warning("__ensure_valid_tokens: self.access_token is None -> mark_re_auth_required()")
             # No existing access_token so we probably need to refresh the library
             self.mark_re_auth_required()
         else:
@@ -287,11 +297,11 @@ class Vehicle:
                     _LOGGER.debug(f"_request_token: status OK")
                     return result
                 elif response.status_code == 401:
-                    _LOGGER.warning(f"_request_token: status: {response.status_code} - start re_auth() - this will probably fail")
+                    _LOGGER.warning(f"_request_token: status_code: {response.status_code} - mark_re_auth_required()")
                     self.mark_re_auth_required()
                     return False
                 else:
-                    _LOGGER.warning(f"_request_token: status: {response.status_code} - no data read? {response.text}")
+                    _LOGGER.warning(f"_request_token: status_code: {response.status_code} - no data read? {response.text}")
                     response.raise_for_status()
                     return False
 
@@ -367,11 +377,11 @@ class Vehicle:
                     _LOGGER.debug(f"_request_auto_token: status OK")
                     return result
                 elif response.status_code == 401:
-                    _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - start re_auth() - this will probably fail")
+                    _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - mark_re_auth_required()")
                     self.mark_re_auth_required()
                     return False
                 else:
-                    _LOGGER.warning(f"_request_auto_token: status: {response.status_code} - no data read? {response.text}")
+                    _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - no data read? {response.text}")
                     response.raise_for_status()
                     return False
 
@@ -404,11 +414,9 @@ class Vehicle:
                 token = json.load(token_file)
                 return token
         except ValueError:
-            _LOGGER.debug("_read_token_from_storage: Fixing malformed token")
+            _LOGGER.warning("_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
             self.mark_re_auth_required()
-            with open(self.stored_tokens_location, encoding="utf-8") as token_file:
-                token = json.load(token_file)
-                return token
+        return None
 
     def clear_token(self):
         _LOGGER.debug(f"clear_token()")
@@ -462,16 +470,16 @@ class Vehicle:
                     _LOGGER.debug(f"status: JSON: {result_state}")
                 return result_state
             elif response_state.status_code == 401:
-                _LOGGER.debug(f"status: 401")
+                _LOGGER.warning(f"status: status_code: {response_state.status_code} - mark_re_auth_required()")
                 self.mark_re_auth_required()
                 return None
             else:
-                _LOGGER.warning(f"status: (not 200 or 401) {response_state.status_code} {response_state.text}")
+                _LOGGER.warning(f"status: status_code (not 200 or 401) {response_state.status_code} {response_state.text}")
                 response_state.raise_for_status()
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching status for vehicle {self.vin} {e}")
+            _LOGGER.warning(f"Error while fetching status for vehicle {self.vin} {type(e)} {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -497,11 +505,11 @@ class Vehicle:
                     _LOGGER.debug(f"messages: JSON: {result_msg}")
                 return result_msg["result"]["messages"]
             elif response_msg.status_code == 401:
-                _LOGGER.debug(f"messages: 401")
+                _LOGGER.warning(f"messages: status_code: {response_msg.status_code} - mark_re_auth_required()")
                 self.mark_re_auth_required()
                 return None
             else:
-                _LOGGER.warning(f"messages: (not 200 or 401) {response_msg.status_code} {response_msg.text}")
+                _LOGGER.warning(f"messages: status_code (not 200 or 401) {response_msg.status_code} {response_msg.text}")
                 response_msg.raise_for_status()
                 return None
 
@@ -515,8 +523,8 @@ class Vehicle:
         try:
             self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                return None
                 _LOGGER.debug(f"vehicles() - COMM ERROR")
+                return None
             else:
                 _LOGGER.debug(f"vehicles() - access_token exist? {self.access_token is not None}")
 
@@ -541,7 +549,7 @@ class Vehicle:
                     _LOGGER.debug(f"vehicles: JSON: {result_veh}")
                 return result_veh
             elif response_veh.status_code == 401:
-                _LOGGER.debug(f"vehicles: 401")
+                _LOGGER.warning(f"vehicles: status_code: {response_veh.status_code} - mark_re_auth_required()")
                 self.mark_re_auth_required()
                 return None
             else:
@@ -558,8 +566,8 @@ class Vehicle:
         """Retrieve guard status from API"""
         self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
-            return None
             _LOGGER.debug(f"guard_status() - COMM ERROR")
+            return None
         else:
             _LOGGER.debug(f"guard_status() - access_token exist? {self.access_token is not None}")
 
@@ -579,28 +587,35 @@ class Vehicle:
 
     # operations
     def remote_start(self):
-        """
-        Issue a start command to the engine
-        """
-        return self.__request_and_poll_command("remoteStart")
+        return self.__request_and_poll_command(command="remoteStart")
 
     def cancel_remote_start(self):
-        """
-        Issue a stop command to the engine
-        """
-        return self.__request_and_poll_command("cancelRemoteStart")
+        return self.__request_and_poll_command(command="cancelRemoteStart")
+
+    def start_charge(self):
+        return self.__request_and_poll_command(url_command="startCharge")
+
+    def stop_charge(self):
+        return self.__request_and_poll_command(url_command="stopCharge")
+
+    # NOT USED YET
+    # def start_engine(self):
+    #     return self.__request_and_poll_command(command="startEngine")
+    #
+    # def stop(self):
+    #     return self.__request_and_poll_command(command="stop")
 
     def lock(self):
         """
         Issue a lock command to the doors
         """
-        return self.__request_and_poll_command("lock")
+        return self.__request_and_poll_command(command="lock")
 
     def unlock(self):
         """
         Issue an unlock command to the doors
         """
-        return self.__request_and_poll_command("unlock")
+        return self.__request_and_poll_command(command="unlock")
 
     def enable_guard(self):
         """
@@ -633,11 +648,11 @@ class Vehicle:
     def request_update(self, vin=None):
         """Send request to vehicle for update"""
         if vin is None or len(vin) == 0:
-            vin_to_requst = self.vin
+            vin_to_request = self.vin
         else:
-            vin_to_requst = vin
+            vin_to_request = vin
 
-        status = self.__request_and_poll_command("statusRefresh", vin_to_requst)
+        status = self.__request_and_poll_command(command="statusRefresh", vin=vin_to_request)
         return status
 
     # core functions...
@@ -680,15 +695,15 @@ class Vehicle:
         _LOGGER.debug("__poll_status: Command failed")
         return False
 
-    def __request_and_poll_command(self, command, vin=None):
+    def __request_and_poll_command(self, command, properties={}, vin=None):
         """Send command to the new Command endpoint"""
         self.status_updates_allowed = False
         try:
             self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
                 self.status_updates_allowed = True
-                return False
                 _LOGGER.debug(f"__request_and_poll_command() - COMM ERROR")
+                return False
             else:
                 _LOGGER.debug(f"__request_and_poll_command(): auto_access_token exist? {self.auto_access_token is not None}")
 
@@ -697,106 +712,138 @@ class Vehicle:
                 "Application-Id": self.region,
                 "authorization": f"Bearer {self.auto_access_token}"
             }
+            # do we want to overwrite the vin?!
+            if vin is None:
+                vin = self.vin
 
             data = {
-                "properties": {},
+                "properties": properties,
                 "tags": {},
                 "type": command,
                 "wakeUp": True
             }
-            if vin is None:
-                r = session.post(
-                    f"{AUTONOMIC_URL}/command/vehicles/{self.vin}/commands",
-                    data=json.dumps(data),
-                    headers=headers
-                )
-            else:
-                r = session.post(
-                    f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
-                    data=json.dumps(data),
-                    headers=headers
-                )
-
-            _LOGGER.debug(f"__request_and_poll_command: Testing command status: {r.status_code} content: {r.text}")
-            if r.status_code == 201:
-                # New code to handle checking states table from vehicle data
-                response = r.json()
-                command_id = response["id"]
-
-                # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
-                time.sleep(2)
-
-                i = 1
-                while i < 14:
-                    a_delay = 5
-                    if i > 5:
-                        a_delay = 10
-
-                    # requesting the status... [to see the process about our command that we just have sent]
-                    updated_data = self.status()
-
-                    if updated_data is not None and "states" in updated_data:
-                        states = updated_data["states"]
-                        if LOG_DATA:
-                            _LOGGER.debug(f"__request_and_poll_command: States located states: {states}")
-
-                        if f"{command}Command" in states:
-                            command_obj = states[f"{command}Command"]
-                            _LOGGER.debug(f"__request_and_poll_command: Found an command obj")
-
-                            if "commandId" in command_obj:
-                                if command_obj["commandId"] == command_id:
-                                    _LOGGER.debug(f"__request_and_poll_command: Found the commandId")
-
-                                    if "value" in command_obj and "toState" in command_obj["value"]:
-                                        to_state = command_obj["value"]["toState"]
-                                        if to_state == "success":
-                                            _LOGGER.debug("__request_and_poll_command: EXCELLENT! command succeeded")
-                                            self.status_updates_allowed = True
-                                            return True
-                                        if to_state == "expired":
-                                            _LOGGER.debug("__request_and_poll_command: Command expired")
-                                            self.status_updates_allowed = True
-                                            return False
-
-                                        if to_state == "request_queued":
-                                            a_delay = 10
-                                            _LOGGER.debug(f"__request_and_poll_command: toState: '{to_state}' - let's wait (10sec)!")
-                                        elif "in_progress" in to_state:
-                                            a_delay = 5
-                                            _LOGGER.debug(f"__request_and_poll_command: toState: '{to_state}' - let's wait (5sec)!")
-                                        else:
-                                            _LOGGER.info(f"__request_and_poll_command: Unknown 'toState': {to_state}")
-
-                                    else:
-                                        _LOGGER.debug(f"__request_and_poll_command: no 'value' or 'toState' in command object {command_obj} - waiting for next loop")
-                                else:
-                                    _LOGGER.info(f"__request_and_poll_command: The {command_id} does not match {command_obj["commandId"]} -> object dump: {command_obj}")
-                            else:
-                                _LOGGER.info(f"__request_and_poll_command: No 'commandId' found in : {command_obj}")
-
-                    i += 1
-                    _LOGGER.debug(f"__request_and_poll_command: Looping again [{i}] - COMM ERRORS occurred? {self._HAS_COM_ERROR}")
-                    if self._HAS_COM_ERROR:
-                        a_delay = 60
-
-                    time.sleep(a_delay)
-
-                # this is after the while-loop...
-                self.status_updates_allowed = True
-                return False
-
-            elif r.status_code == 401 or r.status_code == 403:
-                _LOGGER.info(f"__request_and_poll_command: '{command}' returned {r.status_code} - wft!")
-                self.status_updates_allowed = True
-                return False
-            else:
-                _LOGGER.info(f"__request_and_poll_command: '{command}' returned unknown Status code {r.status_code}!")
-                self.status_updates_allowed = True
-                return False
+            post_req = session.post(f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
+                                    data=json.dumps(data),
+                                    headers=headers
+                                    )
+            return self.__poll_command_status(post_req, command, properties)
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle '{self.vin}' command: '{command}' -> {e}")
+            _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {e}")
             self._HAS_COM_ERROR = True
+            self.status_updates_allowed = True
+            return False
+
+    def __request_and_poll_url_command(self, url_command, vin=None):
+        self.status_updates_allowed = False
+        try:
+            self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                self.status_updates_allowed = True
+                _LOGGER.debug(f"__request_and_poll_url_command() - COMM ERROR")
+                return False
+            else:
+                _LOGGER.debug(f"__request_and_poll_url_command(): access_token exist? {self.access_token is not None}")
+
+            headers = {
+                **apiHeaders,
+                "Auth-Token": self.access_token,
+                "Application-Id": self.region,
+                "Countrycode": self.countrycode,
+                "Locale": "en-US"
+            }
+            # do we want to overwrite the vin?!
+            if vin is None:
+                vin = self.vin
+
+            # URL commands wil be posted to ANOTHER endpoint!
+            r = session.post(
+                f"{GUARD_URL}/fordconnect/v1/vehicles/{vin}/{url_command}",
+                headers=headers
+            )
+            return self.__poll_command_status(r, url_command)
+
+        except BaseException as e:
+            _LOGGER.warning(f"Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
+            self._HAS_COM_ERROR = True
+            self.status_updates_allowed = True
+            return False
+
+    def __poll_command_status(self, r, req_command, properties={}):
+        _LOGGER.debug(f"__poll_command_status: Testing command status: {r.status_code} content: {r.text}")
+        if r.status_code == 201:
+            # New code to handle checking states table from vehicle data
+            response = r.json()
+            command_id = response["id"]
+
+            # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
+            time.sleep(2)
+
+            i = 1
+            while i < 14:
+                a_delay = 5
+                if i > 5:
+                    a_delay = 10
+
+                # requesting the status... [to see the process about our command that we just have sent]
+                updated_data = self.status()
+
+                if updated_data is not None and "states" in updated_data:
+                    states = updated_data["states"]
+                    if LOG_DATA:
+                        _LOGGER.debug(f"__poll_command_status: States located states: {states}")
+
+                    if f"{req_command}Command" in states:
+                        resp_command_obj = states[f"{req_command}Command"]
+                        _LOGGER.debug(f"__poll_command_status: Found an command obj")
+
+                        if "commandId" in resp_command_obj:
+                            if resp_command_obj["commandId"] == command_id:
+                                _LOGGER.debug(f"__poll_command_status: Found the commandId")
+
+                                if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
+                                    to_state = resp_command_obj["value"]["toState"]
+                                    if to_state == "success":
+                                        _LOGGER.debug("__poll_command_status: EXCELLENT! command succeeded")
+                                        self.status_updates_allowed = True
+                                        return True
+                                    if to_state == "expired":
+                                        _LOGGER.debug("__poll_command_status: Command expired")
+                                        self.status_updates_allowed = True
+                                        return False
+
+                                    if to_state == "request_queued":
+                                        a_delay = 10
+                                        _LOGGER.debug(f"__poll_command_status: toState: '{to_state}' - let's wait (10sec)!")
+                                    elif "in_progress" in to_state:
+                                        a_delay = 5
+                                        _LOGGER.debug(f"__poll_command_status: toState: '{to_state}' - let's wait (5sec)!")
+                                    else:
+                                        _LOGGER.info(f"__poll_command_status: Unknown 'toState': {to_state}")
+
+                                else:
+                                    _LOGGER.debug(f"__poll_command_status: no 'value' or 'toState' in command object {resp_command_obj} - waiting for next loop")
+                            else:
+                                _LOGGER.info(f"__poll_command_status: The {command_id} does not match {resp_command_obj['commandId']} -> object dump: {resp_command_obj}")
+                        else:
+                            _LOGGER.info(f"__poll_command_status: No 'commandId' found in : {resp_command_obj}")
+
+                i += 1
+                _LOGGER.debug(f"__poll_command_status: Looping again [{i}] - COMM ERRORS occurred? {self._HAS_COM_ERROR}")
+                if self._HAS_COM_ERROR:
+                    a_delay = 60
+
+                time.sleep(a_delay)
+
+            # this is after the 'while'-loop...
+            self.status_updates_allowed = True
+            return False
+
+        elif r.status_code == 401 or r.status_code == 403:
+            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned {r.status_code} - wft!")
+            self.status_updates_allowed = True
+            return False
+        else:
+            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned unknown Status code {r.status_code}!")
             self.status_updates_allowed = True
             return False

@@ -63,7 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region, update_interval, True)
     await coordinator.async_refresh()  # Get initial data
-    if not coordinator.last_update_success:
+    if not coordinator.last_update_success or coordinator.data is None:
         raise ConfigEntryNotReady
     else:
         await coordinator.read_config_on_startup(hass)
@@ -216,18 +216,21 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     async def read_config_on_startup(self, hass: HomeAssistant):
         _LOGGER.debug("read_config_on_startup...")
         # we are reading here from the global coordinator data object!
-        if "vehicles" in self.data:
-            veh_data = self.data["vehicles"]
-            if "vehicleProfile" in veh_data:
-                for vehicle in veh_data["vehicleProfile"]:
-                    if vehicle["VIN"] == self._vin:
-                        self._engineType = vehicle["engineType"]
-                        _LOGGER.debug(f"EngineType is: {self._engineType}")
-                        break
+        if self.data is not None:
+            if "vehicles" in self.data:
+                veh_data = self.data["vehicles"]
+                if "vehicleProfile" in veh_data:
+                    for vehicle in veh_data["vehicleProfile"]:
+                        if vehicle["VIN"] == self._vin:
+                            self._engineType = vehicle["engineType"]
+                            _LOGGER.debug(f"EngineType is: {self._engineType}")
+                            break
+                else:
+                    _LOGGER.warning(f"No vehicleProfile in 'vehicles' found in coordinator data - no engineType available! {self.data["vehicles"]}")
             else:
-                _LOGGER.warning(f"No vehicleProfile in 'vehicles' found in coordinator data - no engineType available! {self.data["vehicles"]}")
+                _LOGGER.warning(f"No vehicles data found in coordinator data - no engineType available! {self.data}")
         else:
-            _LOGGER.warning(f"No vehicles data found in coordinator data - no engineType available! {self.data}")
+            _LOGGER.warning(f"DATA is NONE!!! - {self.data}")
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
@@ -241,7 +244,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
         else:
             try:
-                async with async_timeout.timeout(30):
+                async with async_timeout.timeout(60):
                     if self.vehicle.status_updates_allowed:
                         data = await self.hass.async_add_executor_job(self.vehicle.status)
                         if data is not None:
@@ -271,15 +274,22 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
                                 self._available = True
                         else:
-                            _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin}")
+                            _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
+                            data = self.data
                     else:
                         _LOGGER.info(f"_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")
                         data = self.data
                     return data
-            except Exception as ex:
+
+            except TimeoutError as ti_err:
+                # Mark as unavailable - but let the coordinator deal with the rest...
+                self._available = False
+                raise ti_err
+
+            except BaseException as ex:
                 self._available = False  # Mark as unavailable
-                _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {str(ex)}")
-                raise UpdateFailed(f"Error communicating with FordPass for {self._vin}") from ex
+                _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {type(ex)} -> {str(ex)}")
+                raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(ex)}") from ex
 
     # def write_data_debug(self, data):
     #     import time

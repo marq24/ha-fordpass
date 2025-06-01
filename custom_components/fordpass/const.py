@@ -138,7 +138,12 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_guard_mode_state,
                                  on_off_fn=FordpassDataHandler.guardmode_on_off)
 
-    # BUTTONS
+    ELVEH_CHARGE        = ApiKey(key="elVehCharge",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryChargeDisplayStatus"),
+                                 on_off_fn=FordpassDataHandler.get_elveh_on_off)
+
+
+# BUTTONS
     ##################################################
     UPDATE_DATA         = ApiKey(key="update_data")
     REQUEST_REFRESH     = ApiKey(key="request_refresh")
@@ -260,6 +265,7 @@ EV_ONLY_TAGS: Final = [
     Tag.ELVEH,
     Tag.ELVEH_PLUG,
     Tag.ELVEH_CHARGING,
+    Tag.ELVEH_CHARGE
 ]
 
 
@@ -554,6 +560,7 @@ SENSORSX = {
 
 SWITCHES = {
     Tag.REMOTE_START: {"icon": "mdi:air-conditioner"},
+    #Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
 }
 

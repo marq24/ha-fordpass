@@ -372,6 +372,12 @@ class FordpassDataHandler:
 
 
     # ELVEH_CHARGING attributes
+    def get_elveh_on_off(vehicle, turn_on:bool) -> bool:
+            if turn_on:
+                return vehicle.start_charge()
+            else:
+                return vehicle.stop_charge()
+
     def get_elveh_charging_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "xevBatteryChargeDisplayStatus" not in data_metrics:
@@ -508,7 +514,6 @@ class FordpassDataHandler:
             return vehicle.remote_start()
         else:
             return vehicle.cancel_remote_start()
-
 
     # REMOTE_START_STATUS state + attributes
     def get_remote_start_status_state(data):

@@ -102,6 +102,7 @@
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {
             "ignition":                 {"name": "Fernstart (❄|☀)"},
+            "elvehcharge":              {"name": "EV Laden"},
             "guardmode":                {"name": "Alarmanlage"}
         },
         "sensor": {

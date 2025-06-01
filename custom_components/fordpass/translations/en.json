@@ -106,6 +106,7 @@
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
             "ignition":                 {"name": "Remote Start (❄|☀)"},
+            "elvehcharge":              {"name": "EV Charging"},
             "guardmode":                {"name": "Guard Mode"}
         },
         "sensor": {
