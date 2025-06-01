@@ -22,6 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         a_entity_description: ExtSensorEntityDescription
 
         if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
+            _LOGGER.debug(f"SENSOR '{a_entity_description.tag}' not supported for this vehicle")
             continue
 
         sensor = CarSensor(coordinator, a_entity_description)
@@ -35,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 sensors.append(sensor)
             else:
-                _LOGGER.debug(f"Skipping sensor {a_entity_description.tag.key} - {type(value)} - {value}")
+                _LOGGER.debug(f"SENSOR Skipping '{a_entity_description.tag}' - {type(value)} - {value}")
 
     async_add_entities(sensors, True)
 

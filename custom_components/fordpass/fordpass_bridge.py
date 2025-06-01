@@ -32,7 +32,8 @@ loginHeaders = {
     "Accept-Encoding": "gzip, deflate, br",
 }
 
-LOG_DATA = False
+MAX_401_RESPONSE_COUNT: Final = 5
+LOG_DATA: Final = False
 
 BASE_URL: Final = "https://usapi.cv.ford.com/api"
 GUARD_URL: Final = "https://api.mps.ford.com/api"
@@ -57,6 +58,7 @@ class Vehicle:
         self.countrycode = REGIONS[region]["countrycode"]
         self.vin = vin
 
+        self._FOUR_NULL_ONE_COUNTER = 0
         self._HAS_COM_ERROR = False
         self.access_token = None
         self.refresh_token = None
@@ -147,7 +149,7 @@ class Vehicle:
     def mark_re_auth_required(self):
         stack_trace = traceback.format_stack()
         stack_trace_str = ''.join(stack_trace[:-1])  # Exclude the call to this function
-        _LOGGER.warnig(f"mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
+        _LOGGER.warning(f"mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
         self._is_reauth_required = True
 
     def __ensure_valid_tokens(self):
@@ -293,12 +295,18 @@ class Vehicle:
                 )
 
                 if response.status_code == 200:
+                    # ok first resetting the counter for 401 errors (if we had any)
+                    self._FOUR_NULL_ONE_COUNTER = 0
                     result = response.json()
                     _LOGGER.debug(f"_request_token: status OK")
                     return result
                 elif response.status_code == 401:
-                    _LOGGER.warning(f"_request_token: status_code: {response.status_code} - mark_re_auth_required()")
-                    self.mark_re_auth_required()
+                    self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                    if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                        _LOGGER.warning(f"_request_token: status_code: {response.status_code} - mark_re_auth_required()")
+                        self.mark_re_auth_required()
+                    else:
+                        _LOGGER.info(f"_request_token: status_code: {response.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
                     return False
                 else:
                     _LOGGER.warning(f"_request_token: status_code: {response.status_code} - no data read? {response.text}")
@@ -373,12 +381,20 @@ class Vehicle:
                 )
 
                 if response.status_code == 200:
+                    # ok first resetting the counter for 401 errors (if we had any)
+                    self._FOUR_NULL_ONE_COUNTER = 0
+
                     result = response.json()
                     _LOGGER.debug(f"_request_auto_token: status OK")
                     return result
                 elif response.status_code == 401:
-                    _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - mark_re_auth_required()")
-                    self.mark_re_auth_required()
+                    self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                    if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                        _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - mark_re_auth_required()")
+                        self.mark_re_auth_required()
+                    else:
+                        _LOGGER.info(f"_request_auto_token: status_code: {response.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+
                     return False
                 else:
                     _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - no data read? {response.text}")
@@ -465,13 +481,21 @@ class Vehicle:
             )
 
             if response_state.status_code == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                self._FOUR_NULL_ONE_COUNTER = 0
+
                 result_state = response_state.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"status: JSON: {result_state}")
                 return result_state
             elif response_state.status_code == 401:
-                _LOGGER.warning(f"status: status_code: {response_state.status_code} - mark_re_auth_required()")
-                self.mark_re_auth_required()
+                self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.warning(f"status: status_code: {response_state.status_code} - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    _LOGGER.info(f"status: status_code: {response_state.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+
                 return None
             else:
                 _LOGGER.warning(f"status: status_code (not 200 or 401) {response_state.status_code} {response_state.text}")
@@ -500,13 +524,21 @@ class Vehicle:
             }
             response_msg = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
             if response_msg.status_code == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                self._FOUR_NULL_ONE_COUNTER = 0
+
                 result_msg = response_msg.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"messages: JSON: {result_msg}")
                 return result_msg["result"]["messages"]
             elif response_msg.status_code == 401:
-                _LOGGER.warning(f"messages: status_code: {response_msg.status_code} - mark_re_auth_required()")
-                self.mark_re_auth_required()
+                self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.warning(f"messages: status_code: {response_msg.status_code} - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    _LOGGER.info(f"messages: status_code: {response_msg.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+
                 return None
             else:
                 _LOGGER.warning(f"messages: status_code (not 200 or 401) {response_msg.status_code} {response_msg.text}")
@@ -544,13 +576,21 @@ class Vehicle:
                 data=json.dumps(data_veh)
             )
             if response_veh.status_code == 207 or response_veh.status_code == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                self._FOUR_NULL_ONE_COUNTER = 0
+
                 result_veh = response_veh.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"vehicles: JSON: {result_veh}")
                 return result_veh
             elif response_veh.status_code == 401:
-                _LOGGER.warning(f"vehicles: status_code: {response_veh.status_code} - mark_re_auth_required()")
-                self.mark_re_auth_required()
+                self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.warning(f"vehicles: status_code: {response_veh.status_code} - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    _LOGGER.info(f"vehicles: status_code: {response_veh.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+
                 return None
             else:
                 _LOGGER.warning(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")

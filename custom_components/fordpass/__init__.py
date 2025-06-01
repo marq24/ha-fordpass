@@ -27,6 +27,7 @@ from custom_components.fordpass.const import (
     COORDINATOR, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS
 )
 from custom_components.fordpass.fordpass_bridge import Vehicle
+from custom_components.fordpass.fordpass_handler import ROOT_VEHICLES, FordpassDataHandler
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
@@ -170,6 +171,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._cached_vehicles_data = {}
         self._reauth_requested = False
         self._engineType = None
+        self._supports_GUARD_MODE = None
+        self._supports_REMOTE_START = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -201,8 +204,16 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag in FUEL_OR_PEV_ONLY_TAGS:
             return self.supportFuel is False
+
         if a_tag in EV_ONLY_TAGS:
             return self.supportPureEvOrPluginEv is False
+
+        if a_tag == Tag.REMOTE_START_STATUS or a_tag == Tag.REMOTE_START:
+            return self._supports_REMOTE_START is None or self._supports_REMOTE_START is False
+
+        if a_tag == Tag.GUARD_MODE:
+            return self._supports_GUARD_MODE is None or self._supports_GUARD_MODE is False
+
         return False
 
     @property
@@ -215,18 +226,44 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def read_config_on_startup(self, hass: HomeAssistant):
         _LOGGER.debug("read_config_on_startup...")
+
         # we are reading here from the global coordinator data object!
         if self.data is not None:
-            if "vehicles" in self.data:
-                veh_data = self.data["vehicles"]
+            if ROOT_VEHICLES in self.data:
+                veh_data = self.data[ROOT_VEHICLES]
+
+                # getting the engineType...
                 if "vehicleProfile" in veh_data:
-                    for vehicle in veh_data["vehicleProfile"]:
-                        if vehicle["VIN"] == self._vin:
-                            self._engineType = vehicle["engineType"]
+                    for a_vehicle_profile in veh_data["vehicleProfile"]:
+                        if a_vehicle_profile["VIN"] == self._vin:
+                            self._engineType = a_vehicle_profile["engineType"]
                             _LOGGER.debug(f"EngineType is: {self._engineType}")
                             break
                 else:
-                    _LOGGER.warning(f"No vehicleProfile in 'vehicles' found in coordinator data - no engineType available! {self.data["vehicles"]}")
+                    _LOGGER.warning(f"No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data["vehicles"]}")
+
+                # check, if RemoteStart is supported
+                if "vehicleCapabilities" in veh_data:
+                    for a_vehicle_capability in veh_data["vehicleCapabilities"]:
+                        if a_vehicle_capability["VIN"] == self._vin:
+                            self._supports_REMOTE_START = False
+                            if "remoteStart" in a_vehicle_capability and a_vehicle_capability["remoteStart"] is not None:
+                                val = a_vehicle_capability["remoteStart"]
+                                if val.upper() == "DISPLAY":
+                                    self._supports_REMOTE_START = True
+                                elif val.upper() == "NODISPLAY":
+                                    self._supports_REMOTE_START = False
+
+                                _LOGGER.debug(f"Is RemoteStart supported?: {self._supports_REMOTE_START} - {val}")
+                            else:
+                                _LOGGER.warning(f"No RemoteStart data found for VIN {self._vin} - assuming not supported")
+                            break
+                else:
+                    _LOGGER.warning(f"No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data["vehicles"]}")
+
+                # check, if GuardMode is supported
+                self._supports_GUARD_MODE = FordpassDataHandler.is_guard_mode_supported(self.data)
+
             else:
                 _LOGGER.warning(f"No vehicles data found in coordinator data - no engineType available! {self.data}")
         else:

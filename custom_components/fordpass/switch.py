@@ -5,7 +5,7 @@ from homeassistant.components.switch import SwitchEntity
 
 from custom_components.fordpass import FordPassEntity
 from custom_components.fordpass.const import DOMAIN, SWITCHES, COORDINATOR, Tag
-from custom_components.fordpass.fordpass_handler import UNSUPPORTED, FordpassDataHandler
+from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,15 +16,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     entities = []
     for a_tag, value in SWITCHES.items():
-        # Only add guard entity if supported by the car
+        if coordinator.tag_not_supported_by_vehicle(a_tag):
+            _LOGGER.debug(f"SWITCH '{a_tag}' not supported for this vehicle")
+            continue
+
         sw = Switch(coordinator, a_tag)
-        if a_tag == Tag.GUARD_MODE:
-            if FordpassDataHandler.is_guard_mode_supported(coordinator.data):
-                entities.append(sw)
-            else:
-                _LOGGER.debug("Guard mode not supported on this vehicle")
-        else:
-            entities.append(sw)
+        entities.append(sw)
 
     async_add_entities(entities, True)
 
