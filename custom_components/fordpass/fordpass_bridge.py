@@ -208,7 +208,7 @@ class Vehicle:
             _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {now_time - self.expires_at} -> requesting new token")
             refreshed_token = self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
+                _LOGGER.warning(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
             else:
                 if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
                     _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
@@ -226,7 +226,7 @@ class Vehicle:
 
         # it could be that there has been 'exceptions' when trying to update the tokens
         if self._HAS_COM_ERROR:
-            _LOGGER.debug("__ensure_valid_tokens: COMM ERROR")
+            _LOGGER.warning("__ensure_valid_tokens: COMM ERROR")
         else:
             if self.access_token is None:
                 _LOGGER.warning("__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
@@ -247,7 +247,7 @@ class Vehicle:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
-            _LOGGER.debug(f"refresh_token_func: FAILED!")
+            _LOGGER.warning(f"refresh_token_func: FAILED!")
 
         elif token_data == ERROR:
             _LOGGER.warning(f"refresh_token_func: COMM ERROR")
@@ -303,18 +303,18 @@ class Vehicle:
                 elif response.status_code == 401:
                     self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                     if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.warning(f"_request_token: status_code: {response.status_code} - mark_re_auth_required()")
+                        _LOGGER.warning(f"_request_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.info(f"_request_token: status_code: {response.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.info(f"_request_token: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
                     return False
                 else:
-                    _LOGGER.warning(f"_request_token: status_code: {response.status_code} - no data read? {response.text}")
-                    response.raise_for_status()
-                    return False
+                    _LOGGER.info(f"_request_token: status_code: {response.status_code} - Received response: {response.text}")
+                    self._HAS_COM_ERROR = True
+                    return ERROR
 
             except BaseException as e:
-                _LOGGER.warning(f"Error while '_request_token' for vehicle {self.vin} {e}")
+                _LOGGER.warning(f"Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
                 self._HAS_COM_ERROR = True
                 return ERROR
 
@@ -325,7 +325,7 @@ class Vehicle:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
-            _LOGGER.debug(f"refresh_auto_token_func: FAILED!")
+            _LOGGER.warning(f"refresh_auto_token_func: FAILED!")
 
         elif auto_token == ERROR:
             _LOGGER.warning(f"refresh_auto_token_func: COMM ERROR")
@@ -390,19 +390,19 @@ class Vehicle:
                 elif response.status_code == 401:
                     self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
                     if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - mark_re_auth_required()")
+                        _LOGGER.warning(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.info(f"_request_auto_token: status_code: {response.status_code} - AUTO 401 counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.info(f"_request_auto_token: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
 
                     return False
                 else:
-                    _LOGGER.warning(f"_request_auto_token: status_code: {response.status_code} - no data read? {response.text}")
-                    response.raise_for_status()
-                    return False
+                    _LOGGER.info(f"_request_auto_token: status_code: {response.status_code} - Received response: {response.text}")
+                    self._HAS_COM_ERROR = True
+                    return ERROR
 
             except BaseException as e:
-                _LOGGER.warning(f"Error while '_request_auto_token' for vehicle {self.vin} {e}")
+                _LOGGER.warning(f"Error while '_request_auto_token' for vehicle {self.vin} - {type(e)} - {e}")
                 self._HAS_COM_ERROR = True
                 return ERROR
 
@@ -490,19 +490,19 @@ class Vehicle:
             elif response_state.status_code == 401:
                 self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
                 if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.warning(f"status: status_code: {response_state.status_code} - mark_re_auth_required()")
+                    _LOGGER.warning(f"status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"status: status_code: {response_state.status_code} - AUTO 401 counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.info(f"status: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:
-                _LOGGER.warning(f"status: status_code (not 200 or 401) {response_state.status_code} {response_state.text}")
+                _LOGGER.warning(f"status: status_code : {response_state.status_code} - Received response: {response_state.text}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching status for vehicle {self.vin} {type(e)} {e}")
+            _LOGGER.warning(f"Error while fetching status for vehicle {self.vin} - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -533,19 +533,19 @@ class Vehicle:
             elif response_msg.status_code == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.warning(f"messages: status_code: {response_msg.status_code} - mark_re_auth_required()")
+                    _LOGGER.warning(f"messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"messages: status_code: {response_msg.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.info(f"messages: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:
-                _LOGGER.warning(f"messages: status_code (not 200 or 401) {response_msg.status_code} {response_msg.text}")
+                _LOGGER.info(f"messages: status_code: {response_msg.status_code} - Received response: {response_msg.text}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching message for vehicle {self.vin} {e}")
+            _LOGGER.warning(f"Error while fetching message for vehicle {self.vin} - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -585,19 +585,19 @@ class Vehicle:
             elif response_veh.status_code == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.warning(f"vehicles: status_code: {response_veh.status_code} - mark_re_auth_required()")
+                    _LOGGER.warning(f"vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"vehicles: status_code: {response_veh.status_code} - 401 counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.info(f"vehicles: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:
-                _LOGGER.warning(f"vehicles: (not 200, 207 or 401) {response_veh.status_code} {response_veh.text}")
-                response_veh.raise_for_status()
+                _LOGGER.info(f"vehicles: status_code: {response_veh.status_code} - Received response: {response_veh.text}")
+                self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching vehicle {e}")
+            _LOGGER.warning(f"Error while fetching vehicle - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -809,7 +809,7 @@ class Vehicle:
             return False
 
     def __poll_command_status(self, r, req_command, properties={}):
-        _LOGGER.debug(f"__poll_command_status: Testing command status: {r.status_code} content: {r.text}")
+        _LOGGER.debug(f"__poll_command_status: Testing command status: {r.status_code} - Received response: {r.text}")
         if r.status_code == 201:
             # New code to handle checking states table from vehicle data
             response = r.json()
