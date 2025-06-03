@@ -303,10 +303,10 @@ class Vehicle:
                 elif response.status_code == 401:
                     self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                     if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.warning(f"_request_token: status_code: 401 - mark_re_auth_required()")
+                        _LOGGER.error(f"_request_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.info(f"_request_token: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.warning(f"_request_token: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
                     return False
                 else:
                     _LOGGER.info(f"_request_token: status_code: {response.status_code} - Received response: {response.text}")
@@ -390,10 +390,10 @@ class Vehicle:
                 elif response.status_code == 401:
                     self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
                     if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.warning(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
+                        _LOGGER.error(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.info(f"_request_auto_token: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.warning(f"_request_auto_token: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
 
                     return False
                 else:
@@ -490,14 +490,14 @@ class Vehicle:
             elif response_state.status_code == 401:
                 self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
                 if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.warning(f"status: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"status: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"status: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:
-                _LOGGER.warning(f"status: status_code : {response_state.status_code} - Received response: {response_state.text}")
+                _LOGGER.info(f"status: status_code : {response_state.status_code} - Received response: {response_state.text}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -533,10 +533,10 @@ class Vehicle:
             elif response_msg.status_code == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.warning(f"messages: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"messages: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"messages: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:
@@ -585,10 +585,10 @@ class Vehicle:
             elif response_veh.status_code == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.warning(f"vehicles: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.info(f"vehicles: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"vehicles: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
 
                 return None
             else:

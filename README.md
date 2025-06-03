@@ -1,4 +1,4 @@
-# Fordpass Home Assistant Integration (EV/PHEV dedicated) [v1.7x fork]
+# Fordpass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)<font size="4"><br/>[[a fork of @itchannel and @SquidBytes](https://github.com/itchannel/fordpass-ha)]</font>
 
 <!--
 > [!NOTE]  
@@ -20,39 +20,51 @@
 [![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
 
 > [!WARNING]
-> ## Disclaimer - The use of this HA integration could lead to a (temporary) lock of your Fordpass account.
-> **This integration is not officially supported by Ford and as such using this integration could result in your account being locked out!** 
+> ## Disclaimer — The use of this HA integration could lead to a (temporary) lock of your Fordpass account.
+> **This integration is not officially supported by Ford, and as such, using this integration could result in your account being locked out!** 
 > 
-> Please be aware that we are developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
+> Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
 > 
 > - It's recommended to use/create a **separate Fordpass account** for this integration (see step-by-step procedure further below).
 > - It's recommended to use an **update interval of 240 seconds or higher** to prevent a lock of your Fordpass account.
 
 > [!NOTE]
-> Since I just own an EV (Mustang MachE 2023) I will focus on the features of the electrical vehicle data. 
+> Since I own an EV (Mustang MachE 2023), I will focus on the features that are available for electrical vehicles, but of course I will try not to mess up the features for petrol or diesel vehicles. [Please see also the 'I need you' section](https://github.com/marq24/ha-fordpass#i-need-you)
 
 > [!IMPORTANT]
-> There is a new access-token obtaining system introduced in the origin fordpass integration repository by @itchannel and @SquidBytes.
->
-> The access-token used by this forked integration is stored __outside__ the custom integration directory - this will prevent the access-token file from being deleted during updates of the integration itself.
->
-> Please see the Installation section, or the [docs](./doc/OBTAINING_TOKEN.md) for additional help.
+> ## Unusual Integration Setup 
+> Status Quo in spring/summer 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is due to the fact that Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
+> 
+> The current implementation is based on API calls the original Fordpass App (for Android & iOS) performs, and it's some sort of reverse engineered.
+> 
+> This approach implies that when Ford is going to change something in their none-public/undocumented API, it's quite likely that the integration will break instantly.
+> 
+> __It's impossible to predict__ when this will happen, but __I will try__ to keep the integration up-to-date and working __as long as possible__, since I drive a Ford myself.
+> 
+> ## Fetch & Store Fordpass Access Token
+> During the integration setup, you will be guided through the process to obtain an access token for your vehicle in the context of your Fordpass account.
+> 
+> This should be a _one-time process_, and the access token will be stored in a file outside the custom integration directory (This is to prevent the access token from being deleted during updates of the integration itself). As already explaind, I can't give any guarantee that process will work in the future.
+> 
+> The overall setup process is described in short in the [Installation section](#installation-instructions-3-steps) below, and in detail in the [linked documentation](./doc/OBTAINING_TOKEN.md).
+
 
 > [!WARNING]
-> ## This fork is **not compatible** with the original Fordpass integration from @itchannel & @SquidBytes 
-> Initially, I created this fork to provide a _release version of the v1.70 branch_ that can be installed via the HACS v2.0 (where you only can install 'released' integration versions).
->
+> ## This fork is **not compatible** with the original Fordpass integration from @itchannel and @SquidBytes 
+> Before you can use this fork with your vehicle, you must have removed the original Fordpass integration from HA and must have deleted all configuration entries. Please be aware that it's quite likely that a configuration can be disabled!
+> 
 > ### Incompatible changes:
-> - The entity names have been changed in oder to ensure that the sensor names include the VIN.
-> - The sensor attribute names do not contain spaces anymore to make post-processing easier (using camelcase).
-> - The access-token is stored outside the custom integration
+> - The VIN has been added to all the entity names, to ensure that names stay unique in HA when you have multiple vehicles.
+> - The sensor attribute names do not contain spaces anymore to make post-processing easier. Additionally, all the attribute names are now using camelcase. This means that all attributes start with a lower-case character (don't let you fool by the HA user interface, which always will show the first character as upper-case).
+> - The access-token(s) is stored outside the custom integration
 >
 > ### Additional enhancements:
 > - Additional Sensors for EV/PHEV vehicles
 > - Buttons to local/remote refresh data in HA
 > - Sensor to provide EVCC-Charging state [see evcc.io website for details](https://evcc.io)
 > - Translation of Entity names (DE/EN)
-> - Code cleanup & refactoring
+> - Code cleanup and refactoring
+
 
 ## Requirements
 1. Your car must have the latest onboard modem functionality and have been registered/authorized with the fordpass application.
@@ -98,16 +110,18 @@ Please follow the steps:
 
 More details (how to deal with the browser developer tools) to obtain your token can be found in the [docs](./doc/OBTAINING_TOKEN.md).
 
+
 ## Usage with EVCC
 
 [All information, how to use this integration as provider for Ford EV data can be found in a separate section in this repository.](./doc/EVCC.md)
+
 
 ## Use of a separate Fordpass account is recommended
 
 > [!TIP]
 > It's recommended to use a separate Fordpass account for this integration. This is to prevent any issues with the Fordpass account being locked due to the polling of the API.
 
-Here are is a short procedure how to create a second account:
+Here is a short procedure how to create a second account:
 
 1. Create a new Fordpass account with a different email address (and confirm the account by eMail) - It's important, that you can access this eMail account from your mobile phone with the installed FordPass App!
 2. From the Fordpass app (logged in with your original account), you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
@@ -118,6 +132,7 @@ Here are is a short procedure how to create a second account:
 7. Finally, you should have now connected your car to the new Fordpass account.
 8. You can now log out again of the Fordpass app with your second account and re-login with your original Fordpass account.
 9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
+
 
 ## Services
 <!--### Car Refresh
@@ -141,6 +156,7 @@ This service allows you to manually refresh/poll the API without waiting the set
 ### Request Update (remote refresh)
 This service will contact the modem in the vehicle and request to sync data between the vehicle and the ford backends. **Please note, that this will have an impact on the battery of your vehicle.**
 
+
 ## Sensors
 ### Currently Working
 **Sensors may change as the integration is being developed**
@@ -158,15 +174,16 @@ This service will contact the modem in the vehicle and request to sync data betw
 - Alarm Status
 - Individual door statuses
 - Remote Start
-- Window Status (Only if your car supports it!)
+- Window Status (only if supported by the vehicle)
 - Last Car Refresh status
-- Car Tracker
+- Car Tracker (Location)
 - ~~Supports Multiple Regions~~
 - Electric Vehicle Support
 - TPMS Sensors
 - ~~Guard Mode (Only supported cars)~~
 - Deep sleep status
 - Fordpass messages and alerts
+
 
 ## Want to report an issue?
 
@@ -193,10 +210,12 @@ You can do this by adding my Fordpass account to your existing vehicle as it's d
 
 So if you are willing to help, please send me a short eMail and I will send you my Fordpass account eMail address, so you can add me to your vehicle (and can accept your invite). You can end the sharing at any time by removing my account from your vehicle in your Fordpass app.
 
+
 ## Supporting the development
 If you like this integration and want to support the development, please consider supporting me on [GitHub Sponsors][ghs] or [BuyMeACoffee][buymecoffee] or [PayPal][paypal]. 
 
 [![GitHub Sponsors][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal]
+
 
 ## Credits
 - https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
@@ -209,6 +228,7 @@ If you like this integration and want to support the development, please conside
 - https://github.com/tonesto7 - Extra window statuses and sensors
 - https://github.com/JacobWasFramed - Updated unit conversions
 - https://github.com/heehoo59 - French Translation
+
 
 ## Changelog
 See the separate [Updates](info.md) file for the changelog.
