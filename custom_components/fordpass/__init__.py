@@ -218,11 +218,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def supportPureEvOrPluginEv(self) -> bool:
-        return self._engineType is not None and self._engineType in ["BEV", "PHEV"]
+        return self._engineType is not None and self._engineType in ["BEV", "HEV", "PHEV"]
 
     @property
     def supportFuel(self) -> bool:
-        return self._engineType is not None and self._engineType != "BEV"
+        return self._engineType is not None and self._engineType in ["BEV"]
 
     async def read_config_on_startup(self, hass: HomeAssistant):
         _LOGGER.debug("read_config_on_startup...")
