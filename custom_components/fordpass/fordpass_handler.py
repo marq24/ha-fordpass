@@ -16,6 +16,7 @@ ROOT_EVENTS: Final = "events"
 ROOT_METRICS: Final = "metrics"
 ROOT_VEHICLES: Final = "vehicles"
 ROOT_MESSAGES: Final = "messages"
+
 UNSUPPORTED: Final = str("Unsupported")
 
 class FordpassDataHandler:

@@ -9,14 +9,15 @@ from typing import Final
 
 import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
-
-#import requests
-#from requests.adapters import HTTPAdapter
-#from urllib3.util.retry import Retry
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.fordpass.const import REGIONS
-from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from custom_components.fordpass.fordpass_handler import ROOT_STATES, ROOT_EVENTS, ROOT_METRICS, ROOT_MESSAGES, \
+    ROOT_VEHICLES
+
+# import requests
+# from requests.adapters import HTTPAdapter
+# from urllib3.util.retry import Retry
 
 _LOGGER = logging.getLogger(__name__)
 defaultHeaders = {
@@ -468,17 +469,17 @@ class Vehicle:
         # but when we cleared the tokens... we must mark us as 're-auth' required...
         self._is_reauth_required = True
 
-    async def connect_ws(self):
+    async def ws_connect(self):
 
         while self.ws_do_reconnect:
             self.ws_do_reconnect = False
 
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"connect_ws() - COMM ERROR")
+                _LOGGER.debug(f"ws_connect() - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"connect_ws() - auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
 
             headers_ws = {
                 **apiHeaders,
@@ -498,38 +499,52 @@ class Vehicle:
                     _LOGGER.info(f"connected to websocket: {web_socket_url}")
                     await ws.send_json({"type": "connection_init"})
                     async for msg in ws:
-                        new_data_arrived = False
 
+                        new_data_arrived = False
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             try:
                                 ws_data = msg.json()
                                 if ws_data is None or len(ws_data) == 0:
-                                    _LOGGER.debug(f"connect_ws(): received empty data: '{ws_data}'")
+                                    _LOGGER.debug(f"ws_connect(): received empty data: '{ws_data}'")
                                 else:
-                                    if "_error" in ws_data:
+                                    if "_httpStatus" in ws_data:
+                                        status = int(ws_data["_httpStatus"])
+                                        if status >= 200 and status < 300:
+                                            _LOGGER.debug(f"ws_connect(): received HTTP status: {status} - OK")
+
+                                    elif "_error" in ws_data:
                                         err_obj = ws_data["_error"]
                                         err_handled = False
                                         if "code" in err_obj and err_obj["code"] == 401:
                                             if "message" in err_obj:
                                                 lower_msg = err_obj['message'].lower()
                                                 if 'provided token was expired' in lower_msg:
-                                                    _LOGGER.debug(f"connect_ws(): 'provided token was expired' expired - going to auto-reconnect-loop")
+                                                    _LOGGER.debug(f"ws_connect(): 'provided token was expired' expired - going to auto-reconnect-loop")
                                                     self.ws_do_reconnect = True
                                                     err_handled = True
                                                 if 'websocket session expired' in lower_msg:
-                                                    _LOGGER.debug(f"connect_ws(): 'websocket session expired' - going to auto-reconnect-loop")
+                                                    _LOGGER.debug(f"ws_connect(): 'websocket session expired' - going to auto-reconnect-loop")
                                                     self.ws_do_reconnect = True
                                                     err_handled = True
 
                                         if not err_handled:
-                                            _LOGGER.error(f"connect_ws(): unknown error object read: {err_obj}")
+                                            _LOGGER.error(f"ws_connect(): unknown error object read: {err_obj}")
+
                                     elif "_data" in ws_data:
                                         data_obj = ws_data["_data"]
                                         if ROOT_METRICS in data_obj:
                                             self._data_container[ROOT_METRICS] = data_obj[ROOT_METRICS]
                                             new_data_arrived = True
-                                        else:
+                                        if ROOT_STATES in data_obj:
+                                            self._data_container[ROOT_STATES] = data_obj[ROOT_STATES]
+                                            new_data_arrived = True
+                                        if ROOT_EVENTS in data_obj:
+                                            self._data_container[ROOT_EVENTS] = data_obj[ROOT_EVENTS]
+                                            new_data_arrived = True
+
+                                        if new_data_arrived is False:
                                             _LOGGER.debug(f"received: {data_obj}")
+
                                     else:
                                         _LOGGER.info(f"unknown content: {ws_data}")
 
@@ -592,7 +607,9 @@ class Vehicle:
                         if new_data_arrived:
                             if self._debounced_update_task is not None:
                                 self._debounced_update_task.cancel()
-                            self._debounced_update_task = asyncio.create_task(self._debounce_coordinator_update())
+                            self._debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
+
+                        await self._ws_check_for_auth_token_refresh(ws)
 
             except ClientConnectorError as con:
                 _LOGGER.error(f"Could not connect to websocket: {type(con)} - {con}")
@@ -605,7 +622,30 @@ class Vehicle:
 
         return None
 
-    async def _debounce_coordinator_update(self):
+    async def _ws_check_for_auth_token_refresh(self, ws):
+        # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
+        if self.auto_expires_at and time.time() + 60 > self.auto_expires_at:
+            try:
+                _LOGGER.debug(f"_ws_check_for_auth_token_refresh: auto token expires in less than 60 seconds - try to refresh")
+
+                actual_auto_token = self.auto_access_token
+                prev_token_data = {"access_token": self.access_token,
+                                   "refresh_token": self.refresh_token,
+                                   "expiry_date": self.expires_at,
+                                   "auto_token": self.auto_access_token,
+                                   "auto_refresh_token": self.auto_refresh_token,
+                                   "auto_expiry_date": self.auto_expires_at}
+
+                await self.refresh_auto_token_func(prev_token_data)
+
+                if self.auto_access_token != actual_auto_token:
+                    _LOGGER.debug(f"_ws_check_for_auth_token_refresh: auto token has been refreshed -> update websocket")
+                    await ws.send_json({"accessToken": self.auto_access_token})
+
+            except BaseException as e:
+                _LOGGER.error(f"_ws_check_for_auth_token_refresh: Error while refreshing auto token - {type(e)} - {e}")
+
+    async def _ws_debounce_coordinator_update(self):
         await asyncio.sleep(0.3)
         if self.coordinator is not None:
             self.coordinator.async_set_updated_data(self._data_container)
@@ -918,44 +958,47 @@ class Vehicle:
         return status
 
     # core functions...
-    def __make_request(self, method, url, data, params):
-        """
-        Make a request to the given URL, passing data/params as needed
-        """
-        if self._HAS_COM_ERROR:
-            return None
-        else:
-            try:
-                headers = {
-                    **apiHeaders,
-                    "auth-token": self.access_token,
-                    "Application-Id": self.region,
-                }
-                return getattr(requests, method.lower())(url, headers=headers, data=data, params=params)
+    # def __make_request(self, method, url, data, params):
+    #     """
+    #     Make a request to the given URL, passing data/params as needed
+    #     """
+    #     if self._HAS_COM_ERROR:
+    #         return None
+    #     else:
+    #         try:
+    #             headers = {
+    #                 **apiHeaders,
+    #                 "auth-token": self.access_token,
+    #                 "Application-Id": self.region,
+    #             }
+    #             return getattr(requests, method.lower())(url, headers=headers, data=data, params=params)
+    #
+    #         except BaseException as e:
+    #             _LOGGER.warning(f"Error while '__make_request' for vehicle {self.vin} {e}")
+    #             self._HAS_COM_ERROR = True
+    #             return None
+    #
+    # def __poll_status(self, url, command_id):
+    #     """
+    #     Poll the given URL with the given command ID until the command is completed
+    #     """
+    #     status = self.__make_request("GET", f"{url}/{command_id}", None, None)
+    #     if status is not None:
+    #         result = status.json()
+    #         if result["status"] == 552:
+    #             _LOGGER.debug("__poll_status: Command is pending")
+    #             time.sleep(5)
+    #             return self.__poll_status(url, command_id)  # retry after 5s
+    #
+    #         if result["status"] == 200:
+    #             _LOGGER.debug("__poll_status: Command completed successfully")
+    #             return True
+    #
+    #     _LOGGER.debug("__poll_status: Command failed")
+    #     return False
 
-            except BaseException as e:
-                _LOGGER.warning(f"Error while '__make_request' for vehicle {self.vin} {e}")
-                self._HAS_COM_ERROR = True
-                return None
-
-    def __poll_status(self, url, command_id):
-        """
-        Poll the given URL with the given command ID until the command is completed
-        """
-        status = self.__make_request("GET", f"{url}/{command_id}", None, None)
-        if status is not None:
-            result = status.json()
-            if result["status"] == 552:
-                _LOGGER.debug("__poll_status: Command is pending")
-                time.sleep(5)
-                return self.__poll_status(url, command_id)  # retry after 5s
-
-            if result["status"] == 200:
-                _LOGGER.debug("__poll_status: Command completed successfully")
-                return True
-
-        _LOGGER.debug("__poll_status: Command failed")
-        return False
+    def x_request_and_poll_command(self, command, properties={}, vin=None):
+        return self.__request_and_poll_command(command, properties, vin)
 
     async def __request_and_poll_command(self, command, properties={}, vin=None):
         """Send command to the new Command endpoint"""

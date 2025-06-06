@@ -240,7 +240,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.info(f"Watchdog: websocket connect required")
 
             self.bridge.ws_do_reconnect = True
-            self._config_entry.async_create_background_task(self.hass, self.bridge.connect_ws(), "ws_connection")
+            self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
         else:
             _LOGGER.debug(f"Watchdog: websocket is connected")
             # TODO: check if we need to update other data (like vehicles or messages) ?!
