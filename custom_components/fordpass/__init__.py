@@ -2,16 +2,18 @@
 import asyncio
 import logging
 from datetime import timedelta
+from typing import Final
 
 import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME, UnitOfPressure
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.const import CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.entity import EntityDescription
-from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity import EntityDescription
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.util.unit_system import UnitSystem
 
@@ -30,11 +32,11 @@ from custom_components.fordpass.const import (
 from custom_components.fordpass.fordpass_bridge import Vehicle
 from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
 
-CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-
-PLATFORMS = ["button", "lock", "sensor", "switch", "device_tracker"]
-
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
+PLATFORMS = ["button", "lock", "sensor", "switch", "device_tracker"]
+WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=60)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -69,6 +71,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         raise ConfigEntryNotReady
     else:
         await coordinator.read_config_on_startup(hass)
+
+    # ws watchdog...
+    if hass.state is CoreState.running:
+        await coordinator.start_watchdog()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, coordinator.start_watchdog)
 
     fordpass_options_listener = config_entry.add_update_listener(options_update_listener)
 
@@ -135,7 +143,7 @@ def service_refresh_status(hass, service, coordinator):
     """Get latest vehicle status from vehicle, actively polls the car"""
     _LOGGER.debug("Running Service 'refresh_status'")
     vin = service.data.get("vin", None)
-    status = coordinator.vehicle.request_update(vin)
+    status = coordinator.bridge.request_update(vin)
     if status == 401:
         _LOGGER.debug("refresh_status: Invalid VIN?! (status 401)")
     elif status == 200:
@@ -145,17 +153,26 @@ def service_refresh_status(hass, service, coordinator):
 def service_clear_tokens(hass, service, coordinator):
     """Clear the token file in config directory, only use in emergency"""
     _LOGGER.debug("Running Service 'clear_tokens'")
-    coordinator.vehicle.clear_token()
+    coordinator.bridge.clear_token()
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
-    if await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS):
-        hass.data[DOMAIN].pop(config_entry.entry_id)
-        return True
+    if unload_ok:
+        if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][config_entry.entry_id]
+            coordinator.stop_watchdog()
+            coordinator.clear_data()
+            hass.data[DOMAIN].pop(config_entry.entry_id)
 
-    return False
+        hass.services.async_remove(DOMAIN, "refresh_status")
+        hass.services.async_remove(DOMAIN, "clear_tokens")
+        hass.services.async_remove(DOMAIN, "poll_api")
+        hass.services.async_remove(DOMAIN, "reload")
+
+    return unload_ok
 
 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
@@ -167,9 +184,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.vehicle = Vehicle(async_get_clientsession(hass), user, "", vin, region, save_token, config_path)
+        self.bridge = Vehicle(async_get_clientsession(hass), user, "", vin, region,
+                              coordinator=self, save_token=save_token, tokens_location=config_path)
+
         self._available = True
-        self._cached_vehicles_data = {}
         self._reauth_requested = False
         self._engineType = None
         self._supports_GUARD_MODE = None
@@ -200,7 +218,38 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                     wind_speed=orig.wind_speed_unit,
                 )
 
+        self._watchdog = None
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
+
+    async def start_watchdog(self, event=None):
+        """Start websocket watchdog."""
+        await self._async_watchdog_check()
+        self._watchdog = async_track_time_interval(
+            self.hass,
+            self._async_watchdog_check,
+            WEBSOCKET_WATCHDOG_INTERVAL,
+        )
+
+    def stop_watchdog(self):
+        if hasattr(self, "_watchdog") and self._watchdog is not None:
+            self._watchdog()
+
+    async def _async_watchdog_check(self, *_):
+        """Reconnect the websocket if it fails."""
+        if not self.bridge.ws_connected:
+            _LOGGER.info(f"Watchdog: websocket connect required")
+
+            self.bridge.ws_do_reconnect = True
+            self._config_entry.async_create_background_task(self.hass, self.bridge.connect_ws(), "ws_connection")
+        else:
+            _LOGGER.debug(f"Watchdog: websocket is connected")
+            # TODO: check if we need to update other data (like vehicles or messages) ?!
+
+            # if self.vehicle.request_tariff_endpoints:
+            #     _LOGGER.debug(f"Watchdog: websocket is connected - check for optional required 'tariffs' updates")
+            #     await self.bridge.ws_update_tariffs_if_required()
+            # else:
+            #     _LOGGER.debug(f"Watchdog: websocket is connected")
 
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag in FUEL_OR_PEV_ONLY_TAGS:
@@ -276,7 +325,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
-        if self.vehicle.require_reauth:
+        if self.bridge.require_reauth:
             self._available = False  # Mark as unavailable
             if not self._reauth_requested:
                 self._reauth_requested = True
@@ -284,57 +333,55 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 self.hass.add_job(self._config_entry.async_start_reauth, self.hass)
 
             raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
+
         else:
-            try:
-                async with async_timeout.timeout(60):
-                    if self.vehicle.status_updates_allowed:
-                        data = await self.vehicle.status()
-                        if data is not None:
-                            # Temporarily removed due to Ford backend API changes
-                            # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
+            if self.bridge.ws_connected:
+                try:
+                    _LOGGER.debug("_async_update_data called (but websocket is active - no data will be requested!)")
+                    return self.bridge._data_container
 
-                            data[ROOT_MESSAGES] = await self.vehicle.messages()
+                except UpdateFailed as exception:
+                    _LOGGER.warning(f"UpdateFailed: {type(exception)} - {exception}")
+                    raise UpdateFailed() from exception
+                except BaseException as other:
+                    _LOGGER.warning(f"UpdateFailed unexpected: {type(other)} - {other}")
+                    raise UpdateFailed() from other
 
-                            # only update vehicle data if not present yet
-                            if len(self._cached_vehicles_data) == 0:
-                                _LOGGER.debug("_async_update_data: request vehicle data...")
-                                self._cached_vehicles_data = await self.vehicle.vehicles()
+            else:
+                try:
+                    async with async_timeout.timeout(60):
+                        if self.bridge.status_updates_allowed:
+                            data = await self.bridge.update_all()
+                            if data is not None:
+                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES])} vehicles for {self._vin}")
 
-                            if len(self._cached_vehicles_data) > 0:
-                                data[ROOT_VEHICLES] = self._cached_vehicles_data
+                                # only for private debugging
+                                # self.write_data_debug(data)
 
-                            if ROOT_METRICS in data and data[ROOT_METRICS] is not None:
-                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} metrics: {len(data[ROOT_METRICS])} messages: {len(data[ROOT_MESSAGES])}")
+                                # If data has now been fetched but was previously unavailable, log and reset
+                                if not self._available:
+                                    _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
+                                    self._available = True
                             else:
-                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data)} messages: {len(data[ROOT_MESSAGES])}")
-
-                            # only for private debugging
-                            # self.write_data_debug(data)
-
-                            # If data has now been fetched but was previously unavailable, log and reset
-                            if not self._available:
-                                _LOGGER.info(f"_async_update_data: Restored connection to FordPass for {self._vin}")
-                                self._available = True
+                                if self.bridge is not None and self.bridge._HAS_COM_ERROR:
+                                    _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
+                                else:
+                                    _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
+                                data = self.data
                         else:
-                            if self.vehicle is not None and self.vehicle._HAS_COM_ERROR:
-                                _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
-                            else:
-                                _LOGGER.info(f"_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
+                            _LOGGER.info(f"_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")
                             data = self.data
-                    else:
-                        _LOGGER.info(f"_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")
-                        data = self.data
-                    return data
+                        return data
 
-            except TimeoutError as ti_err:
-                # Mark as unavailable - but let the coordinator deal with the rest...
-                self._available = False
-                raise ti_err
+                except TimeoutError as ti_err:
+                    # Mark as unavailable - but let the coordinator deal with the rest...
+                    self._available = False
+                    raise ti_err
 
-            except BaseException as ex:
-                self._available = False  # Mark as unavailable
-                _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {type(ex)} -> {str(ex)}")
-                raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(ex)}") from ex
+                except BaseException as ex:
+                    self._available = False  # Mark as unavailable
+                    _LOGGER.warning(f"_async_update_data: Error communicating with FordPass for {self._vin} {type(ex)} -> {str(ex)}")
+                    raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(ex)}") from ex
 
     # def write_data_debug(self, data):
     #     import time

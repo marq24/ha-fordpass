@@ -35,13 +35,13 @@ class Switch(FordPassEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send request to vehicle on switch status on"""
-        await self._tag.turn_on_off(self.coordinator.vehicle, True)
+        await self._tag.turn_on_off(self.coordinator.bridge, True)
         await self.coordinator.async_request_refresh()
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """Send request to vehicle on switch status off"""
-        await self._tag.turn_on_off(self.coordinator.vehicle, False)
+        await self._tag.turn_on_off(self.coordinator.bridge, False)
         await self.coordinator.async_request_refresh()
         self.async_write_ha_state()
 

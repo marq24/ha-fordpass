@@ -1,4 +1,5 @@
 """Fordpass API Library"""
+import asyncio
 import json
 import logging
 import os
@@ -14,6 +15,8 @@ from aiohttp import ClientConnectorError, ClientConnectionError
 #from urllib3.util.retry import Retry
 
 from custom_components.fordpass.const import REGIONS
+from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 defaultHeaders = {
@@ -42,6 +45,7 @@ BASE_URL: Final = "https://usapi.cv.ford.com/api"
 GUARD_URL: Final = "https://api.mps.ford.com/api"
 SSO_URL: Final = "https://sso.ci.ford.com"
 AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
+AUTONOMIC_WS_URL: Final = "wss://api.autonomic.ai/v1beta"
 AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 FORD_LOGIN_URL: Final = "https://login.ford.com"
 ERROR: Final = "ERROR"
@@ -51,7 +55,7 @@ ERROR: Final = "ERROR"
 class Vehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
 
-    def __init__(self, web_session, username, password, vin, region, save_token=False, tokens_location=None):
+    def __init__(self, web_session, username, password, vin, region, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
         self.session = web_session
         self.username = username
         #self.password = password # password is not used anymore...
@@ -90,10 +94,13 @@ class Vehicle:
         self._is_reauth_required = False
         self.status_updates_allowed = True
 
+        # our main data container that holds all data that have been fetched from the vehicle
+        self._data_container = {}
+        self._cached_vehicles_data = {}
+        self._debounced_update_task = None
+        self.coordinator = coordinator
         self.ws_connected = False
         self.ws_do_reconnect = True
-        self.ws_expire_time_delta = 15
-
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
 
@@ -479,93 +486,113 @@ class Vehicle:
                 "Application-Id": self.region,
                 "Connection": "Upgrade",
                 "Upgrade": "websocket",
-                "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
-                "Sec-WebSocket-Key": "QOX3XLqFRFO6N+kAyrhQKA==",
-                "Sec-WebSocket-Version": "13"
+                #"Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+                #"Sec-WebSocket-Key": "QOX3XLqFRFO6N+kAyrhQKA==",
+                #"Sec-WebSocket-Version": "13"
             }
-            web_socket_url = f"wss://api.autonomic.ai/v1beta/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
+            web_socket_url = f"{AUTONOMIC_WS_URL}/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
 
             try:
                 async with self.session.ws_connect(url=web_socket_url, headers=headers_ws) as ws:
                     self.ws_connected = True
-                    self.ws_expiry_time_delta = 15
                     _LOGGER.info(f"connected to websocket: {web_socket_url}")
                     await ws.send_json({"type": "connection_init"})
                     async for msg in ws:
+                        new_data_arrived = False
+
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             try:
                                 ws_data = msg.json()
-                                if "_error" in ws_data:
-                                    err_obj = ws_data["_error"]
-                                    err_handled = False
-                                    if "code" in err_obj and err_obj["code"] == 401:
-                                        if "message" in err_obj:
-                                            lower_msg = err_obj['message'].lower()
-                                            if 'provided token was expired' in lower_msg:
-                                                self.ws_expire_time_delta = 60
-                                                self.ws_do_reconnect = True
-                                                err_handled = True
-                                            if 'websocket session expired' in lower_msg:
-                                                self.ws_do_reconnect = True
-                                                err_handled = True
-
-                                    if not err_handled:
-                                        _LOGGER.error(f"connect_ws(): unknown error object read: {err_obj}")
+                                if ws_data is None or len(ws_data) == 0:
+                                    _LOGGER.debug(f"connect_ws(): received empty data: '{ws_data}'")
                                 else:
-                                    _LOGGER.debug(f"received: {ws_data}")
+                                    if "_error" in ws_data:
+                                        err_obj = ws_data["_error"]
+                                        err_handled = False
+                                        if "code" in err_obj and err_obj["code"] == 401:
+                                            if "message" in err_obj:
+                                                lower_msg = err_obj['message'].lower()
+                                                if 'provided token was expired' in lower_msg:
+                                                    _LOGGER.debug(f"connect_ws(): 'provided token was expired' expired - going to auto-reconnect-loop")
+                                                    self.ws_do_reconnect = True
+                                                    err_handled = True
+                                                if 'websocket session expired' in lower_msg:
+                                                    _LOGGER.debug(f"connect_ws(): 'websocket session expired' - going to auto-reconnect-loop")
+                                                    self.ws_do_reconnect = True
+                                                    err_handled = True
 
-                                # if "type" in data:
-                                #     if data["type"] == "connection_ack":
-                                #         # we can/should subscribe...
-                                #         # the values 'lastMeterProduction' & 'lastMeterConsumption' are not present in the
-                                #         # v4 PulseMeasurement / RealTimeMeasurement Objects ?!
-                                #         await ws.send_json(
-                                #             {
-                                #                 "type": "subscribe",
-                                #                 "id": pulse_subscribe_id,
-                                #                 "payload": {
-                                #                     "operationName": "pulseSubscription",
-                                #                     "variables": {"deviceId": self.tibber_pulseId},
-                                #                     "query": "subscription pulseSubscription($deviceId: String!) { liveMeasurement(deviceId: $deviceId) { __typename ...RealTimeMeasurement } }  fragment RealTimeMeasurement on PulseMeasurement { timestamp power powerProduction minPower minPowerTimestamp averagePower maxPower maxPowerTimestamp minPowerProduction maxPowerProduction estimatedAccumulatedConsumptionCurrentHour accumulatedConsumption accumulatedCost accumulatedConsumptionCurrentHour accumulatedProduction accumulatedProductionCurrentHour accumulatedReward peakControlConsumptionState currency currentPhase1 currentPhase2 currentPhase3 voltagePhase1 voltagePhase2 voltagePhase3 powerFactor signalStrength}"
-                                #                 }
-                                #             }
-                                #         )
-                                #
-                                #     elif data["type"] == "ka":
-                                #         _LOGGER.debug(f"keep alive? {data}")
-                                #
-                                #     elif data["type"] == "complete":
-                                #         if "id" in data and data["id"] == pulse_subscribe_id:
-                                #             # it looks like that the subscription ended (and we should re-subscribe)
-                                #             pass
-                                #
-                                #     elif data["type"] == "next":
-                                #         if "id" in data and data["id"] == pulse_subscribe_id:
-                                #             if "payload" in data and "data" in data["payload"]:
-                                #                 if "liveMeasurement" in data["payload"]["data"]:
-                                #                     keys_and_values = data["payload"]["data"]["liveMeasurement"]
-                                #                     if "__typename" in keys_and_values and keys_and_values["__typename"] == "PulseMeasurement":
-                                #                         del keys_and_values["__typename"]
-                                #                         _LOGGER.debug(f"THE DATA {keys_and_values}")
-                                #                         self._data = keys_and_values
-                                #                         #{'accumulatedConsumption': 5.7841, 'accumulatedConsumptionCurrentHour': 0.0646, 'accumulatedCost': 1.952497, 'accumulatedProduction': 48.4389, 'accumulatedProductionCurrentHour': 0, 'accumulatedReward': None, 'averagePower': 261.3, 'currency': 'EUR', 'currentPhase1': None, 'currentPhase2': None, 'currentPhase3': None, 'estimatedAccumulatedConsumptionCurrentHour': None, 'maxPower': 5275, 'maxPowerProduction': 6343, 'maxPowerTimestamp': '2025-05-15T06:41:45.000+02:00', 'minPower': 0, 'minPowerProduction': 0, 'minPowerTimestamp': '2025-05-15T20:31:34.000+02:00', 'peakControlConsumptionState': None, 'power': 467, 'powerFactor': None, 'powerProduction': 0, 'signalStrength': None, 'timestamp': '2025-05-15T22:08:11.000+02:00', 'voltagePhase1': None, 'voltagePhase2': None, 'voltagePhase3': None}
-                                #
-                                #     elif data["type"] == "error":
-                                #         if "payload" in data:
-                                #             _LOGGER.warning(f"error {data["payload"]}")
-                                #         else:
-                                #             _LOGGER.warning(f"error {data}")
-                                #
-                                #     else:
-                                #         _LOGGER.debug(f"unknown DATA {data}")
+                                        if not err_handled:
+                                            _LOGGER.error(f"connect_ws(): unknown error object read: {err_obj}")
+                                    elif "_data" in ws_data:
+                                        data_obj = ws_data["_data"]
+                                        if ROOT_METRICS in data_obj:
+                                            self._data_container[ROOT_METRICS] = data_obj[ROOT_METRICS]
+                                            new_data_arrived = True
+                                        else:
+                                            _LOGGER.debug(f"received: {data_obj}")
+                                    else:
+                                        _LOGGER.info(f"unknown content: {ws_data}")
 
+                                    # if "type" in data:
+                                    #     if data["type"] == "connection_ack":
+                                    #         # we can/should subscribe...
+                                    #         # the values 'lastMeterProduction' & 'lastMeterConsumption' are not present in the
+                                    #         # v4 PulseMeasurement / RealTimeMeasurement Objects ?!
+                                    #         await ws.send_json(
+                                    #             {
+                                    #                 "type": "subscribe",
+                                    #                 "id": pulse_subscribe_id,
+                                    #                 "payload": {
+                                    #                     "operationName": "pulseSubscription",
+                                    #                     "variables": {"deviceId": self.tibber_pulseId},
+                                    #                     "query": "subscription pulseSubscription($deviceId: String!) { liveMeasurement(deviceId: $deviceId) { __typename ...RealTimeMeasurement } }  fragment RealTimeMeasurement on PulseMeasurement { timestamp power powerProduction minPower minPowerTimestamp averagePower maxPower maxPowerTimestamp minPowerProduction maxPowerProduction estimatedAccumulatedConsumptionCurrentHour accumulatedConsumption accumulatedCost accumulatedConsumptionCurrentHour accumulatedProduction accumulatedProductionCurrentHour accumulatedReward peakControlConsumptionState currency currentPhase1 currentPhase2 currentPhase3 voltagePhase1 voltagePhase2 voltagePhase3 powerFactor signalStrength}"
+                                    #                 }
+                                    #             }
+                                    #         )
+                                    #
+                                    #     elif data["type"] == "ka":
+                                    #         _LOGGER.debug(f"keep alive? {data}")
+                                    #
+                                    #     elif data["type"] == "complete":
+                                    #         if "id" in data and data["id"] == pulse_subscribe_id:
+                                    #             # it looks like that the subscription ended (and we should re-subscribe)
+                                    #             pass
+                                    #
+                                    #     elif data["type"] == "next":
+                                    #         if "id" in data and data["id"] == pulse_subscribe_id:
+                                    #             if "payload" in data and "data" in data["payload"]:
+                                    #                 if "liveMeasurement" in data["payload"]["data"]:
+                                    #                     keys_and_values = data["payload"]["data"]["liveMeasurement"]
+                                    #                     if "__typename" in keys_and_values and keys_and_values["__typename"] == "PulseMeasurement":
+                                    #                         del keys_and_values["__typename"]
+                                    #                         _LOGGER.debug(f"THE DATA {keys_and_values}")
+                                    #                         self._data = keys_and_values
+                                    #                         #{'accumulatedConsumption': 5.7841, 'accumulatedConsumptionCurrentHour': 0.0646, 'accumulatedCost': 1.952497, 'accumulatedProduction': 48.4389, 'accumulatedProductionCurrentHour': 0, 'accumulatedReward': None, 'averagePower': 261.3, 'currency': 'EUR', 'currentPhase1': None, 'currentPhase2': None, 'currentPhase3': None, 'estimatedAccumulatedConsumptionCurrentHour': None, 'maxPower': 5275, 'maxPowerProduction': 6343, 'maxPowerTimestamp': '2025-05-15T06:41:45.000+02:00', 'minPower': 0, 'minPowerProduction': 0, 'minPowerTimestamp': '2025-05-15T20:31:34.000+02:00', 'peakControlConsumptionState': None, 'power': 467, 'powerFactor': None, 'powerProduction': 0, 'signalStrength': None, 'timestamp': '2025-05-15T22:08:11.000+02:00', 'voltagePhase1': None, 'voltagePhase2': None, 'voltagePhase3': None}
+                                    #
+                                    #     elif data["type"] == "error":
+                                    #         if "payload" in data:
+                                    #             _LOGGER.warning(f"error {data["payload"]}")
+                                    #         else:
+                                    #             _LOGGER.warning(f"error {data}")
+                                    #
+                                    #     else:
+                                    #         _LOGGER.debug(f"unknown DATA {data}")
+
+                                    #
                             except Exception as e:
                                 _LOGGER.debug(f"Could not read JSON from: {msg} - caused {e}")
+
                         elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                             _LOGGER.debug(f"received: {msg}")
                             break
                         else:
                             _LOGGER.error(f"xxx: {msg}")
+
+                        # do we need to push new data event to the coordinator?
+                        if new_data_arrived:
+                            if self._debounced_update_task is not None:
+                                self._debounced_update_task.cancel()
+                            self._debounced_update_task = asyncio.create_task(self._debounce_coordinator_update())
 
             except ClientConnectorError as con:
                 _LOGGER.error(f"Could not connect to websocket: {type(con)} - {con}")
@@ -577,6 +604,32 @@ class Vehicle:
             self.ws_connected = False
 
         return None
+
+    async def _debounce_coordinator_update(self):
+        await asyncio.sleep(0.3)
+        if self.coordinator is not None:
+            self.coordinator.async_set_updated_data(self._data_container)
+
+    async def update_all(self):
+        data = await self.status()
+        if data is not None:
+            # Temporarily removed due to Ford backend API changes
+            # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
+
+            data[ROOT_MESSAGES] = await self.messages()
+
+            # only update vehicle data if not present yet
+            if len(self._cached_vehicles_data) == 0:
+                _LOGGER.debug("update_all: request vehicle data...")
+                self._cached_vehicles_data = await self.vehicles()
+
+            if len(self._cached_vehicles_data) > 0:
+                data[ROOT_VEHICLES] = self._cached_vehicles_data
+
+            # ok finally store the data in our main data container...
+            self._data_container = data
+
+        return data
 
     # fetching the main data...
     async def status(self):

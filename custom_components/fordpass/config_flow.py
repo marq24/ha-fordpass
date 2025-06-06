@@ -53,7 +53,7 @@ async def validate_token(hass: core.HomeAssistant, session, data, token:str, cod
     _LOGGER.debug(f"validate_token: {data}")
 
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(session, data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
+    vehicle = Vehicle(session, data[CONF_USERNAME], "", "", data[CONF_REGION], coordinator=None, save_token=True, tokens_location=configPath)
     results = await vehicle.generate_tokens(token, code_verifier)
 
     if results:
@@ -69,7 +69,7 @@ async def validate_token_only(hass: core.HomeAssistant, session, data, token:str
     _LOGGER.debug(f"validate_token_only: {data}")
 
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(session, data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
+    vehicle = Vehicle(session, data[CONF_USERNAME], "", "", data[CONF_REGION], coordinator=None, save_token=True, tokens_location=configPath)
     results = await vehicle.generate_tokens(token, code_verifier)
 
     if not results:
@@ -81,7 +81,7 @@ async def validate_token_only(hass: core.HomeAssistant, session, data, token:str
 async def validate_vin(hass: core.HomeAssistant, session, data):
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
 
-    vehicle = Vehicle(session, data[CONF_USERNAME], "", data[VIN], data[REGION], True, configPath)
+    vehicle = Vehicle(session, data[CONF_USERNAME], "", data[VIN], data[REGION], coordinator=None, save_token=True, tokens_location=configPath)
     test = await vehicle.get_status()
     _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
     if test and test.status_code == 200:

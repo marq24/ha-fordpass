@@ -99,8 +99,8 @@ class FordpassDataHandler:
 
     # FUEL state + attributes
     def get_fuel_state(data):
-        fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel")
-        if fuel_level is not None:
+        fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel", -1)
+        if fuel_level is not None and isinstance(fuel_level, Number) and fuel_level > -1:
             return round(fuel_level)
         return None
 
