@@ -98,10 +98,12 @@ class Vehicle:
         # our main data container that holds all data that have been fetched from the vehicle
         self._data_container = {}
         self._cached_vehicles_data = {}
-        self._debounced_update_task = None
+        self._ws_debounced_update_task = None
+        self._ws_in_use_access_token = None
         self.coordinator = coordinator
         self.ws_connected = False
         self.ws_do_reconnect = True
+
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
 
@@ -493,11 +495,12 @@ class Vehicle:
             }
             web_socket_url = f"{AUTONOMIC_WS_URL}/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
 
+            self._ws_in_use_access_token = self.auto_access_token
             try:
                 async with self.session.ws_connect(url=web_socket_url, headers=headers_ws) as ws:
                     self.ws_connected = True
                     _LOGGER.info(f"connected to websocket: {web_socket_url}")
-                    await ws.send_json({"type": "connection_init"})
+                    #await ws.send_json({"type": "connection_init"})
                     async for msg in ws:
 
                         new_data_arrived = False
@@ -509,7 +512,11 @@ class Vehicle:
                                 else:
                                     if "_httpStatus" in ws_data:
                                         status = int(ws_data["_httpStatus"])
-                                        if status >= 200 and status < 300:
+                                        if 200 <= status < 300:
+                                            if status == 202:
+                                                # it looks like we have sent a new access token... and the backend just
+                                                # replied with an HTTP status code...
+                                                self._ws_in_use_access_token = self.auto_access_token
                                             _LOGGER.debug(f"ws_connect(): received HTTP status: {status} - OK")
 
                                     elif "_error" in ws_data:
@@ -605,10 +612,11 @@ class Vehicle:
 
                         # do we need to push new data event to the coordinator?
                         if new_data_arrived:
-                            if self._debounced_update_task is not None:
-                                self._debounced_update_task.cancel()
-                            self._debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
+                            if self._ws_debounced_update_task is not None:
+                                self._ws_debounced_update_task.cancel()
+                            self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
 
+                        # check if we need to refresh the auto token...
                         await self._ws_check_for_auth_token_refresh(ws)
 
             except ClientConnectorError as con:
@@ -624,11 +632,10 @@ class Vehicle:
 
     async def _ws_check_for_auth_token_refresh(self, ws):
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
-        if self.auto_expires_at and time.time() + 60 > self.auto_expires_at:
-            try:
+        try:
+            if self.auto_expires_at and time.time() + 60 > self.auto_expires_at:
                 _LOGGER.debug(f"_ws_check_for_auth_token_refresh: auto token expires in less than 60 seconds - try to refresh")
 
-                actual_auto_token = self.auto_access_token
                 prev_token_data = {"access_token": self.access_token,
                                    "refresh_token": self.refresh_token,
                                    "expiry_date": self.expires_at,
@@ -638,12 +645,18 @@ class Vehicle:
 
                 await self.refresh_auto_token_func(prev_token_data)
 
-                if self.auto_access_token != actual_auto_token:
+            # could be that another process has refreshed the auto token...
+            if self.auto_access_token is not None:
+                if self.auto_access_token != self._ws_in_use_access_token:
                     _LOGGER.debug(f"_ws_check_for_auth_token_refresh: auto token has been refreshed -> update websocket")
                     await ws.send_json({"accessToken": self.auto_access_token})
+            else:
+                _LOGGER.debug(f"_ws_check_for_auth_token_refresh: 'self.auto_access_token' is None (might be cause of 401 error)")
+                if self.save_token:
+                    self._read_token_from_storage()
 
-            except BaseException as e:
-                _LOGGER.error(f"_ws_check_for_auth_token_refresh: Error while refreshing auto token - {type(e)} - {e}")
+        except BaseException as e:
+            _LOGGER.error(f"_ws_check_for_auth_token_refresh: Error while refreshing auto token - {type(e)} - {e}")
 
     async def _ws_debounce_coordinator_update(self):
         await asyncio.sleep(0.3)
