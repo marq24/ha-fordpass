@@ -162,7 +162,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     if unload_ok:
         if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][config_entry.entry_id]
+            coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
             coordinator.stop_watchdog()
             coordinator.clear_data()
             hass.data[DOMAIN].pop(config_entry.entry_id)
@@ -266,13 +266,18 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         return False
 
+    def clear_data(self):
+        _LOGGER.debug(f"clear_data called...")
+        self.bridge.clear_data()
+        self.data.clear()
+
     @property
     def supportPureEvOrPluginEv(self) -> bool:
         return self._engineType is not None and self._engineType in ["BEV", "HEV", "PHEV"]
 
     @property
     def supportFuel(self) -> bool:
-        return self._engineType is not None and self._engineType in ["BEV"]
+        return self._engineType is not None and self._engineType not in ["BEV"]
 
     async def read_config_on_startup(self, hass: HomeAssistant):
         _LOGGER.debug("read_config_on_startup...")
@@ -353,7 +358,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                         if self.bridge.status_updates_allowed:
                             data = await self.bridge.update_all()
                             if data is not None:
-                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES])} vehicle objects for {self._vin}")
+                                try:
+                                    _LOGGER.debug(f"_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]["vehicleProfile"])} vehicles for {self._vin}")
+                                except BaseException:
+                                    pass
 
                                 # only for private debugging
                                 # self.write_data_debug(data)

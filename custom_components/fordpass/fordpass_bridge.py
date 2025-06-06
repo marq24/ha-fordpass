@@ -5,6 +5,7 @@ import logging
 import os
 import time
 import traceback
+from asyncio import CancelledError
 from typing import Final
 
 import aiohttp
@@ -103,9 +104,15 @@ class Vehicle:
         self.coordinator = coordinator
         self.ws_connected = False
         self.ws_do_reconnect = True
-
+        self.ws_terminate = False
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
+    def clear_data(self):
+        self.ws_terminate = True
+        self.ws_connected = False
+        self.ws_do_reconnect = False
+        self._cached_vehicles_data = {}
+        self._data_container = {}
 
     async def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
@@ -515,6 +522,10 @@ class Vehicle:
                     _LOGGER.info(f"connected to websocket: {web_socket_url}")
                     #await ws.send_json({"type": "connection_init"})
                     async for msg in ws:
+                        if self.ws_terminate:
+                            _LOGGER.debug(f"ws_connect(): ws_terminate is set - closing websocket connection")
+                            await ws.close()
+                            break
 
                         new_data_arrived = False
                         if msg.type == aiohttp.WSMsgType.TEXT:
@@ -571,6 +582,10 @@ class Vehicle:
 
                         # do we need to push new data event to the coordinator?
                         if new_data_arrived:
+                            # with open("all-data_toms_ws_001.json", "w", encoding="utf-8") as outfile:
+                            #       json.dump(self._data_container, outfile)
+
+
                             if self._ws_debounced_update_task is not None:
                                 self._ws_debounced_update_task.cancel()
                             self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
@@ -579,11 +594,13 @@ class Vehicle:
                         await self._ws_check_for_auth_token_refresh(ws)
 
             except ClientConnectorError as con:
-                _LOGGER.error(f"Could not connect to websocket: {type(con)} - {con}")
+                _LOGGER.error(f"ws_connect(): Could not connect to websocket: {type(con)} - {con}")
             except ClientConnectionError as err:
-                _LOGGER.error(f"???: {type(err)} - {err}")
+                _LOGGER.error(f"ws_connect(): ??? {type(err)} - {err}")
+            except CancelledError as canceled:
+                _LOGGER.info(f"Terminated ws_connect() ? - {type(canceled)} - {canceled}")
             except BaseException as x:
-                _LOGGER.error(f"!!!: {type(x)} - {x}")
+                _LOGGER.error(f"ws_connect(): !!! {type(x)} - {x}")
 
             self.ws_connected = False
 
