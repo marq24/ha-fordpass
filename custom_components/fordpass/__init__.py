@@ -164,7 +164,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
             coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
             coordinator.stop_watchdog()
-            coordinator.clear_data()
+            await coordinator.clear_data()
             hass.data[DOMAIN].pop(config_entry.entry_id)
 
         hass.services.async_remove(DOMAIN, "refresh_status")
@@ -237,12 +237,15 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_watchdog_check(self, *_):
         """Reconnect the websocket if it fails."""
         if not self.bridge.ws_connected:
-            _LOGGER.info(f"Watchdog: websocket connect required")
-
-            self.bridge.ws_do_reconnect = True
-            self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
+            if self.bridge.ws_connect_in_progress:
+                _LOGGER.info(f"Watchdog: websocket connect required - but another websocket connection flow is already in progress - skipping now")
+            else:
+                _LOGGER.info(f"Watchdog: websocket connect required")
+                self.bridge.ws_do_reconnect = True
+                self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
         else:
             _LOGGER.debug(f"Watchdog: websocket is connected")
+            await self.bridge.ws_check_last_update()
             # TODO: check if we need to update other data (like vehicles or messages) ?!
 
             # if self.vehicle.request_tariff_endpoints:
@@ -266,9 +269,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         return False
 
-    def clear_data(self):
+    async def clear_data(self):
         _LOGGER.debug(f"clear_data called...")
-        self.bridge.clear_data()
+        await self.bridge.clear_data()
         self.data.clear()
 
     @property

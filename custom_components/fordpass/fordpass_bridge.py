@@ -103,16 +103,22 @@ class Vehicle:
         self._ws_in_use_access_token = None
         self.coordinator = coordinator
         self.ws_connected = False
+        self.ws_connect_in_progress = False
         self.ws_do_reconnect = True
         self.ws_terminate = False
+        self._ws_LAST_UPDATE = 0
+        self._ws_connection = None
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
-    def clear_data(self):
+    async def clear_data(self):
         self.ws_terminate = True
         self.ws_connected = False
         self.ws_do_reconnect = False
+        self.ws_connect_in_progress = False
         self._cached_vehicles_data = {}
         self._data_container = {}
+        if self._ws_connection is not None:
+            await self._ws_connection.close()
 
     async def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
@@ -517,11 +523,17 @@ class Vehicle:
 
             self._ws_in_use_access_token = self.auto_access_token
             try:
+                self.ws_connect_in_progress = True
                 async with self.session.ws_connect(url=web_socket_url, headers=headers_ws) as ws:
+                    self.ws_connect_in_progress = False
+                    self._ws_connection = ws
                     self.ws_connected = True
                     _LOGGER.info(f"connected to websocket: {web_socket_url}")
                     #await ws.send_json({"type": "connection_init"})
                     async for msg in ws:
+                        # store the last time we heard from the websocket
+                        self._ws_LAST_UPDATE = time.time()
+
                         if self.ws_terminate:
                             _LOGGER.debug(f"ws_connect(): ws_terminate is set - closing websocket connection")
                             await ws.close()
@@ -598,6 +610,7 @@ class Vehicle:
             except BaseException as x:
                 _LOGGER.error(f"ws_connect(): !!! {type(x)} - {x}")
 
+            self.ws_connect_in_progress = False
             self.ws_connected = False
 
         return None
@@ -672,6 +685,17 @@ class Vehicle:
         await asyncio.sleep(0.3)
         if self.coordinator is not None:
             self.coordinator.async_set_updated_data(self._data_container)
+
+    async def ws_check_last_update(self):
+        if self._ws_LAST_UPDATE + 120 > time.time():
+            _LOGGER.debug(f"ws_check_last_update: last update is less than 120 seconds ago - no need to update")
+        else:
+            _LOGGER.info(f"ws_check_last_update: force reconnect... is _ws_connection object available? {self._ws_connection is not None}")
+            if self._ws_connection is not None:
+                await self._ws_connection.close()
+                self.ws_connected = False
+                self.ws_do_reconnect = True
+
 
     async def update_all(self):
         data = await self.status()
