@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.typing import UNDEFINED
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.util.unit_system import UnitSystem
 
@@ -166,7 +167,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.vehicle = Vehicle(user, "", vin, region, save_token, config_path)
+        self.vehicle = Vehicle(async_get_clientsession(hass), user, "", vin, region, save_token, config_path)
         self._available = True
         self._cached_vehicles_data = {}
         self._reauth_requested = False
@@ -287,17 +288,17 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             try:
                 async with async_timeout.timeout(60):
                     if self.vehicle.status_updates_allowed:
-                        data = await self.hass.async_add_executor_job(self.vehicle.status)
+                        data = await self.vehicle.status()
                         if data is not None:
                             # Temporarily removed due to Ford backend API changes
                             # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
 
-                            data[ROOT_MESSAGES] = await self.hass.async_add_executor_job(self.vehicle.messages)
+                            data[ROOT_MESSAGES] = await self.vehicle.messages()
 
                             # only update vehicle data if not present yet
                             if len(self._cached_vehicles_data) == 0:
                                 _LOGGER.debug("_async_update_data: request vehicle data...")
-                                self._cached_vehicles_data = await self.hass.async_add_executor_job(self.vehicle.vehicles)
+                                self._cached_vehicles_data = await self.vehicle.vehicles()
 
                             if len(self._cached_vehicles_data) > 0:
                                 data[ROOT_VEHICLES] = self._cached_vehicles_data

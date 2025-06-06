@@ -6,9 +6,12 @@ import time
 import traceback
 from typing import Final
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+import aiohttp
+from aiohttp import ClientConnectorError, ClientConnectionError
+
+#import requests
+#from requests.adapters import HTTPAdapter
+#from urllib3.util.retry import Retry
 
 from custom_components.fordpass.const import REGIONS
 
@@ -43,12 +46,13 @@ AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 FORD_LOGIN_URL: Final = "https://login.ford.com"
 ERROR: Final = "ERROR"
 
-session = requests.Session()
+#session = None #requests.Session()
 
 class Vehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
 
-    def __init__(self, username, password, vin, region, save_token=False, tokens_location=None):
+    def __init__(self, web_session, username, password, vin, region, save_token=False, tokens_location=None):
+        self.session = web_session
         self.username = username
         #self.password = password # password is not used anymore...
         self.save_token = save_token
@@ -73,10 +77,10 @@ class Vehicle:
         # by default, we try to read the token from the file system
         self.use_token_data_from_memory = False
 
-        retry = Retry(connect=3, backoff_factor=0.5)
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
+        #retry = Retry(connect=3, backoff_factor=0.5)
+        #adapter = HTTPAdapter(max_retries=retry)
+        #session.mount("http://", adapter)
+        #session.mount("https://", adapter)
 
         if tokens_location is None:
             self.stored_tokens_location = f".storage/fordpass/{username}_access_token.txt"
@@ -85,10 +89,15 @@ class Vehicle:
 
         self._is_reauth_required = False
         self.status_updates_allowed = True
+
+        self.ws_connected = False
+        self.ws_do_reconnect = True
+        self.ws_expire_time_delta = 15
+
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
 
-    def generate_tokens(self, urlstring, code_verifier):
+    async def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
         code_new = urlstring.replace("fordapp://userauthorized/?code=", "")
         headers = {
@@ -101,35 +110,35 @@ class Vehicle:
             "code": code_new,
             "redirect_uri": "fordapp://userauthorized"
         }
-        response = requests.post(
+        response = await self.session.post(
             f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{self.country_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
-            verify=True
+            ssl=True
         )
 
         # do not check the status code here - since it's not always return http 200!
-        token_data = response.json()
+        token_data = await response.json()
         if "access_token" in token_data:
-            _LOGGER.debug(f"generate_tokens 'OK'- http status: {response.status_code} - JSON: {token_data}")
-            return self.generate_tokens_part2(token_data)
+            _LOGGER.debug(f"generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
+            return await self.generate_tokens_part2(token_data)
         else:
-            _LOGGER.warning(f"generate_tokens 'FAILED'- http status: {response.status_code} - cause no 'access_token' in response: {token_data}")
+            _LOGGER.warning(f"generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
             return False
 
 
-    def generate_tokens_part2(self, token):
+    async def generate_tokens_part2(self, token):
         headers = {**apiHeaders, "Application-Id": self.region}
         data = {"idpToken": token["access_token"]}
-        response = requests.post(
+        response = await self.session.post(
             f"{GUARD_URL}/token/v2/cat-with-b2c-access-token",
             data=json.dumps(data),
             headers=headers,
-            verify=True
+            ssl=True
         )
 
         # do not check the status code here - since it's not always return http 200!
-        final_access_token = response.json()
+        final_access_token = await response.json()
         if "expires_in" in final_access_token:
             final_access_token["expiry_date"] = time.time() + final_access_token["expires_in"]
             del final_access_token["expires_in"]
@@ -138,7 +147,7 @@ class Vehicle:
             final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
             del final_access_token["refresh_expires_in"]
 
-        _LOGGER.debug(f"generate_tokens_part2 'OK' - http status: {response.status_code} - JSON: {final_access_token}")
+        _LOGGER.debug(f"generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
         if self.save_token:
             self._write_token_to_storage(final_access_token)
 
@@ -154,7 +163,7 @@ class Vehicle:
         _LOGGER.warning(f"mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
         self._is_reauth_required = True
 
-    def __ensure_valid_tokens(self):
+    async def __ensure_valid_tokens(self, now_time:float=None):
         # Fetch and refresh token as needed
         _LOGGER.debug("__ensure_valid_tokens()")
         self._HAS_COM_ERROR = False
@@ -203,26 +212,28 @@ class Vehicle:
                                "auto_expiry_date": self.auto_expires_at}
 
         # checking token data (and refreshing if needed)
-        now_time = time.time() - 7 # (so we will invalidate tokens if they will expire in the next 7 seconds)
+        if now_time is None:
+            now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
+
         if self.expires_at and now_time > self.expires_at:
             _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {now_time - self.expires_at} -> requesting new token")
-            refreshed_token = self.refresh_token_func(prev_token_data)
+            refreshed_token = await self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
                 _LOGGER.warning(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
             else:
                 if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
                     _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
-                    self.refresh_auto_token_func(refreshed_token)
+                    await self.refresh_auto_token_func(refreshed_token)
                 else:
                     _LOGGER.warning(f"__ensure_valid_tokens: result for new token: ERROR, None or False")
 
         if self.auto_access_token is None or self.auto_expires_at is None:
             _LOGGER.debug(f"__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
-            self.refresh_auto_token_func(prev_token_data)
+            await self.refresh_auto_token_func(prev_token_data)
 
         if self.auto_expires_at and now_time > self.auto_expires_at:
             _LOGGER.debug(f"__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {now_time - self.auto_expires_at} -> requesting new auto-token")
-            self.refresh_auto_token_func(prev_token_data)
+            await self.refresh_auto_token_func(prev_token_data)
 
         # it could be that there has been 'exceptions' when trying to update the tokens
         if self._HAS_COM_ERROR:
@@ -233,11 +244,11 @@ class Vehicle:
             else:
                 _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
 
-    def refresh_token_func(self, prev_token_data):
+    async def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
         _LOGGER.debug(f"refresh_token_func()")
 
-        token_data = self._request_token(prev_token_data)
+        token_data = await self._request_token(prev_token_data)
         if token_data is None or token_data is False:
             self.access_token = None
             self.refresh_token = None
@@ -274,7 +285,7 @@ class Vehicle:
             _LOGGER.debug("refresh_token_func: OK")
             return token_data
 
-    def _request_token(self, prev_token_data):
+    async def _request_token(self, prev_token_data):
         if self._HAS_COM_ERROR:
             return ERROR
         else:
@@ -288,19 +299,19 @@ class Vehicle:
                 data = {
                     "refresh_token": prev_token_data["refresh_token"]
                 }
-                response = session.post(
+                response = await self.session.post(
                     f"{GUARD_URL}/token/v2/cat-with-refresh-token",
                     data=json.dumps(data),
                     headers=headers,
                 )
 
-                if response.status_code == 200:
+                if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
                     self._FOUR_NULL_ONE_COUNTER = 0
-                    result = response.json()
+                    result = await response.json()
                     _LOGGER.debug(f"_request_token: status OK")
                     return result
-                elif response.status_code == 401:
+                elif response.status == 401:
                     self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                     if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"_request_token: status_code: 401 - mark_re_auth_required()")
@@ -309,7 +320,7 @@ class Vehicle:
                         _LOGGER.warning(f"_request_token: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
                     return False
                 else:
-                    _LOGGER.info(f"_request_token: status_code: {response.status_code} - Received response: {response.text}")
+                    _LOGGER.info(f"_request_token: status_code: {response.status} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
@@ -318,9 +329,9 @@ class Vehicle:
                 self._HAS_COM_ERROR = True
                 return ERROR
 
-    def refresh_auto_token_func(self, cur_token_data):
+    async def refresh_auto_token_func(self, cur_token_data):
         _LOGGER.debug(f"refresh_auto_token_func()")
-        auto_token = self._request_auto_token()
+        auto_token = await self._request_auto_token()
         if auto_token is None or auto_token is False:
             self.auto_access_token = None
             self.auto_refresh_token = None
@@ -354,7 +365,7 @@ class Vehicle:
 
             _LOGGER.debug("refresh_auto_token_func: OK")
 
-    def _request_auto_token(self):
+    async def _request_auto_token(self):
         """Get token from new autonomic API"""
         if self._HAS_COM_ERROR:
             return ERROR
@@ -374,20 +385,20 @@ class Vehicle:
                     "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
                     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
                 }
-                response = session.post(
+                response = await self.session.post(
                     f"{AUTONOMIC_ACCOUNT_URL}/auth/oidc/token",
                     data=data,
                     headers=headers
                 )
 
-                if response.status_code == 200:
+                if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
                     self._AUTO_FOUR_NULL_ONE_COUNTER = 0
 
-                    result = response.json()
+                    result = await response.json()
                     _LOGGER.debug(f"_request_auto_token: status OK")
                     return result
-                elif response.status_code == 401:
+                elif response.status == 401:
                     self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
                     if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
@@ -397,7 +408,7 @@ class Vehicle:
 
                     return False
                 else:
-                    _LOGGER.info(f"_request_auto_token: status_code: {response.status_code} - Received response: {response.text}")
+                    _LOGGER.info(f"_request_auto_token: status_code: {response.status} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
@@ -450,15 +461,132 @@ class Vehicle:
         # but when we cleared the tokens... we must mark us as 're-auth' required...
         self._is_reauth_required = True
 
+    async def connect_ws(self):
+
+        while self.ws_do_reconnect:
+            self.ws_do_reconnect = False
+
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"connect_ws() - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"connect_ws() - auto_access_token exist? {self.auto_access_token is not None}")
+
+            headers_ws = {
+                **apiHeaders,
+                "authorization": f"Bearer {self.auto_access_token}",
+                "Application-Id": self.region,
+                "Connection": "Upgrade",
+                "Upgrade": "websocket",
+                "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+                "Sec-WebSocket-Key": "QOX3XLqFRFO6N+kAyrhQKA==",
+                "Sec-WebSocket-Version": "13"
+            }
+            web_socket_url = f"wss://api.autonomic.ai/v1beta/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
+
+            try:
+                async with self.session.ws_connect(url=web_socket_url, headers=headers_ws) as ws:
+                    self.ws_connected = True
+                    self.ws_expiry_time_delta = 15
+                    _LOGGER.info(f"connected to websocket: {web_socket_url}")
+                    await ws.send_json({"type": "connection_init"})
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            try:
+                                ws_data = msg.json()
+                                if "_error" in ws_data:
+                                    err_obj = ws_data["_error"]
+                                    err_handled = False
+                                    if "code" in err_obj and err_obj["code"] == 401:
+                                        if "message" in err_obj:
+                                            lower_msg = err_obj['message'].lower()
+                                            if 'provided token was expired' in lower_msg:
+                                                self.ws_expire_time_delta = 60
+                                                self.ws_do_reconnect = True
+                                                err_handled = True
+                                            if 'websocket session expired' in lower_msg:
+                                                self.ws_do_reconnect = True
+                                                err_handled = True
+
+                                    if not err_handled:
+                                        _LOGGER.error(f"connect_ws(): unknown error object read: {err_obj}")
+                                else:
+                                    _LOGGER.debug(f"received: {ws_data}")
+
+                                # if "type" in data:
+                                #     if data["type"] == "connection_ack":
+                                #         # we can/should subscribe...
+                                #         # the values 'lastMeterProduction' & 'lastMeterConsumption' are not present in the
+                                #         # v4 PulseMeasurement / RealTimeMeasurement Objects ?!
+                                #         await ws.send_json(
+                                #             {
+                                #                 "type": "subscribe",
+                                #                 "id": pulse_subscribe_id,
+                                #                 "payload": {
+                                #                     "operationName": "pulseSubscription",
+                                #                     "variables": {"deviceId": self.tibber_pulseId},
+                                #                     "query": "subscription pulseSubscription($deviceId: String!) { liveMeasurement(deviceId: $deviceId) { __typename ...RealTimeMeasurement } }  fragment RealTimeMeasurement on PulseMeasurement { timestamp power powerProduction minPower minPowerTimestamp averagePower maxPower maxPowerTimestamp minPowerProduction maxPowerProduction estimatedAccumulatedConsumptionCurrentHour accumulatedConsumption accumulatedCost accumulatedConsumptionCurrentHour accumulatedProduction accumulatedProductionCurrentHour accumulatedReward peakControlConsumptionState currency currentPhase1 currentPhase2 currentPhase3 voltagePhase1 voltagePhase2 voltagePhase3 powerFactor signalStrength}"
+                                #                 }
+                                #             }
+                                #         )
+                                #
+                                #     elif data["type"] == "ka":
+                                #         _LOGGER.debug(f"keep alive? {data}")
+                                #
+                                #     elif data["type"] == "complete":
+                                #         if "id" in data and data["id"] == pulse_subscribe_id:
+                                #             # it looks like that the subscription ended (and we should re-subscribe)
+                                #             pass
+                                #
+                                #     elif data["type"] == "next":
+                                #         if "id" in data and data["id"] == pulse_subscribe_id:
+                                #             if "payload" in data and "data" in data["payload"]:
+                                #                 if "liveMeasurement" in data["payload"]["data"]:
+                                #                     keys_and_values = data["payload"]["data"]["liveMeasurement"]
+                                #                     if "__typename" in keys_and_values and keys_and_values["__typename"] == "PulseMeasurement":
+                                #                         del keys_and_values["__typename"]
+                                #                         _LOGGER.debug(f"THE DATA {keys_and_values}")
+                                #                         self._data = keys_and_values
+                                #                         #{'accumulatedConsumption': 5.7841, 'accumulatedConsumptionCurrentHour': 0.0646, 'accumulatedCost': 1.952497, 'accumulatedProduction': 48.4389, 'accumulatedProductionCurrentHour': 0, 'accumulatedReward': None, 'averagePower': 261.3, 'currency': 'EUR', 'currentPhase1': None, 'currentPhase2': None, 'currentPhase3': None, 'estimatedAccumulatedConsumptionCurrentHour': None, 'maxPower': 5275, 'maxPowerProduction': 6343, 'maxPowerTimestamp': '2025-05-15T06:41:45.000+02:00', 'minPower': 0, 'minPowerProduction': 0, 'minPowerTimestamp': '2025-05-15T20:31:34.000+02:00', 'peakControlConsumptionState': None, 'power': 467, 'powerFactor': None, 'powerProduction': 0, 'signalStrength': None, 'timestamp': '2025-05-15T22:08:11.000+02:00', 'voltagePhase1': None, 'voltagePhase2': None, 'voltagePhase3': None}
+                                #
+                                #     elif data["type"] == "error":
+                                #         if "payload" in data:
+                                #             _LOGGER.warning(f"error {data["payload"]}")
+                                #         else:
+                                #             _LOGGER.warning(f"error {data}")
+                                #
+                                #     else:
+                                #         _LOGGER.debug(f"unknown DATA {data}")
+
+                            except Exception as e:
+                                _LOGGER.debug(f"Could not read JSON from: {msg} - caused {e}")
+                        elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                            _LOGGER.debug(f"received: {msg}")
+                            break
+                        else:
+                            _LOGGER.error(f"xxx: {msg}")
+
+            except ClientConnectorError as con:
+                _LOGGER.error(f"Could not connect to websocket: {type(con)} - {con}")
+            except ClientConnectionError as err:
+                _LOGGER.error(f"???: {type(err)} - {err}")
+            except BaseException as x:
+                _LOGGER.error(f"!!!: {type(x)} - {x}")
+
+            self.ws_connected = False
+
+        return None
+
     # fetching the main data...
-    def status(self):
+    async def status(self):
         """Get Vehicle status from API"""
         try:
             # API-Reference?!
             # https://www.high-mobility.com/car-api/ford-data-api
             # https://github.com/mlaanderson/fordpass-api-doc
 
-            self.__ensure_valid_tokens()
+            await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"status() - COMM ERROR")
                 return None
@@ -473,21 +601,21 @@ class Vehicle:
             params_state = {
                 "lrdt": "01-01-1970 00:00:00"
             }
-            response_state = session.get(
+            response_state = await self.session.get(
                 f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
                 params=params_state,
                 headers=headers_state
             )
 
-            if response_state.status_code == 200:
+            if response_state.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 self._AUTO_FOUR_NULL_ONE_COUNTER = 0
 
-                result_state = response_state.json()
+                result_state = await response_state.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"status: JSON: {result_state}")
                 return result_state
-            elif response_state.status_code == 401:
+            elif response_state.status == 401:
                 self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
                 if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"status: status_code: 401 - mark_re_auth_required()")
@@ -497,7 +625,7 @@ class Vehicle:
 
                 return None
             else:
-                _LOGGER.info(f"status: status_code : {response_state.status_code} - Received response: {response_state.text}")
+                _LOGGER.info(f"status: status_code : {response_state.status} - Received response: {await response_state.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -506,10 +634,10 @@ class Vehicle:
             self._HAS_COM_ERROR = True
             return None
 
-    def messages(self):
+    async def messages(self):
         """Get Vehicle messages from API"""
         try:
-            self.__ensure_valid_tokens()
+            await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"messages() - COMM ERROR")
                 return None
@@ -521,16 +649,16 @@ class Vehicle:
                 "Auth-Token": self.access_token,
                 "Application-Id": self.region,
             }
-            response_msg = session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
-            if response_msg.status_code == 200:
+            response_msg = await self.session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg)
+            if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 self._FOUR_NULL_ONE_COUNTER = 0
 
-                result_msg = response_msg.json()
+                result_msg = await response_msg.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"messages: JSON: {result_msg}")
                 return result_msg["result"]["messages"]
-            elif response_msg.status_code == 401:
+            elif response_msg.status == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"messages: status_code: 401 - mark_re_auth_required()")
@@ -540,7 +668,7 @@ class Vehicle:
 
                 return None
             else:
-                _LOGGER.info(f"messages: status_code: {response_msg.status_code} - Received response: {response_msg.text}")
+                _LOGGER.info(f"messages: status_code: {response_msg.status} - Received response: {await response_msg.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -549,10 +677,10 @@ class Vehicle:
             self._HAS_COM_ERROR = True
             return None
 
-    def vehicles(self):
+    async def vehicles(self):
         """Get the vehicle list from the ford account"""
         try:
-            self.__ensure_valid_tokens()
+            await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"vehicles() - COMM ERROR")
                 return None
@@ -569,20 +697,20 @@ class Vehicle:
             data_veh = {
                 "dashboardRefreshRequest": "All"
             }
-            response_veh = session.post(
+            response_veh = await self.session.post(
                 f"{GUARD_URL}/expdashboard/v1/details/",
                 headers=headers_veh,
                 data=json.dumps(data_veh)
             )
-            if response_veh.status_code == 207 or response_veh.status_code == 200:
+            if response_veh.status == 207 or response_veh.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 self._FOUR_NULL_ONE_COUNTER = 0
 
-                result_veh = response_veh.json()
+                result_veh = await response_veh.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"vehicles: JSON: {result_veh}")
                 return result_veh
-            elif response_veh.status_code == 401:
+            elif response_veh.status == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"vehicles: status_code: 401 - mark_re_auth_required()")
@@ -592,7 +720,7 @@ class Vehicle:
 
                 return None
             else:
-                _LOGGER.info(f"vehicles: status_code: {response_veh.status_code} - Received response: {response_veh.text}")
+                _LOGGER.info(f"vehicles: status_code: {response_veh.status} - Received response: {await response_veh.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -601,9 +729,9 @@ class Vehicle:
             self._HAS_COM_ERROR = True
             return None
 
-    def guard_status(self):
+    async def guard_status(self):
         """Retrieve guard status from API"""
-        self.__ensure_valid_tokens()
+        await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
             _LOGGER.debug(f"guard_status() - COMM ERROR")
             return None
@@ -617,25 +745,67 @@ class Vehicle:
         }
         params_gs = {"lrdt": "01-01-1970 00:00:00"}
 
-        response_gs = session.get(
+        response_gs = await self.session.get(
             f"{GUARD_URL}/guardmode/v1/{self.vin}/session",
             params=params_gs,
             headers=headers_gs,
         )
-        return response_gs.json()
+        return await response_gs.json()
+
+    # public final GenericCommand<CommandStateActuation> actuationCommand;
+    # public final GenericCommand<CommandStateActuation> antiTheft;
+    # public final GenericCommand<CommandStateActuation> cancelRemoteStartCommand;
+    # public final CommandPreclusion commandPreclusion;
+    # public final CustomCommands commands;
+    # public final GenericCommand<CommandStateActuation> configurationUpdate;
+    # public final GenericCommand<CommandStateActuation> lockCommand;
+    # public final GenericCommand<CommandStateActuation> remoteStartCommand;
+    # public final GenericCommand<CommandStateActuation> startPanicCue;
+    # public final GenericCommand<CommandStateActuation> statusRefreshCommand;
+    # public final GenericCommand<CommandStateActuation> unlockCommand;
+
+    # public enum CellularCommand {
+    #     START,
+    #     EXTEND_START,
+    #     STOP,
+    #     LOCK,
+    #     UNLOCK,
+    #     LIGHTS_AND_HORN,
+    #     STATUS_REFRESH,
+    #     OPEN_MASTER_RESET_WINDOW,
+    #     CLOSE_MASTER_RESET_WINDOW,
+    #     START_ON_DEMAND_PRECONDITIONING,
+    #     EXTEND_ON_DEMAND_PRECONDITIONING,
+    #     STOP_ON_DEMAND_PRECONDITIONING,
+    #     UPDATE_CHARGE_SETTINGS,
+    #     START_GLOBAL_CHARGE,
+    #     CANCEL_GLOBAL_CHARGE,
+    #     START_TRAILER_LIGHT_CHECK,
+    #     STOP_TRAILER_LIGHT_CHECK,
+    #     ENABLE_DEPARTURE_TIMES,
+    #     DISABLE_DEPARTURE_TIMES,
+    #     UPDATE_DEPARTURE_TIMES,
+    #     GET_ASU_SETTINGS,
+    #     PUBLISH_ASU_SETTINGS,
+    #     SEND_OTA_SCHEDULE,
+    #     PPO_REFRESH
+    # }
 
     # operations
-    def remote_start(self):
-        return self.__request_and_poll_command(command="remoteStart")
+    async def remote_start(self):
+        return await self.__request_and_poll_command(command="remoteStart")
 
-    def cancel_remote_start(self):
-        return self.__request_and_poll_command(command="cancelRemoteStart")
+    async def cancel_remote_start(self):
+        return await self.__request_and_poll_command(command="cancelRemoteStart")
 
-    def start_charge(self):
-        return self.__request_and_poll_command(url_command="startCharge")
+    async def start_charge(self):
+        # VALUE_CHARGE, CHARGE_NOW, CHARGE_DT, CHARGE_DT_COND, CHARGE_SOLD, HOME_CHARGE_NOW, HOME_STORE_CHARGE, HOME_CHARGE_DISCHARGE
+        # START_GLOBAL_CHARGE
+        return await self.__request_and_poll_command(url_command="startCharge")
 
-    def stop_charge(self):
-        return self.__request_and_poll_command(url_command="stopCharge")
+    async def stop_charge(self):
+        # CANCEL_GLOBAL_CHARGE
+        return await self.__request_and_poll_command(url_command="stopCharge")
 
     # NOT USED YET
     # def start_engine(self):
@@ -644,44 +814,44 @@ class Vehicle:
     # def stop(self):
     #     return self.__request_and_poll_command(command="stop")
 
-    def lock(self):
+    async def lock(self):
         """
         Issue a lock command to the doors
         """
-        return self.__request_and_poll_command(command="lock")
+        return await self.__request_and_poll_command(command="lock")
 
-    def unlock(self):
+    async def unlock(self):
         """
         Issue an unlock command to the doors
         """
-        return self.__request_and_poll_command(command="unlock")
+        return await self.__request_and_poll_command(command="unlock")
 
-    def enable_guard(self):
+    async def enable_guard(self):
         """
         Enable Guard mode on supported models
         """
-        self.__ensure_valid_tokens()
+        await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
             return None
 
         response = self.__make_request(
             "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
         )
-        _LOGGER.debug(f"enable_guard: {response.text}")
+        _LOGGER.debug(f"enable_guard: {await response.text()}")
         return response
 
-    def disable_guard(self):
+    async def disable_guard(self):
         """
         Disable Guard mode on supported models
         """
-        self.__ensure_valid_tokens()
+        await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
             return None
 
         response = self.__make_request(
             "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
         )
-        _LOGGER.debug(f"disable_guard: {response.text}")
+        _LOGGER.debug(f"disable_guard: {await response.text()}")
         return response
 
     def request_update(self, vin=None):
@@ -734,11 +904,11 @@ class Vehicle:
         _LOGGER.debug("__poll_status: Command failed")
         return False
 
-    def __request_and_poll_command(self, command, properties={}, vin=None):
+    async def __request_and_poll_command(self, command, properties={}, vin=None):
         """Send command to the new Command endpoint"""
         self.status_updates_allowed = False
         try:
-            self.__ensure_valid_tokens()
+            await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
                 self.status_updates_allowed = True
                 _LOGGER.debug(f"__request_and_poll_command() - COMM ERROR")
@@ -761,11 +931,11 @@ class Vehicle:
                 "type": command,
                 "wakeUp": True
             }
-            post_req = session.post(f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
+            post_req = await self.session.post(f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
                                     data=json.dumps(data),
                                     headers=headers
                                     )
-            return self.__poll_command_status(post_req, command, properties)
+            return await self.__poll_command_status(post_req, command, properties)
 
         except BaseException as e:
             _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {e}")
@@ -773,10 +943,10 @@ class Vehicle:
             self.status_updates_allowed = True
             return False
 
-    def __request_and_poll_url_command(self, url_command, vin=None):
+    async def __request_and_poll_url_command(self, url_command, vin=None):
         self.status_updates_allowed = False
         try:
-            self.__ensure_valid_tokens()
+            await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
                 self.status_updates_allowed = True
                 _LOGGER.debug(f"__request_and_poll_url_command() - COMM ERROR")
@@ -796,11 +966,11 @@ class Vehicle:
                 vin = self.vin
 
             # URL commands wil be posted to ANOTHER endpoint!
-            r = session.post(
+            r = await self.session.post(
                 f"{GUARD_URL}/fordconnect/v1/vehicles/{vin}/{url_command}",
                 headers=headers
             )
-            return self.__poll_command_status(r, url_command)
+            return await self.__poll_command_status(r, url_command)
 
         except BaseException as e:
             _LOGGER.warning(f"Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
@@ -808,11 +978,11 @@ class Vehicle:
             self.status_updates_allowed = True
             return False
 
-    def __poll_command_status(self, r, req_command, properties={}):
-        _LOGGER.debug(f"__poll_command_status: Testing command status: {r.status_code} - Received response: {r.text}")
-        if r.status_code == 201:
+    async def __poll_command_status(self, r, req_command, properties={}):
+        _LOGGER.debug(f"__poll_command_status: Testing command status: {r.status} - Received response: {r.text}")
+        if r.status == 201:
             # New code to handle checking states table from vehicle data
-            response = r.json()
+            response = await r.json()
             command_id = response["id"]
 
             # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
@@ -825,7 +995,7 @@ class Vehicle:
                     a_delay = 10
 
                 # requesting the status... [to see the process about our command that we just have sent]
-                updated_data = self.status()
+                updated_data = await self.status()
 
                 if updated_data is not None and "states" in updated_data:
                     states = updated_data["states"]
@@ -878,11 +1048,11 @@ class Vehicle:
             self.status_updates_allowed = True
             return False
 
-        elif r.status_code == 401 or r.status_code == 403:
-            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned {r.status_code} - wft!")
+        elif r.status == 401 or r.status == 403:
+            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned {r.status} - wft!")
             self.status_updates_allowed = True
             return False
         else:
-            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned unknown Status code {r.status_code}!")
+            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned unknown Status code {r.status}!")
             self.status_updates_allowed = True
             return False

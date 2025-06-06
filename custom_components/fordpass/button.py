@@ -31,7 +31,7 @@ class FordpassButton(FordPassEntity, ButtonEntity):
             if self._tag == Tag.UPDATE_DATA:
                 await self.coordinator.async_request_refresh()
             elif self._tag == Tag.REQUEST_REFRESH:
-                await self.coordinator.hass.async_add_executor_job(self.coordinator.vehicle.request_update)
+                await self.coordinator.vehicle.request_update()
                 await self.coordinator.async_request_refresh()
         except ValueError:
             return "unavailable"

@@ -28,6 +28,7 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     UPDATE_INTERVAL_DEFAULT
 )
 from custom_components.fordpass.fordpass_bridge import Vehicle
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,28 +49,28 @@ def configured_vehicles(hass):
     }
 
 
-async def validate_token(hass: core.HomeAssistant, data, token:str, code_verifier:str):
+async def validate_token(hass: core.HomeAssistant, session, data, token:str, code_verifier:str):
     _LOGGER.debug(f"validate_token: {data}")
 
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
-    results = await hass.async_add_executor_job(vehicle.generate_tokens, token, code_verifier)
+    vehicle = Vehicle(session, data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
+    results = await vehicle.generate_tokens(token, code_verifier)
 
     if results:
         _LOGGER.debug("Getting Vehicles")
-        vehicles = await(hass.async_add_executor_job(vehicle.vehicles))
+        vehicles = await vehicle.vehicles()
         _LOGGER.debug(f"Getting Vehicles -> {vehicles}")
         return vehicles
     else:
         _LOGGER.debug(f"validate_token failed: {results}")
         raise CannotConnect
 
-async def validate_token_only(hass: core.HomeAssistant, data, token:str, code_verifier:str) -> bool:
+async def validate_token_only(hass: core.HomeAssistant, session, data, token:str, code_verifier:str) -> bool:
     _LOGGER.debug(f"validate_token_only: {data}")
 
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = Vehicle(data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
-    results = await hass.async_add_executor_job(vehicle.generate_tokens, token, code_verifier)
+    vehicle = Vehicle(session, data[CONF_USERNAME], "", "", data[CONF_REGION], True, tokens_location=configPath)
+    results = await vehicle.generate_tokens(token, code_verifier)
 
     if not results:
         _LOGGER.debug(f"validate_token failed: {results}")
@@ -77,11 +78,11 @@ async def validate_token_only(hass: core.HomeAssistant, data, token:str, code_ve
     else:
         return True
 
-async def validate_vin(hass: core.HomeAssistant, data):
+async def validate_vin(hass: core.HomeAssistant, session, data):
     configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
 
-    vehicle = Vehicle(data[CONF_USERNAME], "", data[VIN], data[REGION], True, configPath)
-    test = await(hass.async_add_executor_job(vehicle.get_status))
+    vehicle = Vehicle(session, data[CONF_USERNAME], "", data[VIN], data[REGION], True, configPath)
+    test = await vehicle.get_status()
     _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
     if test and test.status_code == 200:
         _LOGGER.debug("200 Code")
@@ -102,6 +103,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     cached_login_input = {}
     _vehicles = None
     _vehicle_name = None
+    _session = None
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -144,8 +146,10 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_REGION] = self.region
                     user_input[CONF_USERNAME] = self.username
                     _LOGGER.debug(f"user_input {user_input}")
+                    if self._session is None:
+                        self._session = async_create_clientsession(self.hass)
 
-                    info = await validate_token(self.hass, user_input, token_fragment, self.code_verifier)
+                    info = await validate_token(self.hass, self._session, user_input, token_fragment, self.code_verifier)
                     self.cached_login_input = user_input
 
                     if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
@@ -216,8 +220,11 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             # add the vin to the cached_login_input (so we store this in the config entry)
             self.cached_login_input["vin"] = user_input["vin"]
             vehicle = None
+            if self._session is None:
+                self._session = async_create_clientsession(self.hass)
+
             try:
-                vehicle = await validate_vin(self.hass, self.cached_login_input)
+                vehicle = await validate_vin(self.hass, self._session, self.cached_login_input)
             except InvalidVin:
                 errors["base"] = "invalid_vin"
             except Exception:
@@ -299,7 +306,10 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_USERNAME] = self.entry.data[CONF_USERNAME]
                     _LOGGER.debug(f"async_step_reauth_token: user_input -> {user_input}")
 
-                    info = await validate_token_only(self.hass, user_input, token_fragment, self.code_verifier)
+                    if self._session is None:
+                        self._session = async_create_clientsession(self.hass)
+
+                    info = await validate_token_only(self.hass, self._session, user_input, token_fragment, self.code_verifier)
                     if info:
                         # do we want to check, if the VIN is still accessible?!
                         # for now we just will reload the config entry...

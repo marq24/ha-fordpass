@@ -35,7 +35,7 @@ class FordPassLock(FordPassEntity, LockEntity):
         """Locks the vehicle."""
         self._attr_is_locking = True
         self.async_write_ha_state()
-        status = await self.coordinator.hass.async_add_executor_job(self.coordinator.vehicle.lock)
+        status = await self.coordinator.vehicle.lock()
         _LOGGER.debug(f"async_lock status: {status}")
         await self.coordinator.async_request_refresh()
         self._attr_is_locking = False
@@ -45,7 +45,7 @@ class FordPassLock(FordPassEntity, LockEntity):
         """Unlocks the vehicle."""
         self._attr_is_unlocking = True
         self.async_write_ha_state()
-        status = await self.coordinator.hass.async_add_executor_job(self.coordinator.vehicle.unlock)
+        status = await self.coordinator.vehicle.unlock()
         _LOGGER.debug(f"async_unlock status: {status}")
         await self.coordinator.async_request_refresh()
         self._attr_is_unlocking = False
