@@ -237,12 +237,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_watchdog_check(self, *_):
         """Reconnect the websocket if it fails."""
         if not self.bridge.ws_connected:
-            if self.bridge.ws_connect_in_progress:
-                _LOGGER.info(f"Watchdog: websocket connect required - but another websocket connection flow is already in progress - skipping now")
-            else:
-                _LOGGER.info(f"Watchdog: websocket connect required")
-                self.bridge.ws_do_reconnect = True
-                self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
+            _LOGGER.info(f"Watchdog: websocket connect required")
+            self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
         else:
             _LOGGER.debug(f"Watchdog: websocket is connected")
             await self.bridge.ws_check_last_update()

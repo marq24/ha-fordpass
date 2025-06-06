@@ -13,6 +13,7 @@ from homeassistant import config_entries, core, exceptions
 from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_PRESSURE_UNIT,
@@ -28,7 +29,6 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     UPDATE_INTERVAL_DEFAULT
 )
 from custom_components.fordpass.fordpass_bridge import Vehicle
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -244,7 +244,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"{self.cached_login_input}")
 
             if user_input[VIN] in self._vehicle_name:
-                a_title = f"{self._vehicle_name[user_input[VIN]]} VIN: {user_input[VIN]}"
+                a_title = f"{self._vehicle_name[user_input[VIN]]} [VIN: {user_input[VIN]}]"
             else:
                 a_title = f"VIN: {user_input[VIN]}"
 
