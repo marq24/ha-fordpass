@@ -353,7 +353,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                         if self.bridge.status_updates_allowed:
                             data = await self.bridge.update_all()
                             if data is not None:
-                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES])} vehicles for {self._vin}")
+                                _LOGGER.debug(f"_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES])} vehicle objects for {self._vin}")
 
                                 # only for private debugging
                                 # self.write_data_debug(data)

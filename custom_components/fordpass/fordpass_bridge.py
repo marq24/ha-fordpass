@@ -159,7 +159,7 @@ class Vehicle:
 
         _LOGGER.debug(f"generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
         if self.save_token:
-            self._write_token_to_storage(final_access_token)
+            await self._write_token_to_storage(final_access_token)
 
         return True
 
@@ -183,7 +183,7 @@ class Vehicle:
             # using the vehicle object, we can keep the token in memory (and
             # invalidate it if needed)
             if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
-                prev_token_data = self._read_token_from_storage()
+                prev_token_data = await self._read_token_from_storage()
                 if prev_token_data is None:
                     # no token data could be read!
                     _LOGGER.info("__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
@@ -286,7 +286,7 @@ class Vehicle:
                 del token_data["refresh_expires_in"]
 
             if self.save_token:
-                self._write_token_to_storage(token_data)
+                await self._write_token_to_storage(token_data)
 
             self.access_token = token_data["access_token"]
             self.refresh_token = token_data["refresh_token"]
@@ -366,7 +366,7 @@ class Vehicle:
                 cur_token_data["auto_refresh_token"] = auto_token["refresh_token"]
                 cur_token_data["auto_expiry_date"] = auto_token["expiry_date"]
 
-                self._write_token_to_storage(cur_token_data)
+                await self._write_token_to_storage(cur_token_data)
 
             # finally, setting our internal values...
             self.auto_access_token = auto_token["access_token"]
@@ -427,33 +427,46 @@ class Vehicle:
                 self._HAS_COM_ERROR = True
                 return ERROR
 
-    def _write_token_to_storage(self, token):
+    async def _write_token_to_storage(self, token):
         """Save token to file for reuse"""
         _LOGGER.debug(f"_write_token_to_storage()")
-        # check if parent exists...
-        if not os.path.exists(os.path.dirname(self.stored_tokens_location)):
-            try:
-                os.makedirs(os.path.dirname(self.stored_tokens_location))
-            except OSError as exc:  # Guard
-                _LOGGER.debug(f"_write_token_to_storage: create dir caused {exc}")
 
+        # Check if the parent directory exists
+        directory = os.path.dirname(self.stored_tokens_location)
+        if not os.path.exists(directory):
+            try:
+                await self.session.loop.run_in_executor(None, lambda: os.makedirs(directory))
+            except OSError as exc:
+                # Handle exception as before
+                pass
+
+        # Write the file in executor
+        await self.session.loop.run_in_executor(None, lambda: self.__write_token_int(token))
+
+        # Make sure that we will read the token data next time
+        self.use_token_data_from_memory = False
+
+    def __write_token_int(self, token):
+        """Synchronous method to write token file, called from executor."""
         with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
             json.dump(token, outfile)
 
-        # make sure that we will read the token data next time...
-        self.use_token_data_from_memory = False
-
-    def _read_token_from_storage(self):
+    async def _read_token_from_storage(self):
         """Read saved token from a file"""
         _LOGGER.debug(f"_read_token_from_storage()")
         try:
-            with open(self.stored_tokens_location, encoding="utf-8") as token_file:
-                token = json.load(token_file)
-                return token
+            # Run blocking file operation in executor
+            token_data = await self.session.loop.run_in_executor(None, self.__read_token_int)
+            return token_data
         except ValueError:
             _LOGGER.warning("_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
             self.mark_re_auth_required()
         return None
+
+    def __read_token_int(self):
+        """Synchronous method to read token file, called from executor."""
+        with open(self.stored_tokens_location, encoding="utf-8") as token_file:
+            return json.load(token_file)
 
     def clear_token(self):
         _LOGGER.debug(f"clear_token()")
@@ -517,7 +530,9 @@ class Vehicle:
                                                 # it looks like we have sent a new access token... and the backend just
                                                 # replied with an HTTP status code...
                                                 self._ws_in_use_access_token = self.auto_access_token
-                                            _LOGGER.debug(f"ws_connect(): received HTTP status: {status} - OK")
+                                                _LOGGER.debug(f"ws_connect(): received HTTP status 202 - auto token update accepted")
+                                            else:
+                                                _LOGGER.debug(f"ws_connect(): received HTTP status: {status} - OK")
 
                                     elif "_error" in ws_data:
                                         err_obj = ws_data["_error"]
@@ -539,68 +554,12 @@ class Vehicle:
 
                                     elif "_data" in ws_data:
                                         data_obj = ws_data["_data"]
-                                        if ROOT_METRICS in data_obj:
-                                            self._data_container[ROOT_METRICS] = data_obj[ROOT_METRICS]
-                                            new_data_arrived = True
-                                        if ROOT_STATES in data_obj:
-                                            self._data_container[ROOT_STATES] = data_obj[ROOT_STATES]
-                                            new_data_arrived = True
-                                        if ROOT_EVENTS in data_obj:
-                                            self._data_container[ROOT_EVENTS] = data_obj[ROOT_EVENTS]
-                                            new_data_arrived = True
-
+                                        new_data_arrived = self._ws_handle_data(data_obj)
                                         if new_data_arrived is False:
                                             _LOGGER.debug(f"received: {data_obj}")
-
                                     else:
                                         _LOGGER.info(f"unknown content: {ws_data}")
 
-                                    # if "type" in data:
-                                    #     if data["type"] == "connection_ack":
-                                    #         # we can/should subscribe...
-                                    #         # the values 'lastMeterProduction' & 'lastMeterConsumption' are not present in the
-                                    #         # v4 PulseMeasurement / RealTimeMeasurement Objects ?!
-                                    #         await ws.send_json(
-                                    #             {
-                                    #                 "type": "subscribe",
-                                    #                 "id": pulse_subscribe_id,
-                                    #                 "payload": {
-                                    #                     "operationName": "pulseSubscription",
-                                    #                     "variables": {"deviceId": self.tibber_pulseId},
-                                    #                     "query": "subscription pulseSubscription($deviceId: String!) { liveMeasurement(deviceId: $deviceId) { __typename ...RealTimeMeasurement } }  fragment RealTimeMeasurement on PulseMeasurement { timestamp power powerProduction minPower minPowerTimestamp averagePower maxPower maxPowerTimestamp minPowerProduction maxPowerProduction estimatedAccumulatedConsumptionCurrentHour accumulatedConsumption accumulatedCost accumulatedConsumptionCurrentHour accumulatedProduction accumulatedProductionCurrentHour accumulatedReward peakControlConsumptionState currency currentPhase1 currentPhase2 currentPhase3 voltagePhase1 voltagePhase2 voltagePhase3 powerFactor signalStrength}"
-                                    #                 }
-                                    #             }
-                                    #         )
-                                    #
-                                    #     elif data["type"] == "ka":
-                                    #         _LOGGER.debug(f"keep alive? {data}")
-                                    #
-                                    #     elif data["type"] == "complete":
-                                    #         if "id" in data and data["id"] == pulse_subscribe_id:
-                                    #             # it looks like that the subscription ended (and we should re-subscribe)
-                                    #             pass
-                                    #
-                                    #     elif data["type"] == "next":
-                                    #         if "id" in data and data["id"] == pulse_subscribe_id:
-                                    #             if "payload" in data and "data" in data["payload"]:
-                                    #                 if "liveMeasurement" in data["payload"]["data"]:
-                                    #                     keys_and_values = data["payload"]["data"]["liveMeasurement"]
-                                    #                     if "__typename" in keys_and_values and keys_and_values["__typename"] == "PulseMeasurement":
-                                    #                         del keys_and_values["__typename"]
-                                    #                         _LOGGER.debug(f"THE DATA {keys_and_values}")
-                                    #                         self._data = keys_and_values
-                                    #                         #{'accumulatedConsumption': 5.7841, 'accumulatedConsumptionCurrentHour': 0.0646, 'accumulatedCost': 1.952497, 'accumulatedProduction': 48.4389, 'accumulatedProductionCurrentHour': 0, 'accumulatedReward': None, 'averagePower': 261.3, 'currency': 'EUR', 'currentPhase1': None, 'currentPhase2': None, 'currentPhase3': None, 'estimatedAccumulatedConsumptionCurrentHour': None, 'maxPower': 5275, 'maxPowerProduction': 6343, 'maxPowerTimestamp': '2025-05-15T06:41:45.000+02:00', 'minPower': 0, 'minPowerProduction': 0, 'minPowerTimestamp': '2025-05-15T20:31:34.000+02:00', 'peakControlConsumptionState': None, 'power': 467, 'powerFactor': None, 'powerProduction': 0, 'signalStrength': None, 'timestamp': '2025-05-15T22:08:11.000+02:00', 'voltagePhase1': None, 'voltagePhase2': None, 'voltagePhase3': None}
-                                    #
-                                    #     elif data["type"] == "error":
-                                    #         if "payload" in data:
-                                    #             _LOGGER.warning(f"error {data["payload"]}")
-                                    #         else:
-                                    #             _LOGGER.warning(f"error {data}")
-                                    #
-                                    #     else:
-                                    #         _LOGGER.debug(f"unknown DATA {data}")
-
-                                    #
                             except Exception as e:
                                 _LOGGER.debug(f"Could not read JSON from: {msg} - caused {e}")
 
@@ -630,6 +589,39 @@ class Vehicle:
 
         return None
 
+    def _ws_handle_data(self, data_obj):
+
+        new_metrics = self._ws_update_key(data_obj, ROOT_METRICS)
+        new_states = self._ws_update_key(data_obj, ROOT_STATES)
+        new_events = self._ws_update_key(data_obj, ROOT_EVENTS)
+
+        return new_metrics or new_states or new_events
+
+    def _ws_update_key(self, data_obj, a_root_key):
+        if a_root_key in data_obj:
+            # special handling for single state updates...
+            if a_root_key == ROOT_STATES and len(data_obj[a_root_key]) == 1:
+                a_state_obj = next(iter(data_obj[a_root_key].values()))
+                _LOGGER.debug(f"ws(): new state arrived: {a_state_obj}")
+                if "value" in a_state_obj:
+                    a_value_obj = a_state_obj["value"]
+                    if "toState" in a_value_obj and a_value_obj["toState"].lower() == "success":
+                        if ROOT_METRICS in a_value_obj:
+                            self._ws_update_key(a_value_obj, ROOT_METRICS)
+                            _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+
+            # If we don't have states yet in the existing data, initialize it
+            if a_root_key not in self._data_container:
+                self._data_container[a_root_key] = {}
+
+            # Update only the specific keys (e.g. if only one state is present) that are in the new data
+            for a_key_name, a_key_value in data_obj[a_root_key].items():
+                self._data_container[a_root_key][a_key_name] = a_key_value
+
+            return True
+
+        return False
+
     async def _ws_check_for_auth_token_refresh(self, ws):
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
         try:
@@ -653,7 +645,7 @@ class Vehicle:
             else:
                 _LOGGER.debug(f"_ws_check_for_auth_token_refresh: 'self.auto_access_token' is None (might be cause of 401 error)")
                 if self.save_token:
-                    self._read_token_from_storage()
+                    await self._read_token_from_storage()
 
         except BaseException as e:
             _LOGGER.error(f"_ws_check_for_auth_token_refresh: Error while refreshing auto token - {type(e)} - {e}")
@@ -1010,8 +1002,8 @@ class Vehicle:
     #     _LOGGER.debug("__poll_status: Command failed")
     #     return False
 
-    def x_request_and_poll_command(self, command, properties={}, vin=None):
-        return self.__request_and_poll_command(command, properties, vin)
+    # def x_request_and_poll_command(self, command, properties={}, vin=None):
+    #     return self.__request_and_poll_command(command, properties, vin)
 
     async def __request_and_poll_command(self, command, properties={}, vin=None):
         """Send command to the new Command endpoint"""
@@ -1044,7 +1036,10 @@ class Vehicle:
                                     data=json.dumps(data),
                                     headers=headers
                                     )
-            return await self.__poll_command_status(post_req, command, properties)
+            if self.ws_connected:
+                return await self.__wait_ws_status_update(req=post_req, req_command=command, properties=properties)
+            else:
+                return await self.__poll_command_status(req=post_req, req_command=command, properties=properties)
 
         except BaseException as e:
             _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {e}")
@@ -1079,7 +1074,10 @@ class Vehicle:
                 f"{GUARD_URL}/fordconnect/v1/vehicles/{vin}/{url_command}",
                 headers=headers
             )
-            return await self.__poll_command_status(r, url_command)
+            if self.ws_connected:
+                return await self.__wait_ws_status_update(req=r, req_command=url_command)
+            else:
+                return await self.__poll_command_status(req=r, req_command=url_command)
 
         except BaseException as e:
             _LOGGER.warning(f"Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
@@ -1087,11 +1085,11 @@ class Vehicle:
             self.status_updates_allowed = True
             return False
 
-    async def __poll_command_status(self, r, req_command, properties={}):
-        _LOGGER.debug(f"__poll_command_status: Testing command status: {r.status} - Received response: {r.text}")
-        if r.status == 201:
+    async def __poll_command_status(self, req, req_command, properties={}):
+        _LOGGER.debug(f"__poll_command_status: Testing command status: {req.status}")
+        if req.status == 201:
             # New code to handle checking states table from vehicle data
-            response = await r.json()
+            response = await req.json()
             command_id = response["id"]
 
             # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
@@ -1157,11 +1155,90 @@ class Vehicle:
             self.status_updates_allowed = True
             return False
 
-        elif r.status == 401 or r.status == 403:
-            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned {r.status} - wft!")
+        elif req.status == 401 or req.status == 403:
+            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned {req.status} - wft!")
             self.status_updates_allowed = True
             return False
         else:
-            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned unknown Status code {r.status}!")
+            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned unknown Status code {req.status}!")
+            self.status_updates_allowed = True
+            return False
+
+    async def __wait_ws_status_update(self, req, req_command:str, properties={}):
+        _LOGGER.debug(f"__wait_ws_status_update: Testing command status: {req.status}")
+        if req.status == 201:
+            # New code to handle checking states table from vehicle data
+            response = await req.json()
+            command_id = response["id"]
+
+            # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
+            time.sleep(2)
+
+            i = 1
+            while i < 14:
+                a_delay = 5
+                if i > 5:
+                    a_delay = 10
+
+                # requesting the status... [to see the process about our command that we just have sent]
+                updated_data = self._data_container
+
+                if updated_data is not None and ROOT_STATES in updated_data:
+                    states = updated_data[ROOT_STATES]
+                    if LOG_DATA:
+                        _LOGGER.debug(f"__wait_ws_status_update: States located states: {states}")
+
+                    if f"{req_command}Command" in states:
+                        resp_command_obj = states[f"{req_command}Command"]
+                        _LOGGER.debug(f"__wait_ws_status_update: Found an command obj")
+
+                        if "commandId" in resp_command_obj:
+                            if resp_command_obj["commandId"] == command_id:
+                                _LOGGER.debug(f"__wait_ws_status_update: Found the commandId")
+
+                                if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
+                                    to_state = resp_command_obj["value"]["toState"]
+                                    if to_state == "success":
+                                        _LOGGER.debug("__wait_ws_status_update: EXCELLENT! command succeeded")
+                                        self.status_updates_allowed = True
+                                        return True
+                                    if to_state == "expired":
+                                        _LOGGER.debug("__wait_ws_status_update: Command expired")
+                                        self.status_updates_allowed = True
+                                        return False
+
+                                    if to_state == "request_queued":
+                                        a_delay = 10
+                                        _LOGGER.debug(f"__wait_ws_status_update: toState: '{to_state}' - let's wait (10sec)!")
+                                    elif "in_progress" in to_state:
+                                        a_delay = 5
+                                        _LOGGER.debug(f"__wait_ws_status_update: toState: '{to_state}' - let's wait (5sec)!")
+                                    else:
+                                        _LOGGER.info(f"__wait_ws_status_update: Unknown 'toState': {to_state}")
+
+                                else:
+                                    _LOGGER.debug(f"__wait_ws_status_update: no 'value' or 'toState' in command object {resp_command_obj} - waiting for next loop")
+                            else:
+                                _LOGGER.info(f"__wait_ws_status_update: The {command_id} does not match {resp_command_obj['commandId']} -> object dump: {resp_command_obj}")
+                        else:
+                            _LOGGER.info(f"__wait_ws_status_update: No 'commandId' found in : {resp_command_obj}")
+
+                i += 1
+                _LOGGER.debug(f"__wait_ws_status_update: Looping again [{i}] - COMM ERRORS occurred? {self._HAS_COM_ERROR}")
+                if self._HAS_COM_ERROR:
+                    a_delay = 60
+
+                time.sleep(a_delay)
+
+            # this is after the 'while'-loop...
+            self.status_updates_allowed = True
+            return False
+
+        elif req.status == 401 or req.status == 403:
+            _LOGGER.info(f"__wait_ws_status_update: '{req_command}' props:'{properties}' returned {req.status} - wft!")
+            self.status_updates_allowed = True
+            return False
+        else:
+            _LOGGER.info(f"__wait_ws_status_update: '{req_command}' props:'{properties}' returned unknown Status code {req.status}!")
             self.status_updates_allowed = True
             return False
