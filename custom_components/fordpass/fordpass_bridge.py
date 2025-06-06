@@ -582,10 +582,6 @@ class Vehicle:
 
                         # do we need to push new data event to the coordinator?
                         if new_data_arrived:
-                            # with open("all-data_toms_ws_001.json", "w", encoding="utf-8") as outfile:
-                            #       json.dump(self._data_container, outfile)
-
-
                             if self._ws_debounced_update_task is not None:
                                 self._ws_debounced_update_task.cancel()
                             self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
@@ -618,14 +614,19 @@ class Vehicle:
         if a_root_key in data_obj:
             # special handling for single state updates...
             if a_root_key == ROOT_STATES and len(data_obj[a_root_key]) == 1:
-                a_state_obj = next(iter(data_obj[a_root_key].values()))
-                _LOGGER.debug(f"ws(): new state arrived: {a_state_obj}")
+                a_state_name, a_state_obj = next(iter(data_obj[a_root_key].items()))
                 if "value" in a_state_obj:
                     a_value_obj = a_state_obj["value"]
-                    if "toState" in a_value_obj and a_value_obj["toState"].lower() == "success":
-                        if ROOT_METRICS in a_value_obj:
-                            self._ws_update_key(a_value_obj, ROOT_METRICS)
-                            _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+                    if "toState" in a_value_obj:
+                        _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+                        if a_value_obj["toState"].lower() == "success":
+                            if ROOT_METRICS in a_value_obj:
+                                self._ws_update_key(a_value_obj, ROOT_METRICS)
+                                _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+                    else:
+                        _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
+                else:
+                    _LOGGER.debug(f"ws(): new state (without value) '{a_state_name}' arrived")
 
             # If we don't have states yet in the existing data, initialize it
             if a_root_key not in self._data_container:
@@ -1189,7 +1190,7 @@ class Vehicle:
             command_id = response["id"]
 
             # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
-            time.sleep(2)
+            await asyncio.sleep(2)
 
             i = 1
             while i < 14:
@@ -1245,7 +1246,7 @@ class Vehicle:
                 if self._HAS_COM_ERROR:
                     a_delay = 60
 
-                time.sleep(a_delay)
+                await asyncio.sleep(a_delay)
 
             # this is after the 'while'-loop...
             self.status_updates_allowed = True
