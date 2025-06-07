@@ -740,7 +740,7 @@ class Vehicle:
             _LOGGER.debug(f"_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
             # we need to update the messages...
             msg_data = await self.messages()
-            if msg_data is None:
+            if msg_data is not None:
                 self._data_container[ROOT_MESSAGES] = msg_data
                 self._ws_notify_for_new_data()
         else:
@@ -787,7 +787,7 @@ class Vehicle:
             # Temporarily removed due to Ford backend API changes
             # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
             msg_data = await self.messages()
-            if msg_data is None:
+            if msg_data is not None:
                 data[ROOT_MESSAGES] = msg_data
 
             # only update vehicle data if not present yet
