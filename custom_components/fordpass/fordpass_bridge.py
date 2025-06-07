@@ -556,11 +556,13 @@ class Vehicle:
                     self._ws_LAST_UPDATE = time.time()
 
                     new_data_arrived = False
+                    do_housekeeping_checks = False
                     if msg.type == aiohttp.WSMsgType.TEXT:
                         try:
                             ws_data = msg.json()
                             if ws_data is None or len(ws_data) == 0:
                                 _LOGGER.debug(f"ws_connect(): received empty 'data': '{ws_data}'")
+                                do_housekeeping_checks = True
                             else:
                                 if "_httpStatus" in ws_data:
                                     status = int(ws_data["_httpStatus"])
@@ -619,11 +621,12 @@ class Vehicle:
                     if new_data_arrived:
                         self._ws_notify_for_new_data()
 
-                    # check if we need to update the messages...
-                    await self._ws_check_for_message_update_required()
+                    if do_housekeeping_checks:
+                        # check if we need to update the messages...
+                        await self._ws_check_for_message_update_required()
 
-                    # check if we need to refresh the auto token...
-                    await self._ws_check_for_auth_token_refresh(ws)
+                        # check if we need to refresh the auto token...
+                        await self._ws_check_for_auth_token_refresh(ws)
 
         except ClientConnectorError as con:
             _LOGGER.error(f"ws_connect(): Could not connect to websocket: {type(con)} - {con}")
@@ -699,6 +702,7 @@ class Vehicle:
 
         return False
 
+
     async def _ws_check_for_auth_token_refresh(self, ws):
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
         try:
@@ -720,17 +724,19 @@ class Vehicle:
                     _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token has been refreshed -> update websocket")
                     await ws.send_json({"accessToken": self.auto_access_token})
             else:
-                _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error)")
-                if self.save_token:
-                    stored_token = await self._read_token_from_storage()
-                    if stored_token is not None and "auto_token" in stored_token:
-                        self.auto_access_token = stored_token["auto_token"]
-                        self.auto_refresh_token = stored_token["auto_refresh_token"]
-                        self.auto_expires_at = stored_token["auto_expiry_date"]
-                        _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token re-read from storage")
+                _LOGGER.info(f"_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error), we will close the websocket connection and wait for the watchdog to reconnect")
+                await self.ws_close(ws)
+                # if self.save_token:
+                #     stored_token = await self._read_token_from_storage()
+                #     if stored_token is not None and "auto_token" in stored_token:
+                #         self.auto_access_token = stored_token["auto_token"]
+                #         self.auto_refresh_token = stored_token["auto_refresh_token"]
+                #         self.auto_expires_at = stored_token["auto_expiry_date"]
+                #         _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token re-read from storage")
 
         except BaseException as e:
             _LOGGER.error(f"_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
+
 
     async def _ws_check_for_message_update_required(self):
         update_interval = 0
@@ -747,6 +753,7 @@ class Vehicle:
                 self._ws_notify_for_new_data()
         else:
             _LOGGER.debug(f"_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
+
 
     def _ws_notify_for_new_data(self):
         if self._ws_debounced_update_task is not None:
