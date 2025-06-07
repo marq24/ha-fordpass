@@ -737,14 +737,14 @@ class Vehicle:
 
         to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 15 * 60)
         if to_wait_till < time.time():
-            _LOGGER.debug(f"_ws_check_for_message_update_required(): messages update required - last update: {int((time.time() - self._LAST_MESSAGES_UPDATE) / 60)} min ago")
+            _LOGGER.debug(f"_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
             # we need to update the messages...
             msg_data = await self.messages()
             if msg_data is None:
                 self._data_container[ROOT_MESSAGES] = msg_data
                 self._ws_notify_for_new_data()
         else:
-            _LOGGER.debug(f"_ws_check_for_message_update_required(): wait for: {int((to_wait_till - time.time())/60)} min")
+            _LOGGER.debug(f"_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
 
     def _ws_notify_for_new_data(self):
         if self._ws_debounced_update_task is not None:
