@@ -29,10 +29,10 @@ class FordpassButton(FordPassEntity, ButtonEntity):
     async def async_press(self, **kwargs):
         try:
             if self._tag == Tag.UPDATE_DATA:
-                await self.coordinator.async_request_refresh()
+                await self.coordinator.async_request_refresh_force_classic_requests()
             elif self._tag == Tag.REQUEST_REFRESH:
                 await self.coordinator.bridge.request_update()
-                await self.coordinator.async_request_refresh()
+                await self.coordinator.async_request_refresh_force_classic_requests()
         except ValueError:
             return "unavailable"
 

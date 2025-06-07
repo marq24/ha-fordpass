@@ -16,6 +16,7 @@ ROOT_EVENTS: Final = "events"
 ROOT_METRICS: Final = "metrics"
 ROOT_VEHICLES: Final = "vehicles"
 ROOT_MESSAGES: Final = "messages"
+ROOT_UPDTIME: Final = "updateTime"
 
 UNSUPPORTED: Final = str("Unsupported")
 
@@ -285,7 +286,7 @@ class FordpassDataHandler:
 
     # LAST_REFRESH state
     def get_last_refresh_state(data):
-        return dt.as_local(dt.parse_datetime(data.get("updateTime", 0)))
+        return dt.as_local(dt.parse_datetime(data.get(ROOT_UPDTIME, 0)))
 
 
     # ELVEH state + attributes

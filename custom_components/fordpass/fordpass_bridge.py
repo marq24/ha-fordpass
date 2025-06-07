@@ -6,6 +6,7 @@ import os
 import time
 import traceback
 from asyncio import CancelledError
+from numbers import Number
 from typing import Final
 
 import aiohttp
@@ -13,8 +14,14 @@ from aiohttp import ClientConnectorError, ClientConnectionError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.fordpass.const import REGIONS
-from custom_components.fordpass.fordpass_handler import ROOT_STATES, ROOT_EVENTS, ROOT_METRICS, ROOT_MESSAGES, \
-    ROOT_VEHICLES
+from custom_components.fordpass.fordpass_handler import (
+    ROOT_STATES,
+    ROOT_EVENTS,
+    ROOT_METRICS,
+    ROOT_MESSAGES,
+    ROOT_VEHICLES,
+    ROOT_UPDTIME
+)
 
 # import requests
 # from requests.adapters import HTTPAdapter
@@ -40,7 +47,7 @@ loginHeaders = {
     "Accept-Encoding": "gzip, deflate, br",
 }
 
-MAX_401_RESPONSE_COUNT: Final = 5
+MAX_401_RESPONSE_COUNT: Final = 10
 LOG_DATA: Final = False
 
 BASE_URL: Final = "https://usapi.cv.ford.com/api"
@@ -69,6 +76,7 @@ class Vehicle:
     ws_connected: bool = False
     _ws_debounced_update_task: asyncio.Task | None = None
     _ws_in_use_access_token: str | None = None
+    _LAST_MESSAGES_UPDATE: float = 0.0
 
     def __init__(self, web_session, username, password, vin, region, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
         self.session = web_session
@@ -541,7 +549,6 @@ class Vehicle:
                 self.ws_connected = True
 
                 _LOGGER.info(f"connected to websocket: {web_socket_url}")
-                #await ws.send_json({"type": "connection_init"})
                 async for msg in ws:
                     # store the last time we heard from the websocket
                     self._ws_LAST_UPDATE = time.time()
@@ -608,9 +615,10 @@ class Vehicle:
 
                     # do we need to push new data event to the coordinator?
                     if new_data_arrived:
-                        if self._ws_debounced_update_task is not None:
-                            self._ws_debounced_update_task.cancel()
-                        self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
+                        self._ws_notify_for_new_data()
+
+                    # check if we need to update the messages...
+                    await self._ws_check_for_message_update_required()
 
                     # check if we need to refresh the auto token...
                     await self._ws_check_for_auth_token_refresh(ws)
@@ -638,14 +646,20 @@ class Vehicle:
         return None
 
     def _ws_handle_data(self, data_obj):
+        collected_keys = []
+        new_states = self._ws_update_key(data_obj, ROOT_STATES, collected_keys)
+        new_events = self._ws_update_key(data_obj, ROOT_EVENTS, collected_keys)
+        new_msg = self._ws_update_key(data_obj, ROOT_MESSAGES, collected_keys)
+        if new_msg:
+            self._LAST_MESSAGES_UPDATE = time.time()
 
-        new_metrics = self._ws_update_key(data_obj, ROOT_METRICS)
-        new_states = self._ws_update_key(data_obj, ROOT_STATES)
-        new_events = self._ws_update_key(data_obj, ROOT_EVENTS)
+        new_metrics = self._ws_update_key(data_obj, ROOT_METRICS, collected_keys)
+        if ROOT_STATES not in data_obj:
+            self._ws_update_key(data_obj, ROOT_UPDTIME, collected_keys)
 
-        return new_metrics or new_states or new_events
+        return new_metrics or new_states or new_events or new_msg
 
-    def _ws_update_key(self, data_obj, a_root_key):
+    def _ws_update_key(self, data_obj, a_root_key, collected_keys):
         if a_root_key in data_obj:
             # special handling for single state updates...
             if a_root_key == ROOT_STATES and len(data_obj[a_root_key]) == 1:
@@ -656,7 +670,7 @@ class Vehicle:
                         _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
                         if a_value_obj["toState"].lower() == "success":
                             if ROOT_METRICS in a_value_obj:
-                                self._ws_update_key(a_value_obj, ROOT_METRICS)
+                                self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
                                 _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
                     else:
                         _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
@@ -668,8 +682,16 @@ class Vehicle:
                 self._data_container[a_root_key] = {}
 
             # Update only the specific keys (e.g. if only one state is present) that are in the new data
-            for a_key_name, a_key_value in data_obj[a_root_key].items():
-                self._data_container[a_root_key][a_key_name] = a_key_value
+            if hasattr(data_obj[a_root_key], "items"):
+                for a_key_name, a_key_value in data_obj[a_root_key].items():
+                    self._data_container[a_root_key][a_key_name] = a_key_value
+                    collected_keys.append(a_key_name)
+            elif isinstance(data_obj[a_root_key], (str, Number)):
+                self._data_container[a_root_key] = data_obj[a_root_key]
+                collected_keys.append(a_root_key)
+
+            if a_root_key == ROOT_UPDTIME:
+                _LOGGER.info(f"ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
 
             return True
 
@@ -698,10 +720,36 @@ class Vehicle:
             else:
                 _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error)")
                 if self.save_token:
-                    await self._read_token_from_storage()
+                    stored_token = await self._read_token_from_storage()
+                    if stored_token is not None and "auto_token" in stored_token:
+                        self.auto_access_token = stored_token["auto_token"]
+                        self.auto_refresh_token = stored_token["auto_refresh_token"]
+                        self.auto_expires_at = stored_token["auto_expiry_date"]
+                        _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token re-read from storage")
 
         except BaseException as e:
             _LOGGER.error(f"_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
+
+    async def _ws_check_for_message_update_required(self):
+        update_interval = 0
+        if self.coordinator is not None:
+            update_interval = int(self.coordinator.update_interval.total_seconds())
+
+        to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 15 * 60)
+        if to_wait_till < time.time():
+            _LOGGER.debug(f"_ws_check_for_message_update_required(): messages update required - last update: {int((time.time() - self._LAST_MESSAGES_UPDATE) / 60)} min ago")
+            # we need to update the messages...
+            msg_data = await self.messages()
+            if msg_data is None:
+                self._data_container[ROOT_MESSAGES] = msg_data
+                self._ws_notify_for_new_data()
+        else:
+            _LOGGER.debug(f"_ws_check_for_message_update_required(): wait for: {int((to_wait_till - time.time())/60)} min")
+
+    def _ws_notify_for_new_data(self):
+        if self._ws_debounced_update_task is not None:
+            self._ws_debounced_update_task.cancel()
+        self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
 
     async def _ws_debounce_coordinator_update(self):
         await asyncio.sleep(0.3)
@@ -738,15 +786,16 @@ class Vehicle:
         if data is not None:
             # Temporarily removed due to Ford backend API changes
             # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
-
-            data[ROOT_MESSAGES] = await self.messages()
+            msg_data = await self.messages()
+            if msg_data is None:
+                data[ROOT_MESSAGES] = msg_data
 
             # only update vehicle data if not present yet
-            if len(self._cached_vehicles_data) == 0:
+            if self._cached_vehicles_data is None or len(self._cached_vehicles_data) == 0:
                 _LOGGER.debug("update_all: request vehicle data...")
                 self._cached_vehicles_data = await self.vehicles()
 
-            if len(self._cached_vehicles_data) > 0:
+            if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
                 data[ROOT_VEHICLES] = self._cached_vehicles_data
 
             # ok finally store the data in our main data container...
@@ -833,6 +882,8 @@ class Vehicle:
                 result_msg = await response_msg.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"messages: JSON: {result_msg}")
+
+                self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
             elif response_msg.status == 401:
                 self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1

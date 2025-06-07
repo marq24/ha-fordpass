@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 PLATFORMS = ["button", "lock", "sensor", "switch", "device_tracker"]
-WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=60)
+WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -220,6 +220,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._watchdog = None
         self._a_task = None
+        self._force_classic_requests = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
     async def start_watchdog(self, event=None):
@@ -257,15 +258,6 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Watchdog: websocket is connected")
             if not self.bridge.ws_check_last_update():
                 self._check_for_ws_task_and_cancel_if_running()
-            else:
-                pass
-                # TODO: check if we need to update other data (like vehicles or messages) ?!
-
-                # if self.vehicle.request_tariff_endpoints:
-                #     _LOGGER.debug(f"Watchdog: websocket is connected - check for optional required 'tariffs' updates")
-                #     await self.bridge.ws_update_tariffs_if_required()
-                # else:
-                #     _LOGGER.debug(f"Watchdog: websocket is connected")
 
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag in FUEL_OR_PEV_ONLY_TAGS:
@@ -345,6 +337,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         return is_supported
 
+    async def async_request_refresh_force_classic_requests(self):
+        self._force_classic_requests = True
+        await self.async_request_refresh()
+        self._force_classic_requests = False
+
     async def _async_update_data(self):
         """Fetch data from FordPass."""
         if self.bridge.require_reauth:
@@ -357,7 +354,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
 
         else:
-            if self.bridge.ws_connected:
+            if self.bridge.ws_connected and self._force_classic_requests is False:
                 try:
                     _LOGGER.debug("_async_update_data called (but websocket is active - no data will be requested!)")
                     return self.bridge._data_container
