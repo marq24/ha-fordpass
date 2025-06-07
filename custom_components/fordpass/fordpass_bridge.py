@@ -362,6 +362,7 @@ class Vehicle:
                         self.mark_re_auth_required()
                     else:
                         _LOGGER.warning(f"_request_token: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                        await asyncio.sleep(5)
                     return False
                 else:
                     _LOGGER.info(f"_request_token: status_code: {response.status} - Received response: {await response.text()}")
@@ -450,6 +451,7 @@ class Vehicle:
                         self.mark_re_auth_required()
                     else:
                         _LOGGER.warning(f"_request_auto_token: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                        await asyncio.sleep(5)
 
                     return False
                 else:
@@ -847,6 +849,7 @@ class Vehicle:
                     self.mark_re_auth_required()
                 else:
                     _LOGGER.warning(f"status: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
 
                 return None
             else:
@@ -892,6 +895,7 @@ class Vehicle:
                     self.mark_re_auth_required()
                 else:
                     _LOGGER.warning(f"messages: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
 
                 return None
             else:
@@ -945,6 +949,7 @@ class Vehicle:
                     self.mark_re_auth_required()
                 else:
                     _LOGGER.warning(f"vehicles: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
 
                 return None
             else:
