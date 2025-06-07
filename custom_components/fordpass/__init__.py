@@ -219,6 +219,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 )
 
         self._watchdog = None
+        self._a_task = None
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
 
     async def start_watchdog(self, event=None):
@@ -234,21 +235,37 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if hasattr(self, "_watchdog") and self._watchdog is not None:
             self._watchdog()
 
+    def _check_for_ws_task_and_cancel_if_running(self):
+        if self._a_task is not None and not self._a_task.done():
+            _LOGGER.debug(f"Watchdog: websocket connect task is still running - canceling it...")
+            try:
+                canceled = self._a_task.cancel()
+                _LOGGER.debug(f"Watchdog: websocket connect task was CANCELED? {canceled}")
+            except BaseException as ex:
+                _LOGGER.info(f"Watchdog: websocket connect task cancel failed: {type(ex)} - {ex}")
+            self._a_task = None
+
     async def _async_watchdog_check(self, *_):
         """Reconnect the websocket if it fails."""
         if not self.bridge.ws_connected:
+            self._check_for_ws_task_and_cancel_if_running()
             _LOGGER.info(f"Watchdog: websocket connect required")
-            self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
+            self._a_task = self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
+            if self._a_task is not None:
+                _LOGGER.debug(f"Watchdog: task created {self._a_task.get_coro()}")
         else:
             _LOGGER.debug(f"Watchdog: websocket is connected")
-            await self.bridge.ws_check_last_update()
-            # TODO: check if we need to update other data (like vehicles or messages) ?!
+            if not self.bridge.ws_check_last_update():
+                self._check_for_ws_task_and_cancel_if_running()
+            else:
+                pass
+                # TODO: check if we need to update other data (like vehicles or messages) ?!
 
-            # if self.vehicle.request_tariff_endpoints:
-            #     _LOGGER.debug(f"Watchdog: websocket is connected - check for optional required 'tariffs' updates")
-            #     await self.bridge.ws_update_tariffs_if_required()
-            # else:
-            #     _LOGGER.debug(f"Watchdog: websocket is connected")
+                # if self.vehicle.request_tariff_endpoints:
+                #     _LOGGER.debug(f"Watchdog: websocket is connected - check for optional required 'tariffs' updates")
+                #     await self.bridge.ws_update_tariffs_if_required()
+                # else:
+                #     _LOGGER.debug(f"Watchdog: websocket is connected")
 
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag in FUEL_OR_PEV_ONLY_TAGS:
@@ -267,7 +284,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def clear_data(self):
         _LOGGER.debug(f"clear_data called...")
-        await self.bridge.clear_data()
+        self._check_for_ws_task_and_cancel_if_running()
+        self.bridge.clear_data()
         self.data.clear()
 
     @property

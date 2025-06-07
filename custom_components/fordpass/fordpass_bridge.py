@@ -57,12 +57,25 @@ ERROR: Final = "ERROR"
 class Vehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
 
+    session: aiohttp.ClientSession | None = None
+    timeout: aiohttp.ClientTimeout | None = None
+    coordinator: DataUpdateCoordinator | None = None
+
+    use_token_data_from_memory: bool = False
+
+    _data_container: dict = {}
+    _cached_vehicles_data: dict
+
+    ws_connected: bool = False
+    _ws_debounced_update_task: asyncio.Task | None = None
+    _ws_in_use_access_token: str | None = None
+
     def __init__(self, web_session, username, password, vin, region, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
-            total=20,      # Total request timeout
-            connect=10,    # Connection timeout
-            sock_connect=10,
+            total=45,      # Total request timeout
+            connect=30,    # Connection timeout
+            sock_connect=30,
             sock_read=120   # Socket read timeout
         )
         self.username = username
@@ -105,21 +118,19 @@ class Vehicle:
         # our main data container that holds all data that have been fetched from the vehicle
         self._data_container = {}
         self._cached_vehicles_data = {}
-        self._ws_debounced_update_task = None
-        self._ws_in_use_access_token = None
         self.coordinator = coordinator
 
         # websocket connection related variables
-        self._ws_connection = None
+        self._ws_debounced_update_task = None
+        self._ws_in_use_access_token = None
         self.ws_connected = False
         self._ws_LAST_UPDATE = 0
 
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
-    async def clear_data(self):
+    def clear_data(self):
         self._cached_vehicles_data = {}
         self._data_container = {}
-        await self.ws_close()
 
     async def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
@@ -240,7 +251,7 @@ class Vehicle:
             now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
 
         if self.expires_at and now_time > self.expires_at:
-            _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {now_time - self.expires_at} -> requesting new token")
+            _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
             refreshed_token = await self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
                 _LOGGER.warning(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
@@ -256,7 +267,7 @@ class Vehicle:
             await self.refresh_auto_token_func(prev_token_data)
 
         if self.auto_expires_at and now_time > self.auto_expires_at:
-            _LOGGER.debug(f"__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {now_time - self.auto_expires_at} -> requesting new auto-token")
+            _LOGGER.debug(f"__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         # it could be that there has been 'exceptions' when trying to update the tokens
@@ -451,13 +462,13 @@ class Vehicle:
         directory = os.path.dirname(self.stored_tokens_location)
         if not os.path.exists(directory):
             try:
-                await self.session.loop.run_in_executor(None, lambda: os.makedirs(directory))
+                await asyncio.get_running_loop().run_in_executor(None, lambda: os.makedirs(directory))
             except OSError as exc:
                 # Handle exception as before
                 pass
 
         # Write the file in executor
-        await self.session.loop.run_in_executor(None, lambda: self.__write_token_int(token))
+        await asyncio.get_running_loop().run_in_executor(None, lambda: self.__write_token_int(token))
 
         # Make sure that we will read the token data next time
         self.use_token_data_from_memory = False
@@ -472,7 +483,7 @@ class Vehicle:
         _LOGGER.debug(f"_read_token_from_storage()")
         try:
             # Run blocking file operation in executor
-            token_data = await self.session.loop.run_in_executor(None, self.__read_token_int)
+            token_data = await asyncio.get_running_loop().run_in_executor(None, self.__read_token_int)
             return token_data
         except ValueError:
             _LOGGER.warning("_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
@@ -480,7 +491,7 @@ class Vehicle:
         return None
 
     def __read_token_int(self):
-        """Synchronous method to read token file, called from executor."""
+        """Synchronous method to read the token file, called from executor."""
         with open(self.stored_tokens_location, encoding="utf-8") as token_file:
             return json.load(token_file)
 
@@ -503,11 +514,11 @@ class Vehicle:
 
     # the WebSocket related handling...
     async def ws_connect(self):
-
+        _LOGGER.debug(f"ws_connect() STARTED...")
         self.ws_connected = False
         await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
-            _LOGGER.debug(f"ws_connect() - COMM ERROR")
+            _LOGGER.debug(f"ws_connect() - COMM ERROR - skipping WebSocket connection")
             return None
         else:
             _LOGGER.debug(f"ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
@@ -527,7 +538,6 @@ class Vehicle:
         self._ws_in_use_access_token = self.auto_access_token
         try:
             async with self.session.ws_connect(url=web_socket_url, headers=headers_ws, timeout=self.timeout) as ws:
-                self._ws_connection = ws
                 self.ws_connected = True
 
                 _LOGGER.info(f"connected to websocket: {web_socket_url}")
@@ -541,7 +551,7 @@ class Vehicle:
                         try:
                             ws_data = msg.json()
                             if ws_data is None or len(ws_data) == 0:
-                                _LOGGER.debug(f"ws_connect(): received empty data: '{ws_data}'")
+                                _LOGGER.debug(f"ws_connect(): received empty 'data': '{ws_data}'")
                             else:
                                 if "_httpStatus" in ws_data:
                                     status = int(ws_data["_httpStatus"])
@@ -556,7 +566,8 @@ class Vehicle:
 
                                 elif "_error" in ws_data:
                                     # in case of any error, we simply close the websocket connection
-                                    await self.ws_close()
+                                    _LOGGER.info(f"ws_connect(): error object read: {ws_data["_error"]}")
+                                    break
 
                                     # err_obj = ws_data["_error"]
                                     # err_handled = False
@@ -579,9 +590,11 @@ class Vehicle:
                                     data_obj = ws_data["_data"]
                                     new_data_arrived = self._ws_handle_data(data_obj)
                                     if new_data_arrived is False:
-                                        _LOGGER.debug(f"received: {data_obj}")
+                                        _LOGGER.debug(f"ws_connect(): received unknown 'data': {data_obj}")
+                                    else:
+                                        _LOGGER.debug(f"ws_connect(): received vehicle 'data'")
                                 else:
-                                    _LOGGER.info(f"unknown content: {ws_data}")
+                                    _LOGGER.info(f"ws_connect(): unknown 'content': {ws_data}")
 
                         except Exception as e:
                             _LOGGER.debug(f"Could not read JSON from: {msg} - caused {e}")
@@ -589,6 +602,7 @@ class Vehicle:
                     elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
                         _LOGGER.debug(f"received: {msg}")
                         break
+
                     else:
                         _LOGGER.error(f"xxx: {msg}")
 
@@ -605,10 +619,20 @@ class Vehicle:
             _LOGGER.error(f"ws_connect(): Could not connect to websocket: {type(con)} - {con}")
         except ClientConnectionError as err:
             _LOGGER.error(f"ws_connect(): ??? {type(err)} - {err}")
+        except asyncio.TimeoutError as time_exc:
+            _LOGGER.debug(f"ws_connect(): TimeoutError: No WebSocket message received within timeout period")
         except CancelledError as canceled:
-            _LOGGER.info(f"Terminated ws_connect() ? - {type(canceled)} - {canceled}")
+            _LOGGER.info(f"ws_connect(): Terminated? - {type(canceled)} - {canceled}")
         except BaseException as x:
             _LOGGER.error(f"ws_connect(): !!! {type(x)} - {x}")
+
+        _LOGGER.debug(f"ws_connect() ENDED")
+        try:
+            await self.ws_close(ws)
+        except UnboundLocalError as is_unbound:
+            _LOGGER.debug(f"ws_connect(): skipping ws_close() (since ws is unbound)")
+        except BaseException as e:
+            _LOGGER.error(f"ws_connect(): Error while calling ws_close(): {type(e)} - {e}")
 
         self.ws_connected = False
         return None
@@ -655,7 +679,7 @@ class Vehicle:
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
         try:
             if self.auto_expires_at and time.time() + 60 > self.auto_expires_at:
-                _LOGGER.debug(f"_ws_check_for_auth_token_refresh: auto token expires in less than 60 seconds - try to refresh")
+                _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token expires in less than 60 seconds - try to refresh")
 
                 prev_token_data = {"access_token": self.access_token,
                                    "refresh_token": self.refresh_token,
@@ -669,42 +693,43 @@ class Vehicle:
             # could be that another process has refreshed the auto token...
             if self.auto_access_token is not None:
                 if self.auto_access_token != self._ws_in_use_access_token:
-                    _LOGGER.debug(f"_ws_check_for_auth_token_refresh: auto token has been refreshed -> update websocket")
+                    _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token has been refreshed -> update websocket")
                     await ws.send_json({"accessToken": self.auto_access_token})
             else:
-                _LOGGER.debug(f"_ws_check_for_auth_token_refresh: 'self.auto_access_token' is None (might be cause of 401 error)")
+                _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error)")
                 if self.save_token:
                     await self._read_token_from_storage()
 
         except BaseException as e:
-            _LOGGER.error(f"_ws_check_for_auth_token_refresh: Error while refreshing auto token - {type(e)} - {e}")
+            _LOGGER.error(f"_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
 
     async def _ws_debounce_coordinator_update(self):
         await asyncio.sleep(0.3)
         if self.coordinator is not None:
             self.coordinator.async_set_updated_data(self._data_container)
 
-    async def ws_close(self):
+    async def ws_close(self, ws):
         """Close the WebSocket connection cleanly."""
-        _LOGGER.debug(f"_ws_close(): for {self.vin} called")
+        _LOGGER.debug(f"ws_close(): for {self.vin} called")
         self.ws_connected = False
-        if self._ws_connection is not None:
+        if ws is not None:
             try:
-                await self._ws_connection.close()
+                await ws.close()
                 _LOGGER.debug("ws_close(): connection closed successfully")
             except BaseException as e:
                 _LOGGER.info(f"ws_close(): Error closing WebSocket connection: {type(e)} - {e}")
             finally:
-                self._ws_connection = None
+                ws = None
         else:
-            _LOGGER.debug("ws_close(): No active WebSocket connection to close (self._ws_connection is None)")
+            _LOGGER.debug("ws_close(): No active WebSocket connection to close (ws is None)")
 
-    async def ws_check_last_update(self):
-        if self._ws_LAST_UPDATE + 110 > time.time():
-            _LOGGER.debug(f"ws_check_last_update: last data update is less than 2 minutes ago. No need to reconnect.")
+    def ws_check_last_update(self) -> bool:
+        if self._ws_LAST_UPDATE + 50 > time.time():
+            _LOGGER.debug(f"ws_check_last_update(): all good! [last update: {int(time.time()-self._ws_LAST_UPDATE)} sec ago]")
+            return True
         else:
-            _LOGGER.info(f"ws_check_last_update: force reconnect... [is '_ws_connection' object available? {self._ws_connection is not None}]")
-            await self.ws_close()
+            _LOGGER.info(f"ws_check_last_update(): force reconnect...")
+            return False
 
 
     # fetching the main data via classic requests...
