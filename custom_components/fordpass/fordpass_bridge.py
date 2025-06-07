@@ -689,8 +689,20 @@ class Vehicle:
             # Update only the specific keys (e.g. if only one state is present) that are in the new data
             if hasattr(data_obj[a_root_key], "items"):
                 for a_key_name, a_key_value in data_obj[a_root_key].items():
-                    self._data_container[a_root_key][a_key_name] = a_key_value
-                    collected_keys.append(a_key_name)
+                    # for 'ROOT_METRICS' we must merge 'customMetrics'
+                    # and for 'ROOT_EVENTS' we must merge 'customEvents'
+                    if (a_root_key == ROOT_METRICS and a_key_name == "customMetrics") or (
+                            a_root_key == ROOT_EVENTS and a_key_name == "customEvents"):
+                        if a_key_name not in self._data_container[a_root_key]:
+                            self._data_container[a_root_key][a_key_name] = {}
+                        for a_sub_key_name, a_sub_key_value in a_key_value.items():
+                            self._data_container[a_root_key][a_key_name][a_sub_key_name] = a_sub_key_value
+                            collected_keys.append(f"{a_key_name}[{a_sub_key_name}]")
+                    # for all other keys, we simply update the value
+                    else:
+                        self._data_container[a_root_key][a_key_name] = a_key_value
+                        collected_keys.append(a_key_name)
+
             elif isinstance(data_obj[a_root_key], (str, Number)):
                 self._data_container[a_root_key] = data_obj[a_root_key]
                 collected_keys.append(a_root_key)

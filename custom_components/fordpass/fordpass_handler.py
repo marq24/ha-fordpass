@@ -384,7 +384,8 @@ class FordpassDataHandler:
                     attrs["tripEnergyConsumed"] = round(tripData["energy_consumed"] / 1000, 2)
                 if "distance_traveled" in tripData:
                     attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
-                if ("energy_consumed" in tripData and tripData["energy_consumed"] is not None and "distance_traveled" in tripData and tripData["distance_traveled"] is not None):
+
+                if "energy_consumed" in tripData and tripData["energy_consumed"] is not None and "distance_traveled" in tripData and tripData["distance_traveled"] is not None:
                     if attrs["tripDistanceTraveled"] == 0 or attrs["tripEnergyConsumed"] == 0:
                         attrs["tripEfficiency"] = 0
                     else:
