@@ -57,11 +57,12 @@ AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
 AUTONOMIC_WS_URL: Final = "wss://api.autonomic.ai/v1beta"
 AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 FORD_LOGIN_URL: Final = "https://login.ford.com"
+FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
 
 #session = None #requests.Session()
 
-class Vehicle:
+class ConnectedFordPassVehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
 
     session: aiohttp.ClientSession | None = None
@@ -354,7 +355,7 @@ class Vehicle:
                     _LOGGER.debug(f"_request_token: status OK")
                     return result
                 elif response.status == 401:
-                    self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                    self._FOUR_NULL_ONE_COUNTER += 1
                     if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"_request_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
@@ -443,7 +444,7 @@ class Vehicle:
                     _LOGGER.debug(f"_request_auto_token: status OK")
                     return result
                 elif response.status == 401:
-                    self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
+                    self._AUTO_FOUR_NULL_ONE_COUNTER += 1
                     if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
@@ -687,21 +688,31 @@ class Vehicle:
     def _ws_update_key(self, data_obj, a_root_key, collected_keys):
         if a_root_key in data_obj:
 
-            # special handling for single state updates...
-            if a_root_key == ROOT_STATES and len(data_obj[a_root_key]) == 1:
-                a_state_name, a_state_obj = next(iter(data_obj[a_root_key].items()))
-                if "value" in a_state_obj:
-                    a_value_obj = a_state_obj["value"]
-                    if "toState" in a_value_obj:
-                        _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
-                        if a_value_obj["toState"].lower() == "success":
-                            if ROOT_METRICS in a_value_obj:
-                                self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
-                                _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+            if a_root_key == ROOT_STATES:
+                # moving the content of a possible 'commands' dict to the root level
+                # [since this makes checking for commands easier].
+                if "commands" in data_obj[a_root_key] and hasattr(data_obj[a_root_key]["commands"], "items"):
+                    # Move each command to the root level
+                    for cmd_key, cmd_value in data_obj[a_root_key]["commands"].items():
+                        data_obj[a_root_key][cmd_key] = cmd_value
+
+                    # Remove the original commands dictionary
+                    del data_obj[a_root_key]["commands"]
+
+                # special handling for state updates...
+                for a_state_name, a_state_obj in data_obj[a_root_key].items():
+                    if "value" in a_state_obj:
+                        a_value_obj = a_state_obj["value"]
+                        if "toState" in a_value_obj:
+                            _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+                            if a_value_obj["toState"].lower() == "success":
+                                if ROOT_METRICS in a_value_obj:
+                                    self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
+                                    _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+                        else:
+                            _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
                     else:
-                        _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
-                else:
-                    _LOGGER.debug(f"ws(): new state (without value) '{a_state_name}' arrived")
+                        _LOGGER.debug(f"ws(): new state (without value) '{a_state_name}' arrived")
 
             # If we don't have states yet in the existing data, initialize it
             if a_root_key not in self._data_container:
@@ -782,8 +793,8 @@ class Vehicle:
     async def _ws_check_for_auth_token_refresh(self, ws):
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
         try:
-            if self.auto_expires_at and time.time() + 60 > self.auto_expires_at:
-                _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token expires in less than 60 seconds - try to refresh")
+            if self.auto_expires_at and time.time() + 45 > self.auto_expires_at:
+                _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token expires in less than 45 seconds - try to refresh")
 
                 prev_token_data = {"access_token": self.access_token,
                                    "refresh_token": self.refresh_token,
@@ -849,7 +860,7 @@ class Vehicle:
             count = 0
             while not self.status_updates_allowed and count < 11:
                 _LOGGER.debug(f"_ws_debounce_full_data_refresh(): waiting for status updates to be allowed... retry: {count}")
-                count = count + 1
+                count += 1
                 await asyncio.sleep(random.uniform(2, 30))
 
             _LOGGER.debug(f"_ws_debounce_full_data_refresh(): starting the full update now")
@@ -946,7 +957,7 @@ class Vehicle:
                     _LOGGER.debug(f"status: JSON: {result_state}")
                 return result_state
             elif response_state.status == 401:
-                self._AUTO_FOUR_NULL_ONE_COUNTER = self._AUTO_FOUR_NULL_ONE_COUNTER + 1
+                self._AUTO_FOUR_NULL_ONE_COUNTER += 1
                 if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
@@ -992,7 +1003,7 @@ class Vehicle:
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
             elif response_msg.status == 401:
-                self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                self._FOUR_NULL_ONE_COUNTER += 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
@@ -1046,7 +1057,7 @@ class Vehicle:
                     _LOGGER.debug(f"vehicles: JSON: {result_veh}")
                 return result_veh
             elif response_veh.status == 401:
-                self._FOUR_NULL_ONE_COUNTER = self._FOUR_NULL_ONE_COUNTER + 1
+                self._FOUR_NULL_ONE_COUNTER += 1
                 if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
@@ -1076,7 +1087,7 @@ class Vehicle:
 
         headers_gs = {
             **apiHeaders,
-            "auth-token": self.access_token,
+            "Auth-Token": self.access_token,
             "Application-Id": self.region,
         }
         params_gs = {"lrdt": "01-01-1970 00:00:00"}
@@ -1130,19 +1141,19 @@ class Vehicle:
 
     # operations
     async def remote_start(self):
-        return await self.__request_and_poll_command(command="remoteStart")
+        return await self.__request_and_poll_command_autonomic(command="remoteStart")
 
     async def cancel_remote_start(self):
-        return await self.__request_and_poll_command(command="cancelRemoteStart")
+        return await self.__request_and_poll_command_autonomic(command="cancelRemoteStart")
 
     async def start_charge(self):
         # VALUE_CHARGE, CHARGE_NOW, CHARGE_DT, CHARGE_DT_COND, CHARGE_SOLD, HOME_CHARGE_NOW, HOME_STORE_CHARGE, HOME_CHARGE_DISCHARGE
         # START_GLOBAL_CHARGE
-        return await self.__request_and_poll_command(url_command="startCharge")
+        return await self.__request_and_poll_command_ford(command="startGlobalCharge")
 
     async def stop_charge(self):
         # CANCEL_GLOBAL_CHARGE
-        return await self.__request_and_poll_command(url_command="stopCharge")
+        return await self.__request_and_poll_command_ford(command="cancelGlobalCharge")
 
     # NOT USED YET
     # def start_engine(self):
@@ -1155,13 +1166,13 @@ class Vehicle:
         """
         Issue a lock command to the doors
         """
-        return await self.__request_and_poll_command(command="lock")
+        return await self.__request_and_poll_command_autonomic(command="lock")
 
     async def unlock(self):
         """
         Issue an unlock command to the doors
         """
-        return await self.__request_and_poll_command(command="unlock")
+        return await self.__request_and_poll_command_autonomic(command="unlock")
 
     async def enable_guard(self):
         """
@@ -1198,7 +1209,7 @@ class Vehicle:
         else:
             vin_to_request = vin
 
-        status = self.__request_and_poll_command(command="statusRefresh", vin=vin_to_request)
+        status = self.__request_and_poll_command_autonomic(command="statusRefresh", vin=vin_to_request)
         return status
 
     # core functions...
@@ -1244,17 +1255,15 @@ class Vehicle:
     # def x_request_and_poll_command(self, command, properties={}, vin=None):
     #     return self.__request_and_poll_command(command, properties, vin)
 
-    async def __request_and_poll_command(self, command, properties={}, vin=None):
+    async def __request_and_poll_command_autonomic(self, command, properties={}, vin=None):
         """Send command to the new Command endpoint"""
-        self.status_updates_allowed = False
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                self.status_updates_allowed = True
-                _LOGGER.debug(f"__request_and_poll_command() - COMM ERROR")
+                _LOGGER.debug(f"__request_and_poll_command_autonomic() - COMM ERROR")
                 return False
             else:
-                _LOGGER.debug(f"__request_and_poll_command(): auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"__request_and_poll_command_autonomic(): auto_access_token exist? {self.auto_access_token is not None}")
 
             headers = {
                 **apiHeaders,
@@ -1276,23 +1285,63 @@ class Vehicle:
                                     headers=headers,
                                     timeout=self.timeout
                                     )
-            if self.ws_connected:
-                return await self.__wait_ws_status_update(req=post_req, req_command=command, properties=properties)
-            else:
-                return await self.__poll_command_status(req=post_req, req_command=command, properties=properties)
+
+            return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected, properties=properties)
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while '__request_and_poll_command' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {e}")
+            _LOGGER.warning(f"Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
             self._HAS_COM_ERROR = True
-            self.status_updates_allowed = True
             return False
 
-    async def __request_and_poll_url_command(self, url_command, vin=None):
-        self.status_updates_allowed = False
+    async def __request_and_poll_command_ford(self, command:str, post_data=None, vin=None):
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                self.status_updates_allowed = True
+                _LOGGER.debug(f"__request_and_poll_command_ford() - COMM ERROR")
+                return False
+            else:
+                _LOGGER.debug(f"__request_and_poll_command_ford(): auto_access_token exist? {self.auto_access_token is not None}")
+
+            headers = {
+                **apiHeaders,
+                "Auth-Token": self.access_token,
+                "Application-Id": self.region,
+            }
+            # do we want to overwrite the vin?!
+            if vin is None:
+                vin = self.vin
+
+            command_url_part = None
+            if command == "cancelGlobalCharge":
+                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/CANCEL"
+            elif command == "startGlobalCharge":
+                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/START"
+
+            if command_url_part is None:
+                _LOGGER.warning(f"__request_and_poll_command_ford() - command '{command}' is not supported by the integration")
+                return False
+
+            if post_data is not None:
+                json_post_data = json.dumps(post_data)
+            else:
+                json_post_data = None
+
+            post_req = await self.session.post(f"{FORD_VEHICLE_API}/{command_url_part}",
+                                               data=json_post_data,
+                                               headers=headers,
+                                               timeout=self.timeout)
+
+            return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected)
+
+        except BaseException as e:
+            _LOGGER.warning(f"Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+            self._HAS_COM_ERROR = True
+            return False
+
+    async def __request_and_poll_url_command(self, url_command, vin=None):
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"__request_and_poll_url_command() - COMM ERROR")
                 return False
             else:
@@ -1302,8 +1351,6 @@ class Vehicle:
                 **apiHeaders,
                 "Auth-Token": self.access_token,
                 "Application-Id": self.region,
-                "Countrycode": self.countrycode,
-                "Locale": "en-US"
             }
             # do we want to overwrite the vin?!
             if vin is None:
@@ -1315,171 +1362,118 @@ class Vehicle:
                 headers=headers,
                 timeout=self.timeout
             )
-            if self.ws_connected:
-                return await self.__wait_ws_status_update(req=r, req_command=url_command)
-            else:
-                return await self.__poll_command_status(req=r, req_command=url_command)
+            return await self.__check_command_status(req=r, req_command=url_command, use_websocket=self.ws_connected)
 
         except BaseException as e:
             _LOGGER.warning(f"Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
             self._HAS_COM_ERROR = True
-            self.status_updates_allowed = True
             return False
 
-    async def __poll_command_status(self, req, req_command, properties={}):
-        _LOGGER.debug(f"__poll_command_status: Testing command status: {req.status}")
-        if req.status == 201:
-            # New code to handle checking states table from vehicle data
-            response = await req.json()
-            command_id = response["id"]
+    async def __check_command_status(self, req, req_command, use_websocket, properties={}):
+        _LOGGER.debug(f"__check_command_status: Testing command status: {req.status} (check by {'WebSocket' if use_websocket else 'polling'})")
 
-            # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
-            time.sleep(2)
-
-            i = 1
-            while i < 14:
-                a_delay = 5
-                if i > 5:
-                    a_delay = 10
-
-                # requesting the status... [to see the process about our command that we just have sent]
-                updated_data = await self.status()
-
-                if updated_data is not None and "states" in updated_data:
-                    states = updated_data["states"]
-                    if LOG_DATA:
-                        _LOGGER.debug(f"__poll_command_status: States located states: {states}")
-
-                    if f"{req_command}Command" in states:
-                        resp_command_obj = states[f"{req_command}Command"]
-                        _LOGGER.debug(f"__poll_command_status: Found an command obj")
-
-                        if "commandId" in resp_command_obj:
-                            if resp_command_obj["commandId"] == command_id:
-                                _LOGGER.debug(f"__poll_command_status: Found the commandId")
-
-                                if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
-                                    to_state = resp_command_obj["value"]["toState"]
-                                    if to_state == "success":
-                                        _LOGGER.debug("__poll_command_status: EXCELLENT! command succeeded")
-                                        self.status_updates_allowed = True
-                                        return True
-                                    if to_state == "expired":
-                                        _LOGGER.debug("__poll_command_status: Command expired")
-                                        self.status_updates_allowed = True
-                                        return False
-
-                                    if to_state == "request_queued":
-                                        a_delay = 10
-                                        _LOGGER.debug(f"__poll_command_status: toState: '{to_state}' - let's wait (10sec)!")
-                                    elif "in_progress" in to_state:
-                                        a_delay = 5
-                                        _LOGGER.debug(f"__poll_command_status: toState: '{to_state}' - let's wait (5sec)!")
-                                    else:
-                                        _LOGGER.info(f"__poll_command_status: Unknown 'toState': {to_state}")
-
-                                else:
-                                    _LOGGER.debug(f"__poll_command_status: no 'value' or 'toState' in command object {resp_command_obj} - waiting for next loop")
-                            else:
-                                _LOGGER.info(f"__poll_command_status: The {command_id} does not match {resp_command_obj['commandId']} -> object dump: {resp_command_obj}")
-                        else:
-                            _LOGGER.info(f"__poll_command_status: No 'commandId' found in : {resp_command_obj}")
-
-                i += 1
-                _LOGGER.debug(f"__poll_command_status: Looping again [{i}] - COMM ERRORS occurred? {self._HAS_COM_ERROR}")
-                if self._HAS_COM_ERROR:
-                    a_delay = 60
-
-                time.sleep(a_delay)
-
-            # this is after the 'while'-loop...
-            self.status_updates_allowed = True
+        if not (200 <= req.status <= 205):
+            if req.status in (401, 403):
+                _LOGGER.info(f"__check_command_status(): '{req_command}' props:'{properties}' returned '{req.status}' status code - wtf!")
+            else:
+                _LOGGER.warning(f"__check_command_status(): '{req_command}' props:'{properties}' returned unknown status code: {req.status}!")
             return False
 
-        elif req.status == 401 or req.status == 403:
-            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned {req.status} - wft!")
-            self.status_updates_allowed = True
+        # Extract command ID from response
+        command_id = None
+        response = await req.json()
+
+        for id_key in ["id", "commandId", "correlationId"]:
+            if id_key in response:
+                command_id = response[id_key]
+                break
+
+        if command_id is None:
+            _LOGGER.warning(f"__check_command_status(): No command ID found in response: {response}")
             return False
-        else:
-            _LOGGER.info(f"__poll_command_status: '{req_command}' props:'{properties}' returned unknown Status code {req.status}!")
-            self.status_updates_allowed = True
-            return False
 
-    async def __wait_ws_status_update(self, req, req_command:str, properties={}):
-        _LOGGER.debug(f"__wait_ws_status_update: Testing command status: {req.status}")
-        if req.status == 201:
-            # New code to handle checking states table from vehicle data
-            response = await req.json()
-            command_id = response["id"]
+        # Wait for backend to process command
+        await asyncio.sleep(2)
 
-            # at least allowing the backend 2 seconds to process the command (before we are going to check the status)
-            await asyncio.sleep(2)
+        # Only set status updates flag when polling
+        if not use_websocket:
+            self.status_updates_allowed = False
 
-            i = 1
-            while i < 14:
-                a_delay = 5
-                if i > 5:
-                    a_delay = 10
+        try:
+            i = 0
+            while i < 15:
+                if i > 0:
+                    _LOGGER.debug(f"__check_command_status(): retry again [count: {i}] - COMM ERRORS: {self._HAS_COM_ERROR}")
 
-                # requesting the status... [to see the process about our command that we just have sent]
-                updated_data = self._data_container
+                # Get data based on method
+                if use_websocket:
+                    updated_data = self._data_container
+                else:
+                    updated_data = await self.status()
 
+                # Check states for command status
                 if updated_data is not None and ROOT_STATES in updated_data:
                     states = updated_data[ROOT_STATES]
-                    if LOG_DATA:
-                        _LOGGER.debug(f"__wait_ws_status_update: States located states: {states}")
 
-                    if f"{req_command}Command" in states:
-                        resp_command_obj = states[f"{req_command}Command"]
-                        _LOGGER.debug(f"__wait_ws_status_update: Found an command obj")
+                    # doing some cleanup of the states dict moving the content of a possible existing
+                    # commands dict to the root level
+                    if "commands" in states and hasattr(states["commands"], "items"):
+                        # Move each command to the root level
+                        for cmd_key, cmd_value in states["commands"].items():
+                            states[cmd_key] = cmd_value
 
-                        if "commandId" in resp_command_obj:
-                            if resp_command_obj["commandId"] == command_id:
-                                _LOGGER.debug(f"__wait_ws_status_update: Found the commandId")
+                        # Remove the original commands dictionary
+                        del states["commands"]
 
-                                if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
-                                    to_state = resp_command_obj["value"]["toState"]
-                                    if to_state == "success":
-                                        _LOGGER.debug("__wait_ws_status_update: EXCELLENT! command succeeded")
+                    # ok now we can check if our command is in the (updated) states dict
+                    command_key = f"{req_command}Command"
+                    if command_key in states:
+                        resp_command_obj = states[command_key]
+                        #_LOGGER.debug(f"__check_command_status(): Found command object")
+
+                        if "commandId" in resp_command_obj and resp_command_obj["commandId"] == command_id:
+                            #_LOGGER.debug(f"__check_command_status(): Found the commandId")
+
+                            if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
+                                to_state = resp_command_obj["value"]["toState"].upper()
+
+                                if to_state == "SUCCESS":
+                                    _LOGGER.debug("__check_command_status(): EXCELLENT! Command succeeded")
+                                    if not use_websocket:
                                         self.status_updates_allowed = True
-                                        return True
-                                    if to_state == "expired":
-                                        _LOGGER.debug("__wait_ws_status_update: Command expired")
+                                    return True
+
+                                if to_state == "EXPIRED":
+                                    _LOGGER.info("__check_command_status(): Command EXPIRED")
+                                    if not use_websocket:
                                         self.status_updates_allowed = True
-                                        return False
+                                    return False
 
-                                    if to_state == "request_queued":
-                                        a_delay = 10
-                                        _LOGGER.debug(f"__wait_ws_status_update: toState: '{to_state}' - let's wait (10sec)!")
-                                    elif "in_progress" in to_state:
-                                        a_delay = 5
-                                        _LOGGER.debug(f"__wait_ws_status_update: toState: '{to_state}' - let's wait (5sec)!")
-                                    else:
-                                        _LOGGER.info(f"__wait_ws_status_update: Unknown 'toState': {to_state}")
-
+                                if to_state == "REQUEST_QUEUED" or "IN_PROGRESS" in to_state:
+                                    _LOGGER.debug(f"__check_command_status(): toState: '{to_state}'")
                                 else:
-                                    _LOGGER.debug(f"__wait_ws_status_update: no 'value' or 'toState' in command object {resp_command_obj} - waiting for next loop")
+                                    _LOGGER.info(f"__check_command_status(): UNKNOWN 'toState': {to_state}")
                             else:
-                                _LOGGER.info(f"__wait_ws_status_update: The {command_id} does not match {resp_command_obj['commandId']} -> object dump: {resp_command_obj}")
+                                _LOGGER.debug(f"__check_command_status(): no 'value' or 'toState' in command object")
                         else:
-                            _LOGGER.info(f"__wait_ws_status_update: No 'commandId' found in : {resp_command_obj}")
+                            cmd_id = resp_command_obj.get("commandId", "missing")
+                            _LOGGER.info(f"__check_command_status(): Command ID mismatch: {command_id} vs {cmd_id}")
 
                 i += 1
-                _LOGGER.debug(f"__wait_ws_status_update: Looping again [{i}] - COMM ERRORS occurred? {self._HAS_COM_ERROR}")
+                a_delay = i * 5
                 if self._HAS_COM_ERROR:
-                    a_delay = 60
+                    a_delay = a_delay + 60
 
+                # finally, wait in our loop
                 await asyncio.sleep(a_delay)
 
-            # this is after the 'while'-loop...
-            self.status_updates_allowed = True
-            return False
+            # end of while loop reached...
+            _LOGGER.info(f"__check_command_status(): CHECK for '{req_command}' unsuccessful after 15 attempts")
 
-        elif req.status == 401 or req.status == 403:
-            _LOGGER.info(f"__wait_ws_status_update: '{req_command}' props:'{properties}' returned {req.status} - wft!")
+        except BaseException as exc:
+            _LOGGER.warning(f"__check_command_status(): Error during status checking - {type(exc)} - {exc}")
+
+        if not use_websocket:
             self.status_updates_allowed = True
-            return False
-        else:
-            _LOGGER.info(f"__wait_ws_status_update: '{req_command}' props:'{properties}' returned unknown Status code {req.status}!")
-            self.status_updates_allowed = True
-            return False
+
+        return False

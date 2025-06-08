@@ -29,7 +29,7 @@ from custom_components.fordpass.const import (
     UPDATE_INTERVAL_DEFAULT,
     COORDINATOR, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS
 )
-from custom_components.fordpass.fordpass_bridge import Vehicle
+from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
 
 _LOGGER = logging.getLogger(__name__)
@@ -184,8 +184,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.bridge = Vehicle(async_get_clientsession(hass), user, "", vin, region,
-                              coordinator=self, save_token=save_token, tokens_location=config_path)
+        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, "", vin, region,
+                                               coordinator=self, save_token=save_token, tokens_location=config_path)
 
         self._available = True
         self._reauth_requested = False
