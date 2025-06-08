@@ -23,45 +23,59 @@ DEFAULT_PRESSURE_UNIT: Final = "kPa"
 PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 
 UPDATE_INTERVAL: Final = "update_interval"
-UPDATE_INTERVAL_DEFAULT: Final = 290 # looks like that the default auto-access_token expires after 5 minutes (300 seconds)
+UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-access_token expires after 5 minutes (300 seconds)
 
 COORDINATOR: Final = "coordinator"
-REGION: Final = "region"
 
-REGION_OPTIONS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
-DEFAULT_REGION: Final = "USA"
+REGION_OPTIONS: Final = ["germany", "netherlands", "uk&europe", "usa"]
+REGION_OPTIONS_BROKEN: Final = ["canada", "australia"]
+DEFAULT_REGION: Final = "usa"
 
 REGIONS: Final = {
-    "Netherlands": {
-        "region": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
+    # checked 2025/06/08 - working fine...
+    "germany": {
+        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
+        "locale": "de-DE",
+        "locale_short": "DE",
+        "locale_url": "https://login.ford.de",
+        "countrycode": "DEU"
+    },
+    # checked 2025/06/08 - working fine...
+    "netherlands": {
+        "app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
         "locale": "nl-NL",
         "locale_short": "NL",
         "locale_url": "https://login.ford.nl",
         "countrycode": "NLD"
     },
-    "UK&Europe": {
-        "region": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
+    # checked 2025/06/08 - working fine...
+    "uk&europe": {
+        "app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
         "locale": "en-GB",
         "locale_short": "IE",  # Temp fix
         "locale_url": "https://login.ford.co.uk",
         "countrycode": "GBR"
     },
-    "Australia": {
-        "region": "5C80A6BB-CF0D-4A30-BDBF-FC804B5C1A98",
+    # checked 2025/06/08 - working fine...
+    "usa": {
+        "app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",
+        "locale": "en-US",
+        "locale_short": "USA",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "USA"
+    },
+
+    # DOES NOT WORK... checked 2025/06/08
+    "australia": {
+        "app_id": "5C80A6BB-CF0D-4A30-BDBF-FC804B5C1A98",
         "locale": "en-AU",
         "locale_short": "AUS",
         "locale_url": "https://login.ford.com",
         "countrycode": "AUS"
     },
-    "USA": {
-        "region": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",  # ???
-        "locale": "en-US",
-        "locale_short": "USA",
-        "locale_url": "https://login.ford.com",  # Reverted from AU to US because it appears to be working
-        "countrycode": "USA"
-    },
-    "Canada": {
-        "region": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",
+    # DOES NOT WORK... checked 2025/06/08
+    "canada": {
+        "app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",
         "locale": "en-CA",
         "locale_short": "CAN",
         "locale_url": "https://login.ford.com",

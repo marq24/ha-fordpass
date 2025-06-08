@@ -1,4 +1,14 @@
 {
+    "selector": {
+        "region": {
+            "options": {
+                "germany": "Germany",
+                "netherlands": "Netherlands",
+                "uk&europe": "UK & other European Countries",
+                "usa": "Canada, the USA, Australia, Rest of the World"
+            }
+        }
+    },
     "config": {
         "abort": {
             "already_configured": "Account is already configured",
@@ -17,7 +27,7 @@
         "step": {
             "token": {
                 "title": "Setup Token",
-                "description": "The Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your Fordpass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
+                "description": "The Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
                 "data": {
                     "url": "URL: copy this into your browser",
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
@@ -25,7 +35,7 @@
             },
             "reauth_token": {
                 "title": "Re-Authorization required",
-                "description": "Your previous token is invalid - so you must provide anew one:\r\rThe Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your Fordpass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
+                "description": "Your previous token is invalid - so you must provide anew one:\r\rThe Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
                 "data": {
                     "url": "URL: copy this into your browser",
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
@@ -39,7 +49,7 @@
                 },
                 "data_description": {
                     "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
-                    "region": "It's expected that the only working region is `USA` - so it's selected by default. Only change the region, if the default value (USA) doesn't work!"
+                    "region": "The impact of region selection is unknown, but it is recommended to select the region where your vehicle is located (if available in the selection). If you are unsure, select 'Canada, the USA, Australia, Rest of the World'."
                 }
             },
             "vehicle": {
@@ -65,7 +75,7 @@
                     "pressure_unit": "Unit of Pressure",
                     "distance_unit": "Unit of Distance",
                     "distance_conversion": "Disable distance conversion",
-                    "update_interval": "Interval to poll Fordpass API (Seconds)"
+                    "update_interval": "Interval to poll FordPass API (Seconds)"
                 },
                 "description": "Configure fordpass options"
             }
@@ -88,14 +98,14 @@
         },
         "reload": {
             "name": "Reload",
-            "description": "Reload the Fordpass Integration"
+            "description": "Reload the FordPass Integration"
         },
         "poll_api": {
             "name": "Poll API",
             "description": "Manually poll API for data update (Warning: doing this too often could result in a ban)"
         }
     },
-    "title": "Fordpass",
+    "title": "FordPass",
 
     "entity": {
         "button": {

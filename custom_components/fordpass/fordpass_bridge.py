@@ -81,7 +81,7 @@ class ConnectedFordPassVehicle:
     _last_ignition_state: str | None = None
     __ws_debounced_full_refresh_task: asyncio.Task | None = None
 
-    def __init__(self, web_session, username, password, vin, region, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
+    def __init__(self, web_session, username, password, vin, region_key, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
             total=45,      # Total request timeout
@@ -92,10 +92,10 @@ class ConnectedFordPassVehicle:
         self.username = username
         #self.password = password # password is not used anymore...
         self.save_token = save_token
-        self.region = REGIONS[region]["region"]
-        self.country_code = REGIONS[region]["locale"]
-        self.short_code = REGIONS[region]["locale_short"]
-        self.countrycode = REGIONS[region]["countrycode"]
+        self.app_id = REGIONS[region_key]["app_id"]
+        self.locale_code = REGIONS[region_key]["locale"]
+        #self.short_code = REGIONS[region_key]["locale_short"]
+        self.countrycode = REGIONS[region_key]["countrycode"]
         self.vin = vin
 
         self._HAS_COM_ERROR = False
@@ -141,7 +141,7 @@ class ConnectedFordPassVehicle:
         self._data_container = {}
 
     async def generate_tokens(self, urlstring, code_verifier):
-        _LOGGER.debug(f"generate_tokens() for country_code: {self.country_code}")
+        _LOGGER.debug(f"generate_tokens() for country_code: {self.locale_code}")
         code_new = urlstring.replace("fordapp://userauthorized/?code=", "")
         headers = {
             **loginHeaders,
@@ -154,7 +154,7 @@ class ConnectedFordPassVehicle:
             "redirect_uri": "fordapp://userauthorized"
         }
         response = await self.session.post(
-            f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{self.country_code}/oauth2/v2.0/token",
+            f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{self.locale_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
             ssl=True
@@ -170,7 +170,7 @@ class ConnectedFordPassVehicle:
             return False
 
     async def generate_tokens_part2(self, token):
-        headers = {**apiHeaders, "Application-Id": self.region}
+        headers = {**apiHeaders, "Application-Id": self.app_id}
         data = {"idpToken": token["access_token"]}
         response = await self.session.post(
             f"{GUARD_URL}/token/v2/cat-with-b2c-access-token",
@@ -336,7 +336,7 @@ class ConnectedFordPassVehicle:
 
                 headers = {
                     **apiHeaders,
-                    "Application-Id": self.region
+                    "Application-Id": self.app_id
                 }
                 data = {
                     "refresh_token": prev_token_data["refresh_token"]
@@ -535,7 +535,7 @@ class ConnectedFordPassVehicle:
         headers_ws = {
             **apiHeaders,
             "authorization": f"Bearer {self.auto_access_token}",
-            "Application-Id": self.region,
+            "Application-Id": self.app_id,
             "Connection": "Upgrade",
             "Upgrade": "websocket",
             #"Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
@@ -936,7 +936,7 @@ class ConnectedFordPassVehicle:
             headers_state = {
                 **apiHeaders,
                 "authorization": f"Bearer {self.auto_access_token}",
-                "Application-Id": self.region,
+                "Application-Id": self.app_id,
             }
             params_state = {
                 "lrdt": "01-01-1970 00:00:00"
@@ -988,8 +988,8 @@ class ConnectedFordPassVehicle:
 
             headers_msg = {
                 **apiHeaders,
-                "Auth-Token": self.access_token,
-                "Application-Id": self.region,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
             }
             response_msg = await self.session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
@@ -1034,10 +1034,10 @@ class ConnectedFordPassVehicle:
 
             headers_veh = {
                 **apiHeaders,
-                "Auth-Token": self.access_token,
-                "Application-Id": self.region,
-                "Countrycode": self.countrycode,
-                "Locale": "en-US"
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+                "countryCode": self.countrycode,
+                "locale": self.locale_code
             }
             data_veh = {
                 "dashboardRefreshRequest": "All"
@@ -1087,8 +1087,8 @@ class ConnectedFordPassVehicle:
 
         headers_gs = {
             **apiHeaders,
-            "Auth-Token": self.access_token,
-            "Application-Id": self.region,
+            "auth-token": self.access_token,
+            "Application-Id": self.app_id,
         }
         params_gs = {"lrdt": "01-01-1970 00:00:00"}
 
@@ -1267,8 +1267,8 @@ class ConnectedFordPassVehicle:
 
             headers = {
                 **apiHeaders,
-                "Application-Id": self.region,
-                "authorization": f"Bearer {self.auto_access_token}"
+                "authorization": f"Bearer {self.auto_access_token}",
+                "Application-Id": self.app_id # a bit unusual, that Application-id will be provided for an autonomic endpoint?!
             }
             # do we want to overwrite the vin?!
             if vin is None:
@@ -1304,8 +1304,8 @@ class ConnectedFordPassVehicle:
 
             headers = {
                 **apiHeaders,
-                "Auth-Token": self.access_token,
-                "Application-Id": self.region,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
             }
             # do we want to overwrite the vin?!
             if vin is None:
@@ -1349,8 +1349,8 @@ class ConnectedFordPassVehicle:
 
             headers = {
                 **apiHeaders,
-                "Auth-Token": self.access_token,
-                "Application-Id": self.region,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
             }
             # do we want to overwrite the vin?!
             if vin is None:

@@ -7,7 +7,7 @@ from typing import Final
 import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED
+from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -23,7 +23,6 @@ from custom_components.fordpass.const import (
     DEFAULT_REGION,
     DOMAIN,
     MANUFACTURER,
-    REGION,
     VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
@@ -58,14 +57,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     for config_emtry_data in config_entry.data:
         _LOGGER.debug(f"config_entry.data: {config_emtry_data}")
 
-    if REGION in config_entry.data.keys():
-        _LOGGER.debug(f"Region: {config_entry.data[REGION]}")
-        region = config_entry.data[REGION]
+    if CONF_REGION in config_entry.data.keys():
+        _LOGGER.debug(f"Region: {config_entry.data[CONF_REGION]}")
+        region_key = config_entry.data[CONF_REGION]
     else:
-        _LOGGER.debug("CANT GET REGION")
-        region = DEFAULT_REGION
+        _LOGGER.debug(f"cant get region for key: {CONF_REGION} in {config_entry.data.keys()} using default: '{DEFAULT_REGION}'")
+        region_key = DEFAULT_REGION
 
-    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region, update_interval, True)
+    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key.lower(), update_interval, True)
     await coordinator.async_refresh()  # Get initial data
     if not coordinator.last_update_success or coordinator.data is None:
         raise ConfigEntryNotReady
@@ -179,12 +178,12 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry,
-                 user, vin, region, update_interval, save_token=False):
+                 user, vin, region_key, update_interval, save_token=False):
         """Initialize the coordinator and set up the Vehicle object."""
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, "", vin, region,
+        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, "", vin, region_key.lower(),
                                                coordinator=self, save_token=save_token, tokens_location=config_path)
 
         self._available = True

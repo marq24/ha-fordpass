@@ -1,4 +1,14 @@
 {
+    "selector": {
+        "region": {
+            "options": {
+                "germany": "Deutschland",
+                "netherlands": "Niederlande",
+                "uk&europe": "UK & weitere Europäische Länder",
+                "usa": "Kanada, USA, Australien, Rest der Welt"
+            }
+        }
+    },
     "config": {
         "abort": {
             "already_configured": "Konto ist bereits konfiguriert",
@@ -14,7 +24,7 @@
         "step": {
             "token": {
                 "title": "Zugriffs-Token Einrichtung",
-                "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine Fordpass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
+                "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine FordPass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
                 "data": {
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
@@ -22,7 +32,7 @@
             },
             "reauth_token": {
                 "title": "Erneute Autorisierung erforderlich",
-                "description": "Dein bisheriges Token ist ungültig (geworden) - Du musst also ein Neues angeben:\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\n\nBitte befolge die Schritte:\n1. Kopiere die URL aus dem oberen Feld\n2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweite Browserfenster ein\n3. Gibt Deine Fordpass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\n4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\n5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\n6. Klicke auf „OK“ um fortzufahren",
+                "description": "Dein bisheriges Token ist ungültig (geworden) - Du musst also ein Neues angeben:\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\n\nBitte befolge die Schritte:\n1. Kopiere die URL aus dem oberen Feld\n2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweite Browserfenster ein\n3. Gibt Deine FordPass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\n4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\n5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\n6. Klicke auf „OK“ um fortzufahren",
                 "data": {
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
@@ -36,7 +46,7 @@
                 },
                 "data_description": {
                     "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwenden, gib bitte Deine Nummer (ohne die führede 0) ein, einschließlich + und der Landesvorwahl (z. B. +99123456789).",
-                    "region": "Es wird erwartet, dass die einzige funktionierende Region die „USA“ sind - daher ist sie standardmäßig ausgewählt. Ändere die Region nur, wenn der Default-Wert (USA) nicht funktioniert!"
+                    "region": "Die Auswirkung der Auswahl der Region ist nicht bekannt, aber es wird empfohlen, die Region zu wählen, in der sich Dein Fahrzeug befindet (wenn diese in der Auswahl verfügbar ist). Wenn Du Dir nicht sicher bist, wähle 'Kanada, USA, Australien, Rest der Welt' aus."
                 }
             },
             "vehicle": {
@@ -84,11 +94,11 @@
         },
         "reload": {
             "name": "Integration neu laden",
-            "description": "Lädt die Fordpass-Integration neu."
+            "description": "Lädt die FordPass-Integration neu."
         },
         "poll_api": {
             "name": "API aufrufen",
-            "description": "Ruft eine manuelle Datenaktualisierung aus der Fordpass-API auf. (Vorsicht: Häufige Aufrufen können zu einer temporären Drosselung/Sperre führen)"
+            "description": "Ruft eine manuelle Datenaktualisierung aus der FordPass-API auf. (Vorsicht: Häufige Aufrufen können zu einer temporären Drosselung/Sperre führen)"
         }
     },
     "title": "FordPass",

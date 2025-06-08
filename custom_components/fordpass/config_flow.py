@@ -10,9 +10,11 @@ from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries, core, exceptions
+from homeassistant.config_entries import ConfigError
 from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from custom_components.fordpass.const import (  # pylint:disable=unused-import
@@ -20,7 +22,6 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     DEFAULT_PRESSURE_UNIT,
     DOMAIN,
     PRESSURE_UNITS,
-    REGION,
     REGION_OPTIONS,
     DEFAULT_REGION,
     REGIONS,
@@ -97,7 +98,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
-    region = DEFAULT_REGION
+    region_key = DEFAULT_REGION
     username = None
     code_verifier = None
     cached_login_input = {}
@@ -109,7 +110,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                self.region = user_input[REGION]
+                self.region_key = user_input[CONF_REGION]
                 self.username = user_input[CONF_USERNAME]
 
                 return await self.async_step_token(None)
@@ -118,14 +119,22 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
         else:
             user_input = {}
-            user_input[REGION] = DEFAULT_REGION
+            user_input[CONF_REGION] = DEFAULT_REGION
             user_input[CONF_USERNAME] = ""
 
         return self.async_show_form(
-            step_id="user", data_schema=vol.Schema(
+            step_id="user",
+            data_schema=vol.Schema(
                 {
                     vol.Required(CONF_USERNAME, default=""): str,
-                    vol.Required(REGION, default=DEFAULT_REGION): vol.In(REGION_OPTIONS),
+                    vol.Required(CONF_REGION, default=DEFAULT_REGION):
+                        selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=REGION_OPTIONS,
+                                mode=selector.SelectSelectorMode.LIST,
+                                translation_key=CONF_REGION,
+                            )
+                        )
                 }
             ), errors=errors
         )
@@ -143,7 +152,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
-                    user_input[CONF_REGION] = self.region
+                    user_input[CONF_REGION] = self.region_key
                     user_input[CONF_USERNAME] = self.username
                     _LOGGER.debug(f"user_input {user_input}")
                     if self._session is None:
@@ -173,27 +182,30 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug(f"async_step_token {ex}")
                 errors["base"] = "cannot_connect"
 
-        if self.region is not None:
-            _LOGGER.debug(f"self.region {self.region}")
+        if self.region_key is not None:
+            _LOGGER.debug(f"self.region_key {self.region_key}")
             return self.async_show_form(
                 step_id="token", data_schema=vol.Schema(
                     {
-                        vol.Optional(CONF_URL, default=self.generate_url(self.region)): str,
+                        vol.Optional(CONF_URL, default=self.generate_url(self.region_key)): str,
                         vol.Required(CONF_TOKEN_STR): str,
                     }
                 ), errors=errors
             )
+        else:
+            _LOGGER.error("No region_key set - FATAL ERROR")
+            raise ConfigError(f"No region_key set - FATAL ERROR")
 
     def check_token(self, token):
         if "fordapp://userauthorized/?code=" in token:
             return True
         return False
 
-    def generate_url(self, region):
-        _LOGGER.debug(f"REGIONS[region]: {REGIONS[region]}")
+    def generate_url(self, region_key):
+        _LOGGER.debug(f"selected REGIONS object: {REGIONS[region_key]}")
         self.code_verifier = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
         hashed_code_verifier = self.generate_hash(self.code_verifier)
-        url = f"{REGIONS[region]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region]['locale']}&language_code={REGIONS[region]['locale']}&country_code={REGIONS[region]['locale_short']}&ford_application_id={REGIONS[region]['region']}"
+        url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&country_code={REGIONS[region_key]['locale_short']}&ford_application_id={REGIONS[region_key]['app_id']}"
         return url
 
     def base64_url_encode(self, data):
