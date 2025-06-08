@@ -1,4 +1,4 @@
-# Fordpass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)<font size="4"><br/>[[a fork of @itchannel and @SquidBytes](https://github.com/itchannel/fordpass-ha)]</font>
+# Fordpass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)
 
 <!--
 > [!NOTE]  
@@ -16,8 +16,20 @@
 > [!CAUTION]
 > Negative potential consequences of an action.
 -->
+> [!NOTE]
+> Even if this integration was initially forked from [@itchannel and @SquidBytes](https://github.com/itchannel/fordpass-ha), the current version is a complete rewrite and is __not compatible__ with the __original Fordpass integration__.
+> 
+> I have been continuously working on improvements of the integration in the past month, especially on the compatibility with the latest Home Assistant versions and apply clean code standards. I hope this effort will make it much easier for other developers to understand how the communication with the Fordpass backend works and how to extend/adjust the integration in the future.
+>
+> This is a __cloud push integration__, which means that the data is pushed from Ford backend systems to Home Assistant via a websocket connection — so you receive data as it changes. __No polling__ (in a certain interval) __is required anymore__.
+> 
+> It would be quite gentle if you could consider supporting the development of this integration by any kind of contribution — TIA
 
 [![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
+
+> [!NOTE]
+> My main motivation comes from the fact that I own a Ford Mustang Mach-E 2023, and I wanted to have a Home Assistant integration that just works with my car. I will focus on the features that are available for electrical vehicles, but of course I will try not to mess up the features for petrol or diesel vehicles. [If you like to support me with this challange: Please see also the _I need you_ section](https://github.com/marq24/ha-fordpass#i-need-you)
+
 
 > [!WARNING]
 > ## Disclaimer — The use of this HA integration could lead to a (temporary) lock of your Fordpass account.
@@ -25,15 +37,12 @@
 > 
 > Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
 > 
-> - It's recommended to use/create a **separate Fordpass account** for this integration (see step-by-step procedure further below).
-> - It's recommended to use an **update interval of 240 seconds or higher** to prevent a lock of your Fordpass account.
+> It's recommended to use/create a **separate Fordpass account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpass-account-is-recommended)).
 
-> [!NOTE]
-> Since I own an EV (Mustang MachE 2023), I will focus on the features that are available for electrical vehicles, but of course I will try not to mess up the features for petrol or diesel vehicles. [Please see also the 'I need you' section](https://github.com/marq24/ha-fordpass#i-need-you)
 
 > [!IMPORTANT]
 > ## Unusual Integration Setup 
-> Status Quo in spring/summer 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is due to the fact that Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
+> Status Quo in spring/summer 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is because Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
 > 
 > The current implementation is based on API calls the original Fordpass App (for Android & iOS) performs, and it's some sort of reverse engineered.
 > 
@@ -48,27 +57,12 @@
 > 
 > The overall setup process is described in short in the [Installation section](#installation-instructions-3-steps) below, and in detail in the [linked documentation](./doc/OBTAINING_TOKEN.md).
 
-
-> [!WARNING]
-> ## This fork is **not compatible** with the original Fordpass integration from @itchannel and @SquidBytes 
-> Before you can use this fork with your vehicle, you must have removed the original Fordpass integration from HA and must have deleted all configuration entries. Please be aware that it's quite likely that a configuration can be disabled!
-> 
-> ### Incompatible changes:
-> - The VIN has been added to all the entity names, to ensure that names stay unique in HA when you have multiple vehicles.
-> - The sensor attribute names do not contain spaces anymore to make post-processing easier. Additionally, all the attribute names are now using camelcase. This means that all attributes start with a lower-case character (don't let you fool by the HA user interface, which always will show the first character as upper-case).
-> - The access-token(s) is stored outside the custom integration
->
-> ### Additional enhancements:
-> - Additional Sensors for EV/PHEV vehicles
-> - Buttons to local/remote refresh data in HA
-> - Sensor to provide EVCC-Charging state [see evcc.io website for details](https://evcc.io)
-> - Translation of Entity names (DE/EN)
-> - Code cleanup and refactoring
-
+---
 
 ## Requirements
 1. Your car must have the latest onboard modem functionality and have been registered/authorized with the fordpass application.
 2. You need a Home Assistant instance (v2023.9 or higher) with the [HACS](https://hacs.xyz) custom integration installed.
+3. You __must have removed any previous Fordpass integration from your Home Assistant instance__ (especially the original Fordpass integration from @itchannel and @SquidBytes) before you can use this fork of the integration. Please be aware that it's quite likely that a configuration can be disabled! [see also the incompatibility information](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#this-fork-is-not-compatible-with-the-original-fordpass-integration-from-itchannel-and-squidbytes)
 
 > [!IMPORTANT]
 > This is a HACS custom integration — not a Home Assistant Add-on. Don't try to add this repository as an add-on in Home Assistant.
@@ -98,7 +92,7 @@
    - Your Fordpass Email/Account 
    - Select a Fordpass Region (USA, EU, UK, AU) [it's expected that only 'USA' will work right now]
 
-### Step 3. The hard part — the  **Token Setup**
+### Step 3. The hard part — the **Token Setup**
 The actual token request requires an external browser to get finally the Fordpass access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
 
 Please follow the steps:
@@ -108,7 +102,7 @@ Please follow the steps:
 4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but it's not important)
 5. Copy the full `Request-URL` from this `?code=` request from the browser's developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... `]
 
-More details (how to deal with the browser developer tools) to obtain your token can be found in the [docs](./doc/OBTAINING_TOKEN.md).
+More details (how to deal with the browser developer tools) to get your token can be found in the [additional 'obtaining token document'](./doc/OBTAINING_TOKEN.md).
 
 
 ## Usage with EVCC
@@ -135,55 +129,62 @@ Here is a short procedure how to create a second account:
 
 
 ## Services
-<!--### Car Refresh
-@itchannel and @SquidBytes have added a service to poll the car for updates, due to the battery drain they have left this up to you to set the interval. The service to be called is "refresh_status" and can be accessed in home assistant using "fordpas.refresh_status". 
-
-Optionally, you can add the "vin" parameter followed by your VIN number to only refresh one vehicle. By default, this service will refresh all registered cars in HA.
-
-**This will take up to 5 mins to update from the car once the service has been run**
-
-###
-Click on options and choose imperial or metric to display in km/miles. Takes effect on next restart of home assistant. Default is Metric
--->
-<!-- These might need to be updated since its now different -->
 
 ### Clear Tokens
-If you are experiencing any sign in issues, please trying clearing your tokens using the "clear_tokens" service call.
+If you are experiencing any sign in issues, please try clearing your tokens using the "clear_tokens" service call.
 
-### Poll API (local refresh)
-This service allows you to manually refresh/poll the API without waiting the set poll interval. Handy if you need quicker updates e.g. when driving for gps coordinates
+### Poll API (local refresh) — also available as button in the UI
+This service allows you to sync the data of the integration (read via the websocket) with the Ford backends by manually polling all data. This can become Handy if you want to ensure that HA data is in sync with the Ford backend data.
 
-### Request Update (remote refresh)
-This service will contact the modem in the vehicle and request to sync data between the vehicle and the ford backends. **Please note, that this will have an impact on the battery of your vehicle.**
+### Request Update (remote refresh) — also available as button in the UI
+This service will contact the modem in the vehicle and request to sync data between the vehicle and the ford backends. **Please note that this will have an impact on the battery of your vehicle.**
 
 
 ## Sensors
-### Currently Working
 **Sensors may change as the integration is being developed**
-<!-- Keeping this the same, but it will probably change and update alongside Fordconnect and the new app features -->
+~~Supports Multiple Regions~~
 
-- Fuel Level
-- EV-Battery Level (SOC)
-- Odometer
-- Lock/Unlock
-- Oil Status
-- Last known GPS Coordinates/Map
-- Tyre Status
-- Battery Status
-- Ignition Status
-- Alarm Status
-- Individual door statuses
-- Remote Start
-- Window Status (only if supported by the vehicle)
-- Last Car Refresh status
-- Car Tracker (Location)
-- ~~Supports Multiple Regions~~
-- Electric Vehicle Support
-- TPMS Sensors
-- ~~Guard Mode (Only supported cars)~~
-- Deep sleep status
-- Fordpass messages and alerts
+| Sensor Name                        | Petrol/Diesel | (P)HEV/BEV |
+|------------------------------------|---------------|------------|
+| Odometer                           | X             | X          |                 
+| Battery (12V)                      | X             | X          |            
+| Oil                                | X             | X          |   
+| Tire Pressure                      | X             | X          |            
+| GPS/Location Data (JSON)           | X             | X          |                 
+| Alarm Status                       | X             | X          |
+| Status Ignition                    | X             | X          |          
+| Status Door                        | X             | X          |              
+| Window Position                    | X             | X          |    
+| last refresh (timestamp)           | X             | X          |
+| Speed                              | X             | X          |
+| Indicators/Warnings                | X             | X          |
+| Temperature Coolant                | X             | X          |
+| Temperature Outdoors               | X             | X          |
+| Status Remote Start                | X             | X          |
+| Fordpass Messages                  | X             | X          |
+| Belt Status                        | X             | X          |
+| Fuel Level (can be > 100%)         | X             |            |
+| Temperature Engine Oil             | X             |            |
+| Status Diesel System               | X             |            |
+| AdBlue Level                       | X             |            |
+| EV-Data collection                 |               | X          |
+| EV Plug Status                     |               | X          |
+| EV Charging information            |               | X          |
+| State of Charge (SOC)              |               | X          |
+| EVCC status code ('A', 'B' or 'C') |               | X          |
+| ~~Sleep Mode~~                     |               |            |
+| ~~Zone Lighting~~                  |               |            |
 
+## Buttons / Switches / Other
+
+| Type          | Sensor Name                          | Petrol/Diesel | (P)HEV/BEV |
+|---------------|--------------------------------------|---------------|------------|
+| Button        | Remote Sync (Car with Ford backend)  | X             | X          |
+| Button        | Local Sync (Ford backend with HA)    | X             | X          |
+| Lock          | Lock/Unlock Vehicle                  | X             | X          |
+| Switch        | Remote Start (❄/☀)                  | X             | X          |
+| Switch        | ~~Guard Mode (Only supported cars)~~ |               |            |
+| DeviceTracker | Vehicle Tracker                      | X             | X          |
 
 ## Want to report an issue?
 
@@ -199,9 +200,9 @@ logger:
     custom_components.fordpass: debug
 ```
 
----
 
 ## I need You!
+
 This might be a quite unusual request, but I would like to ask you to consider supporting the testing of this integration by granting me access to your car data. 
 
 It's correct that this implies that you are willing to share your vehicle data (like the location) with me and I would __fully understand if you are not willing to do so__. But at least it must be allowed to ask. Since I can't afford to buy another Ford vehicle (nor do I actually have the space), it would be great if I would be able to test (besides with my EV, also) PEV's, DIESEL and GAS vehicles with this integration.
@@ -217,6 +218,28 @@ If you like this integration and want to support the development, please conside
 [![GitHub Sponsors][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal]
 
 
+> [!WARNING]
+> ## This fork is **not compatible** with the original Fordpass integration from @itchannel and @SquidBytes
+> Before you can use this fork with your vehicle, you must have removed the original Fordpass integration from HA and must have deleted all configuration entries. Please be aware that it's quite likely that a configuration can be disabled!
+>
+> ### Incompatible changes:
+> - The VIN has been added to all the entity names, to ensure that names stay unique in HA when you have multiple vehicles.
+> - The sensor attribute names do not contain spaces anymore to make post-processing easier. Additionally, all the attribute names are now using camelcase. This means that all attributes start with a lower-case character (don't let you fool by the HA user interface, which always will show the first character as upper-case).
+> - The access-token(s) is stored outside the custom integration
+>
+> ### Additional enhancements:
+> - This is now a cloud __push__ integration, which means that the data is pushed to Home Assistant via a websocket connection. This is a major improvement over the original integration, which was a cloud __pull__ integration.
+> - Additional Sensors for EV/PHEV vehicles
+> - Buttons to local/remote refresh data in HA
+> - Sensor to provide EVCC-Charging state [see evcc.io website for details](https://evcc.io)
+> - Translation of Entity names (DE/EN)
+> - Code cleanup and refactoring
+
+
+## Change Log
+[See GitHub releases](https://github.com/marq24/ha-fordpass/releases) of this repository or [for older update information that was not part of this repository a separate document](./info.md) for the complete change log of this integration.
+
+
 ## Credits
 - https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
 
@@ -229,9 +252,6 @@ If you like this integration and want to support the development, please conside
 - https://github.com/JacobWasFramed - Updated unit conversions
 - https://github.com/heehoo59 - French Translation
 
-
-## Changelog
-See the separate [Updates](info.md) file for the changelog.
 
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=ccc
