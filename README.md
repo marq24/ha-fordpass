@@ -93,8 +93,12 @@
    - __Select a FordPass Region__ — Currently you can select between:
      - 'Germany'
      - 'Netherlands'
+     - 'France'
+     - 'Italy'
      - 'UK & other European Countries'
-     - 'Canada, the USA & Rest of the World'
+     - 'Canada'
+     - 'The United States of America'
+     - 'Rest of the World'
      
      But there is no information __if__ the selection of the region __has any impact__ on the provided data — at least I have not found any differences so far. No matter which region you select, the integration will work (🤞) with all vehicles that are registered in your FordPass account.
 

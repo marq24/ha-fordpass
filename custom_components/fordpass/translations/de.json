@@ -3,9 +3,14 @@
         "region": {
             "options": {
                 "germany": "Deutschland",
+                "france": "Frankreich",
                 "netherlands": "Niederlande",
-                "uk&europe": "UK & weitere Europäische Länder",
-                "usa": "Kanada, USA, Australien, Rest der Welt"
+                "italy": "Italien",
+                "uk_europe": "UK & weitere Europäische Länder",
+                "canada": "Kanada",
+                "australia": "Australien",
+                "usa": "Die Vereinigte Staaten von Amerika",
+                "rdw": "Rest der Welt"
             }
         }
     },
@@ -46,7 +51,7 @@
                 },
                 "data_description": {
                     "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwenden, gib bitte Deine Nummer (ohne die führede 0) ein, einschließlich + und der Landesvorwahl (z. B. +99123456789).",
-                    "region": "Die Auswirkung der Auswahl der Region ist nicht bekannt, aber es wird empfohlen, die Region zu wählen, in der sich Dein Fahrzeug befindet (wenn diese in der Auswahl verfügbar ist). Wenn Du Dir nicht sicher bist, wähle 'Kanada, USA, Australien, Rest der Welt' aus."
+                    "region": "Die Auswirkung der Auswahl der Region ist nicht bekannt, aber es wird empfohlen, die Region zu wählen, in der sich Dein Fahrzeug befindet (wenn diese in der Auswahl verfügbar ist). Wenn Du Dir nicht sicher bist, wähle 'Rest der Welt' aus."
                 }
             },
             "vehicle": {

@@ -27,60 +27,75 @@ UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-acces
 
 COORDINATOR: Final = "coordinator"
 
-REGION_OPTIONS: Final = ["germany", "netherlands", "uk&europe", "usa"]
-REGION_OPTIONS_BROKEN: Final = ["canada", "australia"]
-DEFAULT_REGION: Final = "usa"
+REGION_OPTIONS: Final = ["germany", "france", "italy", "netherlands", "uk_europe", "canada", "usa", "rdw"]
+REGION_OPTIONS_BROKEN: Final = ["australia"]
+DEFAULT_REGION: Final = "rdw"
 
 REGIONS: Final = {
     # checked 2025/06/08 - working fine...
     "germany": {
         "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
         "locale": "de-DE",
-        "locale_short": "DE",
         "locale_url": "https://login.ford.de",
         "countrycode": "DEU"
     },
     # checked 2025/06/08 - working fine...
+    "france": {
+        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
+        "locale": "fr-FR",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "FRA"
+    },
+    # checked 2025/06/08 - working fine...
+    "italy": {
+        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
+        "locale": "it-IT",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "ITA"
+    },
+    # checked 2025/06/08 - working fine...
     "netherlands": {
-        "app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
+        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19
         "locale": "nl-NL",
-        "locale_short": "NL",
-        "locale_url": "https://login.ford.nl",
+        "locale_url": "https://login.ford.com",
         "countrycode": "NLD"
     },
     # checked 2025/06/08 - working fine...
-    "uk&europe": {
-        "app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
+    "uk_europe": {
+        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
         "locale": "en-GB",
-        "locale_short": "IE",  # Temp fix
         "locale_url": "https://login.ford.co.uk",
         "countrycode": "GBR"
     },
     # checked 2025/06/08 - working fine...
+    "canada": {
+        "app_id": "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A",
+        "locale": "en-CA",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "CAN"
+    },
+    # checked 2025/06/08 - working fine...
     "usa": {
-        "app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",
+        "app_id": "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A", # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
         "locale": "en-US",
-        "locale_short": "USA",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "USA"
+    },
+    # we use the 'usa' as the default region...
+    "rdw": {
+        "app_id": "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A",
+        "locale": "en-US",
         "locale_url": "https://login.ford.com",
         "countrycode": "USA"
     },
 
     # DOES NOT WORK... checked 2025/06/08
     "australia": {
-        "app_id": "5C80A6BB-CF0D-4A30-BDBF-FC804B5C1A98",
+        "app_id": "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
         "locale": "en-AU",
-        "locale_short": "AUS",
         "locale_url": "https://login.ford.com",
         "countrycode": "AUS"
     },
-    # DOES NOT WORK... checked 2025/06/08
-    "canada": {
-        "app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592",
-        "locale": "en-CA",
-        "locale_short": "CAN",
-        "locale_url": "https://login.ford.com",
-        "countrycode": "USA"
-    }
 }
 
 WINDOW_POSITIONS: Final = {

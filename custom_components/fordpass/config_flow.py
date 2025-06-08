@@ -131,7 +131,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=REGION_OPTIONS,
-                                mode=selector.SelectSelectorMode.LIST,
+                                mode=selector.SelectSelectorMode.DROPDOWN,
                                 translation_key=CONF_REGION,
                             )
                         )
@@ -205,7 +205,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug(f"selected REGIONS object: {REGIONS[region_key]}")
         self.code_verifier = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
         hashed_code_verifier = self.generate_hash(self.code_verifier)
-        url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&country_code={REGIONS[region_key]['locale_short']}&ford_application_id={REGIONS[region_key]['app_id']}"
+        url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&ford_application_id={REGIONS[region_key]['app_id']}&country_code={REGIONS[region_key]['countrycode']}"
         return url
 
     def base64_url_encode(self, data):
@@ -246,7 +246,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 # create the config entry without the vehicle type/name...
                 return self.async_create_entry(title=f"VIN: {user_input[VIN]}", data=self.cached_login_input)
 
-        _LOGGER.debug(f"{self.self.cached_login_input}")
+        _LOGGER.debug(f"{self.cached_login_input}")
         return self.async_show_form(step_id="vin", data_schema=VIN_SCHEME, errors=errors)
 
     async def async_step_vehicle(self, user_input=None):

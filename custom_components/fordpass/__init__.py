@@ -64,6 +64,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.debug(f"cant get region for key: {CONF_REGION} in {config_entry.data.keys()} using default: '{DEFAULT_REGION}'")
         region_key = DEFAULT_REGION
 
+    # this should not be required... but to be as compatible as possible with existing installations
+    # if there is a user out there who has initially set the region to "UK&Europe", we must patch the region key
+    # to the new format: "uk_europe"
+    if "&" in region_key:
+        region_key = region_key.replace("&", "_")
+
     coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key.lower(), update_interval, True)
     await coordinator.async_refresh()  # Get initial data
     if not coordinator.last_update_success or coordinator.data is None:
