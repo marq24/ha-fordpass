@@ -192,7 +192,7 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "oilLifeRemaining"),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "oilLifeRemaining"))
     SEATBELT            = ApiKey(key="seatbelt",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "seatBeltStatus", 0, None),
+                                 state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "seatBeltStatus", 0),
                                  attrs_fn=FordpassDataHandler.get_seatbelt_attrs)
     TIRE_PRESSURE       = ApiKey(key="tirePressure",
                                  state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "tirePressureSystemStatus", 0),
@@ -527,7 +527,6 @@ SENSORS = [
         tag=Tag.SEATBELT,
         key=Tag.SEATBELT.key,
         icon="mdi:seatbelt",
-        skip_existence_check=True,
         has_entity_name=True,
     ),
 
