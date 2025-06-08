@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import time
 import traceback
 from asyncio import CancelledError
@@ -23,11 +24,10 @@ from custom_components.fordpass.fordpass_handler import (
     ROOT_UPDTIME
 )
 
-# import requests
-# from requests.adapters import HTTPAdapter
-# from urllib3.util.retry import Retry
-
 _LOGGER = logging.getLogger(__name__)
+
+INTEGRATION_INIT: Final = "INTG_INIT"
+
 defaultHeaders = {
     "Accept": "*/*",
     "Accept-Language": "en-US",
@@ -77,6 +77,8 @@ class Vehicle:
     _ws_debounced_update_task: asyncio.Task | None = None
     _ws_in_use_access_token: str | None = None
     _LAST_MESSAGES_UPDATE: float = 0.0
+    _last_ignition_state: str | None = None
+    __ws_debounced_full_refresh_task: asyncio.Task | None = None
 
     def __init__(self, web_session, username, password, vin, region, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
         self.session = web_session
@@ -110,11 +112,6 @@ class Vehicle:
         # by default, we try to read the token from the file system
         self.use_token_data_from_memory = False
 
-        #retry = Retry(connect=3, backoff_factor=0.5)
-        #adapter = HTTPAdapter(max_retries=retry)
-        #session.mount("http://", adapter)
-        #session.mount("https://", adapter)
-
         if tokens_location is None:
             self.stored_tokens_location = f".storage/fordpass/{username}_access_token.txt"
         else:
@@ -130,9 +127,11 @@ class Vehicle:
 
         # websocket connection related variables
         self._ws_debounced_update_task = None
+        self._ws_debounced_full_refresh_task = None
         self._ws_in_use_access_token = None
         self.ws_connected = False
         self._ws_LAST_UPDATE = 0
+        self._last_ignition_state = INTEGRATION_INIT
 
         _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
 
@@ -168,7 +167,6 @@ class Vehicle:
         else:
             _LOGGER.warning(f"generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
             return False
-
 
     async def generate_tokens_part2(self, token):
         headers = {**apiHeaders, "Application-Id": self.region}
@@ -662,10 +660,33 @@ class Vehicle:
         if ROOT_STATES not in data_obj:
             self._ws_update_key(data_obj, ROOT_UPDTIME, collected_keys)
 
+        # check, if the 'ignitionStatus' has changed cause of the data that was received via the websocket...
+        # IF the state goes to 'OFF', we will trigger a complete integration data update
+        if ROOT_METRICS not in data_obj:
+            # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
+            new_ignition_state = self._data_container.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
+
+            #_LOGGER.info(f"ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
+            if self._last_ignition_state != INTEGRATION_INIT:
+                if "OFF" == new_ignition_state and new_ignition_state != self._last_ignition_state:
+                    if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
+                        self._ws_debounced_full_refresh_task.cancel()
+                    _LOGGER.debug(f"ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
+                    self._ws_debounced_full_refresh_task = asyncio.create_task(self._ws_debounce_full_data_refresh())
+
+                elif "ON" == new_ignition_state:
+                    # cancel any running the full refresh task if the new state is 'ON'...
+                    if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
+                        _LOGGER.debug(f"ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
+                        self._ws_debounced_full_refresh_task.cancel()
+
+            self._last_ignition_state = new_ignition_state
+
         return new_metrics or new_states or new_events or new_msg
 
     def _ws_update_key(self, data_obj, a_root_key, collected_keys):
         if a_root_key in data_obj:
+
             # special handling for single state updates...
             if a_root_key == ROOT_STATES and len(data_obj[a_root_key]) == 1:
                 a_state_name, a_state_obj = next(iter(data_obj[a_root_key].items()))
@@ -714,6 +735,49 @@ class Vehicle:
 
         return False
 
+    # def _ws_update_key(self, data_obj, a_root_key, collected_keys):
+    #     if a_root_key in data_obj:
+    #
+    #         # special handling for single state updates...
+    #         if a_root_key == ROOT_STATES and len(data_obj[a_root_key]) == 1:
+    #             a_state_name, a_state_obj = next(iter(data_obj[a_root_key].items()))
+    #             if "value" in a_state_obj:
+    #                 a_value_obj = a_state_obj["value"]
+    #                 if "toState" in a_value_obj:
+    #                     _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+    #                     if a_value_obj["toState"].lower() == "success":
+    #                         if ROOT_METRICS in a_value_obj:
+    #                             self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
+    #                             _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+    #                 else:
+    #                     _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
+    #             else:
+    #                 _LOGGER.debug(f"ws(): new state (without value) '{a_state_name}' arrived")
+    #
+    #         # core - merge recursive the dicts
+    #         if a_root_key in self._data_container:
+    #             self._ws_merge_dict_recursive(self._data_container[a_root_key], data_obj[a_root_key], collected_keys, prefix=None)
+    #         else:
+    #             self._data_container[a_root_key] = data_obj[a_root_key]
+    #
+    #         # just some post-processing (logging)
+    #         if a_root_key == ROOT_UPDTIME:
+    #             _LOGGER.info(f"ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
+    #
+    #         return True
+    #     return False
+    #
+    # def _ws_merge_dict_recursive(self, target_dict, source_dict, collected_keys, prefix=""):
+    #     """Recursively merge source_dict into target_dict while keeping existing keys in target_dict"""
+    #     for key, value in source_dict.items():
+    #         path = f"{prefix}.{key}" if prefix else key
+    #         if hasattr(value, "items") and key in target_dict and hasattr(target_dict[key], "items"):
+    #             # Both source and target have dict at this key - recursive merge
+    #             self._ws_merge_dict_recursive(target_dict[key], value, collected_keys, path)
+    #         else:
+    #             # Either source or target isn't a dict, or key doesn't exist in target - overwriting
+    #             target_dict[key] = value
+    #             collected_keys.append(path)
 
     async def _ws_check_for_auth_token_refresh(self, ws):
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
@@ -749,7 +813,6 @@ class Vehicle:
         except BaseException as e:
             _LOGGER.error(f"_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
 
-
     async def _ws_check_for_message_update_required(self):
         update_interval = 0
         if self.coordinator is not None:
@@ -766,9 +829,8 @@ class Vehicle:
         else:
             _LOGGER.debug(f"_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
 
-
     def _ws_notify_for_new_data(self):
-        if self._ws_debounced_update_task is not None:
+        if self._ws_debounced_update_task is not None and not self._ws_debounced_update_task.done():
             self._ws_debounced_update_task.cancel()
         self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
 
@@ -776,6 +838,28 @@ class Vehicle:
         await asyncio.sleep(0.3)
         if self.coordinator is not None:
             self.coordinator.async_set_updated_data(self._data_container)
+
+    async def _ws_debounce_full_data_refresh(self):
+        try:
+            # if the ignition state has changed to 'OFF', we will wait 30 seconds before we trigger the full refresh
+            # this is to ensure that the vehicle has enough time to send all the last data updates - and that the vehicle
+            # will be started again... (in a short while)
+            _LOGGER.debug(f"_ws_debounce_full_data_refresh(): started")
+            await asyncio.sleep(30)
+            count = 0
+            while not self.status_updates_allowed and count < 11:
+                _LOGGER.debug(f"_ws_debounce_full_data_refresh(): waiting for status updates to be allowed... retry: {count}")
+                count = count + 1
+                await asyncio.sleep(random.uniform(2, 30))
+
+            _LOGGER.debug(f"_ws_debounce_full_data_refresh(): starting the full update now")
+            updated_data = await self.update_all()
+            if updated_data is not None and self.coordinator is not None:
+                self.coordinator.async_set_updated_data(self._data_container)
+        except CancelledError:
+            _LOGGER.debug(f"_ws_debounce_full_data_refresh(): was canceled - all good")
+        except BaseException as ex:
+            _LOGGER.warning(f"_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex)} - {ex}")
 
     async def ws_close(self, ws):
         """Close the WebSocket connection cleanly."""
