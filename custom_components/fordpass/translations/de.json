@@ -2,21 +2,28 @@
     "selector": {
         "region": {
             "options": {
-                "germany": "Deutschland",
-                "france": "Frankreich",
-                "netherlands": "Niederlande",
-                "italy": "Italien",
-                "uk_europe": "UK & weitere Europäische Länder",
-                "canada": "Kanada",
-                "australia": "Australien",
-                "usa": "Die Vereinigte Staaten von Amerika",
-                "rdw": "Rest der Welt"
+                "deu": "Deutschland",
+                "fra": "Frankreich",
+                "nld": "Niederlande",
+                "ita": "Italien",
+                "esp": "Spanien",
+                "gbr": "Vereinigtes Königreich Großbritannien und Irland",
+                "aus": "Australien",
+                "nzl": "Neuseeland",
+                "can": "Kanada",
+                "mex": "Mexiko",
+                "usa": "Die Vereinigten Staaten von Amerika",
+                "bra": "Brasilien",
+                "arg": "Argentinien",
+                "rest_of_europe": "Andere europäische Länder",
+                "rest_of_world": "Rest der Welt"
             }
         }
     },
     "config": {
         "abort": {
             "already_configured": "Konto ist bereits konfiguriert",
+            "no_vehicles": "Keine Fahrzeuge im Konto oder alle sind bereits konfiguriert",
             "reauth_successful": "Re-Autorisierung erfolgreich",
             "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut"
         },

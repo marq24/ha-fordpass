@@ -91,12 +91,15 @@
    You will need to provide:
    - Your __FordPass Email__/Account 
    - __Select a FordPass Region__ — Currently you can select between:
+     - 'France'
      - 'Germany'
      - 'Netherlands'
-     - 'France'
      - 'Italy'
-     - 'UK & other European Countries'
+     - 'Spain'
+     - 'United Kingdom'
+     - 'other European Countries'
      - 'Canada'
+     - 'Mexico'
      - 'The United States of America'
      - 'Rest of the World'
      
@@ -173,6 +176,7 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Status Remote Start                | X             | X          |
 | FordPass Messages                  | X             | X          |
 | Belt Status                        | X             | X          |
+| (Deep)Sleep Mode                   | X             | X          |
 | Fuel Level (can be > 100%)         | X             |            |
 | Temperature Engine Oil             | X             |            |
 | Status Diesel System               | X             |            |
@@ -182,7 +186,6 @@ This service will contact the modem in the vehicle and request to sync data betw
 | EV Charging information            |               | X          |
 | State of Charge (SOC)              |               | X          |
 | EVCC status code ('A', 'B' or 'C') |               | X          |
-| ~~Sleep Mode~~                     |               |            |
 | ~~Zone Lighting~~                  |               |            |
 
 ## Buttons / Switches / Other

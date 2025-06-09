@@ -4,7 +4,7 @@ import logging
 from homeassistant.components.switch import SwitchEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, SWITCHES, COORDINATOR, Tag
+from custom_components.fordpass.const import DOMAIN, SWITCHES, COORDINATOR_KEY, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Switch from the config."""
     _LOGGER.debug("SWITCH async_setup_entry")
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
     entities = []
     for a_tag, value in SWITCHES.items():
         if coordinator.tag_not_supported_by_vehicle(a_tag):

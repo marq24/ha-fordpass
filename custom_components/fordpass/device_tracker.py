@@ -5,7 +5,7 @@ from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, COORDINATOR, Tag
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, Tag
 from custom_components.fordpass.fordpass_handler import FordpassDataHandler, UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Entities from the config."""
     _LOGGER.debug("DEVICE_TRACKER async_setup_entry")
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
 
     # Added a check to see if the car supports GPS
     if FordpassDataHandler.get_gps_state(coordinator.data) != UNSUPPORTED:

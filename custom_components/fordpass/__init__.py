@@ -23,10 +23,10 @@ from custom_components.fordpass.const import (
     DEFAULT_REGION,
     DOMAIN,
     MANUFACTURER,
-    VIN,
+    CONF_VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
-    COORDINATOR, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS
+    COORDINATOR_KEY, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS, REGIONS
 )
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
@@ -47,7 +47,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up FordPass from a config entry."""
     user = config_entry.data[CONF_USERNAME]
-    vin = config_entry.data[VIN]
+    vin = config_entry.data[CONF_VIN]
     if UPDATE_INTERVAL in config_entry.options:
         update_interval = config_entry.options[UPDATE_INTERVAL]
     else:
@@ -66,9 +66,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     # this should not be required... but to be as compatible as possible with existing installations
     # if there is a user out there who has initially set the region to "UK&Europe", we must patch the region key
-    # to the new format: "uk_europe"
-    if "&" in region_key:
-        region_key = region_key.replace("&", "_")
+    # to the new format!
+    region_key = check_for_deprecated_region_keys(region_key)
 
     coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key.lower(), update_interval, True)
     await coordinator.async_refresh()  # Get initial data
@@ -89,7 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         await async_update_options(hass, config_entry)
 
     hass.data[DOMAIN][config_entry.entry_id] = {
-        COORDINATOR: coordinator,
+        COORDINATOR_KEY: coordinator,
         "fordpass_options_listener": fordpass_options_listener
     }
 
@@ -129,6 +128,28 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     return True
 
+def check_for_deprecated_region_keys(region_key):
+    # The original region options were:
+    # REGION_OPTIONS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
+    if region_key not in REGIONS:
+        org_key = region_key
+        region_key = region_key.lower()
+        if region_key == "canada":
+            region_key = "can"
+        elif region_key == "uk&europe":
+            region_key = "gbr"
+        elif region_key == "netherlands":
+            region_key = "nld"
+        elif region_key == "australia":
+            region_key = "aus"
+        elif region_key == "germany":
+            region_key = "deu"
+        else:
+            region_key = DEFAULT_REGION
+
+        _LOGGER.info(f"patched region key to: {region_key} (was: {org_key}) -> please create a new config entry to avoid this message in the future!")
+    return region_key
+
 
 async def async_update_options(hass, config_entry):
     """Update options entries on change"""
@@ -167,7 +188,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     if unload_ok:
         if DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+            coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
             coordinator.stop_watchdog()
             await coordinator.clear_data()
             hass.data[DOMAIN].pop(config_entry.entry_id)
@@ -189,7 +210,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, "", vin, region_key.lower(),
+        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, vin, region_key.lower(),
                                                coordinator=self, save_token=save_token, tokens_location=config_path)
 
         self._available = True
@@ -253,6 +274,13 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_watchdog_check(self, *_):
         """Reconnect the websocket if it fails."""
+        if self.bridge.require_reauth:
+            self._available = False  # Mark as unavailable
+            if not self._reauth_requested:
+                self._reauth_requested = True
+                _LOGGER.warning(f"_async_watchdog_check: VIN {self._vin} requires re-authentication")
+                self.hass.add_job(self._config_entry.async_start_reauth, self.hass)
+
         if not self.bridge.ws_connected:
             self._check_for_ws_task_and_cancel_if_running()
             _LOGGER.info(f"Watchdog: websocket connect required")
@@ -261,6 +289,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug(f"Watchdog: task created {self._a_task.get_coro()}")
         else:
             _LOGGER.debug(f"Watchdog: websocket is connected")
+            self._available = True
             if not self.bridge.ws_check_last_update():
                 self._check_for_ws_task_and_cancel_if_running()
 

@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, RestoreStateData
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
-from custom_components.fordpass.const import DOMAIN, SENSORS, COORDINATOR, ExtSensorEntityDescription
+from custom_components.fordpass.const import DOMAIN, SENSORS, COORDINATOR_KEY, ExtSensorEntityDescription
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
     """Add the Entities from the config."""
     _LOGGER.debug("SENSOR async_setup_entry")
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
     sensors = []
 
     check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0

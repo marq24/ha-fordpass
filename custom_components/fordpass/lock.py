@@ -4,7 +4,7 @@ import logging
 from homeassistant.components.lock import LockEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, COORDINATOR, Tag
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the lock from the config."""
     _LOGGER.debug("LOCK async_setup_entry")
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
     if coordinator.data is not None:
         lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
         if lock_state != UNSUPPORTED and lock_state.upper() != "ERROR":

@@ -14,87 +14,138 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN: Final = "fordpass"
 
-VIN: Final = "vin"
-
 MANUFACTURER: Final = "Ford Motor Company"
 
+CONF_VIN: Final = "vin"
 CONF_PRESSURE_UNIT: Final = "pressure_unit"
-DEFAULT_PRESSURE_UNIT: Final = "kPa"
-PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
+COORDINATOR_KEY: Final = "coordinator"
 
 UPDATE_INTERVAL: Final = "update_interval"
 UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-access_token expires after 5 minutes (300 seconds)
 
-COORDINATOR: Final = "coordinator"
+DEFAULT_PRESSURE_UNIT: Final = "kPa"
+PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 
-REGION_OPTIONS: Final = ["germany", "france", "italy", "netherlands", "uk_europe", "canada", "usa", "rdw"]
-REGION_OPTIONS_BROKEN: Final = ["australia"]
-DEFAULT_REGION: Final = "rdw"
+# https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3
+REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "can", "mex", "usa", "rest_of_world"]
+DEFAULT_REGION: Final = "rest_of_world"
+#REGION_OPTIONS_BROKEN: Final = ["aus", "nzl", "bra", "arg"]
+
+REGION_APP_IDS: Final = {
+    "africa":           "71AA9ED7-B26B-4C15-835E-9F35CC238561", # South Africa, ...
+    # 'asia_pacific' seams to be broken right now - not working with original FordPass App
+    "asia_pacific":     "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260", # Australia, Thailand, New Zealand, ...
+    "europe":           "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # used for germany, france, italy, netherlands, uk, rest_of_europe
+    "north_america":    "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A", # used for canada, usa, mexico
+    "south_america":    "C1DFFEF5-5BA5-486A-9054-8B39A9DF9AFC", # Argentina, Brazil, ...
+}
 
 REGIONS: Final = {
     # checked 2025/06/08 - working fine...
-    "germany": {
-        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
+    "deu": {
+        "app_id": REGION_APP_IDS["europe"],
         "locale": "de-DE",
         "locale_url": "https://login.ford.de",
         "countrycode": "DEU"
     },
     # checked 2025/06/08 - working fine...
-    "france": {
-        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
+    "fra": {
+        "app_id": REGION_APP_IDS["europe"],
         "locale": "fr-FR",
         "locale_url": "https://login.ford.com",
         "countrycode": "FRA"
     },
     # checked 2025/06/08 - working fine...
-    "italy": {
-        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7",
+    "ita": {
+        "app_id": REGION_APP_IDS["europe"],
         "locale": "it-IT",
         "locale_url": "https://login.ford.com",
         "countrycode": "ITA"
     },
+    "esp": {
+        "app_id": REGION_APP_IDS["europe"],
+        "locale": "es-ES",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "ESP"
+    },
     # checked 2025/06/08 - working fine...
-    "netherlands": {
-        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19
+    "nld": {
+        "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19
         "locale": "nl-NL",
         "locale_url": "https://login.ford.com",
         "countrycode": "NLD"
     },
     # checked 2025/06/08 - working fine...
-    "uk_europe": {
-        "app_id": "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
+    "gbr": {
+        "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
         "locale": "en-GB",
         "locale_url": "https://login.ford.co.uk",
         "countrycode": "GBR"
     },
+    # using GBR as our default for the rest of europe...
+    "rest_of_europe": {
+        "app_id": REGION_APP_IDS["europe"],
+        "locale": "en-GB",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "GBR"
+    },
+
+
     # checked 2025/06/08 - working fine...
-    "canada": {
-        "app_id": "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A",
+    "can": {
+        "app_id": REGION_APP_IDS["north_america"],
         "locale": "en-CA",
         "locale_url": "https://login.ford.com",
         "countrycode": "CAN"
     },
     # checked 2025/06/08 - working fine...
-    "usa": {
-        "app_id": "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A", # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
-        "locale": "en-US",
+    "mex": {
+        "app_id": REGION_APP_IDS["north_america"], # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
+        "locale": "es-MX",
         "locale_url": "https://login.ford.com",
-        "countrycode": "USA"
+        "countrycode": "MEX"
     },
-    # we use the 'usa' as the default region...
-    "rdw": {
-        "app_id": "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A",
+    "usa": {
+        "app_id": REGION_APP_IDS["north_america"], # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
         "locale": "en-US",
         "locale_url": "https://login.ford.com",
         "countrycode": "USA"
     },
 
+
+    "bra": {
+        "app_id": REGION_APP_IDS["south_america"], # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
+        "locale": "pt-BR",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "BRA"
+    },
+    "arg": {
+        "app_id": REGION_APP_IDS["south_america"], # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
+        "locale": "es-AR",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "ARG"
+    },
+
     # DOES NOT WORK... checked 2025/06/08
-    "australia": {
-        "app_id": "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
+    "aus": {
+        "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
         "locale": "en-AU",
         "locale_url": "https://login.ford.com",
         "countrycode": "AUS"
+    },
+    "nzl": {
+        "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
+        "locale": "en-NZ",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "NZL"
+    },
+
+    # we use the 'usa' as the default region...,
+    "rest_of_world": {
+        "app_id": REGION_APP_IDS["north_america"],
+        "locale": "en-US",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "USA"
     },
 }
 
@@ -147,7 +198,7 @@ class Tag(ApiKey, Enum):
     ##################################################
     ##################################################
 
-    # DEVIVE_TRACKER
+    # DEVICE_TRACKER
     ##################################################
     TRACKER             = ApiKey(key="tracker",
                                  attrs_fn=FordpassDataHandler.get_gps_tracker_attr)
@@ -172,7 +223,7 @@ class Tag(ApiKey, Enum):
                                  on_off_fn=FordpassDataHandler.get_elveh_on_off)
 
 
-# BUTTONS
+    # BUTTONS
     ##################################################
     UPDATE_DATA         = ApiKey(key="update_data")
     REQUEST_REFRESH     = ApiKey(key="request_refresh")

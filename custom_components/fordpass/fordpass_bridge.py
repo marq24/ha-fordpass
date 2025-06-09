@@ -62,6 +62,10 @@ ERROR: Final = "ERROR"
 
 #session = None #requests.Session()
 
+# we need global variables to keep track of the number of 401 responses per user account(=token file)
+_FOUR_NULL_ONE_COUNTER: dict = {}
+_AUTO_FOUR_NULL_ONE_COUNTER: dict = {}
+
 class ConnectedFordPassVehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
 
@@ -81,7 +85,8 @@ class ConnectedFordPassVehicle:
     _last_ignition_state: str | None = None
     __ws_debounced_full_refresh_task: asyncio.Task | None = None
 
-    def __init__(self, web_session, username, password, vin, region_key, coordinator: DataUpdateCoordinator=None, save_token=False, tokens_location=None):
+    def __init__(self, web_session, username, vin, region_key, coordinator: DataUpdateCoordinator = None,
+                 save_token=False, tokens_location=None):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
             total=45,      # Total request timeout
@@ -90,22 +95,21 @@ class ConnectedFordPassVehicle:
             sock_read=120   # Socket read timeout
         )
         self.username = username
-        #self.password = password # password is not used anymore...
         self.save_token = save_token
         self.app_id = REGIONS[region_key]["app_id"]
         self.locale_code = REGIONS[region_key]["locale"]
-        #self.short_code = REGIONS[region_key]["locale_short"]
         self.countrycode = REGIONS[region_key]["countrycode"]
         self.vin = vin
 
         self._HAS_COM_ERROR = False
-
-        self._FOUR_NULL_ONE_COUNTER = 0
+        global _FOUR_NULL_ONE_COUNTER
+        _FOUR_NULL_ONE_COUNTER[self.username] = 0
         self.access_token = None
         self.refresh_token = None
         self.expires_at = None
 
-        self._AUTO_FOUR_NULL_ONE_COUNTER = 0
+        global _AUTO_FOUR_NULL_ONE_COUNTER
+        _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
         self.auto_access_token = None
         self.auto_refresh_token = None
         self.auto_expires_at = None
@@ -199,10 +203,11 @@ class ConnectedFordPassVehicle:
     def require_reauth(self) -> bool:
         return self._is_reauth_required
 
-    def mark_re_auth_required(self):
+    def mark_re_auth_required(self, ws=None):
         stack_trace = traceback.format_stack()
         stack_trace_str = ''.join(stack_trace[:-1])  # Exclude the call to this function
         _LOGGER.warning(f"mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
+        self.ws_close(ws)
         self._is_reauth_required = True
 
     async def __ensure_valid_tokens(self, now_time:float=None):
@@ -328,11 +333,12 @@ class ConnectedFordPassVehicle:
             return token_data
 
     async def _request_token(self, prev_token_data):
+        global _FOUR_NULL_ONE_COUNTER
         if self._HAS_COM_ERROR:
             return ERROR
         else:
             try:
-                _LOGGER.debug("_request_token()")
+                _LOGGER.debug(f"_request_token() - {_FOUR_NULL_ONE_COUNTER[self.username]}")
 
                 headers = {
                     **apiHeaders,
@@ -350,17 +356,32 @@ class ConnectedFordPassVehicle:
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    self._FOUR_NULL_ONE_COUNTER = 0
+                    _FOUR_NULL_ONE_COUNTER[self.username] = 0
                     result = await response.json()
                     _LOGGER.debug(f"_request_token: status OK")
                     return result
-                elif response.status == 401:
-                    self._FOUR_NULL_ONE_COUNTER += 1
-                    if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.error(f"_request_token: status_code: 401 - mark_re_auth_required()")
+                elif response.status == 401 or response.status == 400:
+                    _FOUR_NULL_ONE_COUNTER[self.username] += 1
+                    if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
+                        _LOGGER.error(f"_request_token: status_code: {response.status} - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.warning(f"_request_token: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                        # some new checking for the error message...
+                        # status_code: 400 - Received response: {"message":"Invalid or Expired Token","timestamp":"2025-06-09T07:02:44.048994479Z","errorCode":"460"}
+                        try:
+                            msg = await response.json()
+                            is_invalid_msg = False
+                            if "message" in msg:
+                                a_msg = msg["message"].lower()
+                                if "invalid" in a_msg or "expired token" in a_msg:
+                                    is_invalid_msg = True
+                            if is_invalid_msg or ("errorCode" in msg and msg["errorCode"] == "460"):
+                                _LOGGER.warning(f"_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
+                                _FOUR_NULL_ONE_COUNTER[self.username] = MAX_401_RESPONSE_COUNT + 1
+                        except BaseException as e:
+                            _LOGGER.debug(f"_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
+
+                        _LOGGER.warning(f"_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
                         await asyncio.sleep(5)
                     return False
                 else:
@@ -411,6 +432,7 @@ class ConnectedFordPassVehicle:
 
     async def _request_auto_token(self):
         """Get token from new autonomic API"""
+        global _AUTO_FOUR_NULL_ONE_COUNTER
         if self._HAS_COM_ERROR:
             return ERROR
         else:
@@ -438,18 +460,18 @@ class ConnectedFordPassVehicle:
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    self._AUTO_FOUR_NULL_ONE_COUNTER = 0
+                    _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
 
                     result = await response.json()
                     _LOGGER.debug(f"_request_auto_token: status OK")
                     return result
                 elif response.status == 401:
-                    self._AUTO_FOUR_NULL_ONE_COUNTER += 1
-                    if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                    _AUTO_FOUR_NULL_ONE_COUNTER[self.username] += 1
+                    if _AUTO_FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.warning(f"_request_auto_token: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.warning(f"_request_auto_token: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                         await asyncio.sleep(5)
 
                     return False
@@ -610,11 +632,11 @@ class ConnectedFordPassVehicle:
                             _LOGGER.debug(f"Could not read JSON from: {msg} - caused {e}")
 
                     elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
-                        _LOGGER.debug(f"received: {msg}")
+                        _LOGGER.debug(f"received CLOSED or ERROR - will terminate websocket session: {msg}")
                         break
 
                     else:
-                        _LOGGER.error(f"xxx: {msg}")
+                        _LOGGER.error(f"Unknown Message Type from: {msg}")
 
                     # do we need to push new data event to the coordinator?
                     if new_data_arrived:
@@ -921,6 +943,7 @@ class ConnectedFordPassVehicle:
 
     async def status(self):
         """Get Vehicle status from API"""
+        global _AUTO_FOUR_NULL_ONE_COUNTER
         try:
             # API-Reference?!
             # https://www.high-mobility.com/car-api/ford-data-api
@@ -950,19 +973,19 @@ class ConnectedFordPassVehicle:
 
             if response_state.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                self._AUTO_FOUR_NULL_ONE_COUNTER = 0
+                _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
 
                 result_state = await response_state.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"status: JSON: {result_state}")
                 return result_state
             elif response_state.status == 401:
-                self._AUTO_FOUR_NULL_ONE_COUNTER += 1
-                if self._AUTO_FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                _AUTO_FOUR_NULL_ONE_COUNTER[self.username] += 1
+                if _AUTO_FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"status: status_code: 401 - AUTO counter: {self._AUTO_FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"status: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
@@ -978,6 +1001,7 @@ class ConnectedFordPassVehicle:
 
     async def messages(self):
         """Get Vehicle messages from API"""
+        global _FOUR_NULL_ONE_COUNTER
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -994,7 +1018,7 @@ class ConnectedFordPassVehicle:
             response_msg = await self.session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                self._FOUR_NULL_ONE_COUNTER = 0
+                _FOUR_NULL_ONE_COUNTER[self.username] = 0
 
                 result_msg = await response_msg.json()
                 if LOG_DATA:
@@ -1003,12 +1027,12 @@ class ConnectedFordPassVehicle:
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
             elif response_msg.status == 401:
-                self._FOUR_NULL_ONE_COUNTER += 1
-                if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                _FOUR_NULL_ONE_COUNTER[self.username] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"messages: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"messages: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
@@ -1024,6 +1048,7 @@ class ConnectedFordPassVehicle:
 
     async def vehicles(self):
         """Get the vehicle list from the ford account"""
+        global _FOUR_NULL_ONE_COUNTER
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -1050,19 +1075,19 @@ class ConnectedFordPassVehicle:
             )
             if response_veh.status == 207 or response_veh.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                self._FOUR_NULL_ONE_COUNTER = 0
+                _FOUR_NULL_ONE_COUNTER[self.username] = 0
 
                 result_veh = await response_veh.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"vehicles: JSON: {result_veh}")
                 return result_veh
             elif response_veh.status == 401:
-                self._FOUR_NULL_ONE_COUNTER += 1
-                if self._FOUR_NULL_ONE_COUNTER > MAX_401_RESPONSE_COUNT:
+                _FOUR_NULL_ONE_COUNTER[self.username] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"vehicles: status_code: 401 - counter: {self._FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"vehicles: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None

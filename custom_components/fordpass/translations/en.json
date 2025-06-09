@@ -2,15 +2,21 @@
     "selector": {
         "region": {
             "options": {
-                "germany": "Germany",
-                "france": "France",
-                "netherlands": "Netherlands",
-                "italy": "Italy",
-                "uk_europe": "UK & other European Countries",
-                "canada": "Canada",
-                "australia": "Australia",
+                "deu": "Germany",
+                "fra": "France",
+                "nld": "Netherlands",
+                "ita": "Italy",
+                "esp": "Spain",
+                "gbr": "United Kingdom of Great Britain and Northern Ireland",
+                "aus": "Australia",
+                "nzl": "New Zealand",
+                "can": "Canada",
+                "mex": "Mexico",
                 "usa": "The United States of America",
-                "rdw": "Rest of the World"
+                "bra": "Brazil",
+                "arg": "Argentina",
+                "rest_of_europe": "Other European Countries",
+                "rest_of_world": "Rest of the World"
             }
         }
     },

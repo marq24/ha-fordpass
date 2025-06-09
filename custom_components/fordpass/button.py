@@ -6,14 +6,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import BUTTONS, DOMAIN, COORDINATOR, Tag
+from custom_components.fordpass.const import BUTTONS, DOMAIN, COORDINATOR_KEY, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_entity_cb: AddEntitiesCallback):
     _LOGGER.debug("BUTTON async_setup_entry")
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
     entities = []
     for a_tag, value in BUTTONS.items():
         entity = FordpassButton(coordinator=coordinator, a_tag=a_tag)
