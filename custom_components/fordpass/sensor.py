@@ -1,5 +1,6 @@
 """All vehicle sensors from the accessible by the API"""
 import logging
+from numbers import Number
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -26,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         a_entity_description: ExtSensorEntityDescription
 
         if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
-            _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' not supported for this vehicle")
+            _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' not supported for this engine-type/vehicle")
             continue
 
         sensor = FordPassSensor(coordinator, a_entity_description)
@@ -39,11 +40,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
             # calling the state reading function to check if the sensor should be added (if there is any data)
             value = a_entity_description.tag.state_fn(coordinator.data)
-            if value is not None and ((isinstance(value, (int, float, str)) and str(value) != UNSUPPORTED) or
+            if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 sensors.append(sensor)
             else:
-                _LOGGER.debug(f"{coordinator.vli}SENSOR Skipping '{a_entity_description.tag}' - {type(value)} - {value}")
+                _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' skipping cause no data available: type: {type(value)} - value:'{value}'")
 
     async_add_entities(sensors, True)
 
