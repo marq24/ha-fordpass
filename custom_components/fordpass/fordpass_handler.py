@@ -101,20 +101,20 @@ class FordpassDataHandler:
 
     # FUEL state + attributes
     def get_fuel_state(data):
-        fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel", -1)
-        if fuel_level is not None and isinstance(fuel_level, Number) and fuel_level > -1:
+        fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel")
+        if isinstance(fuel_level, Number):
             return round(fuel_level)
         return None
 
     def get_fuel_attrs(data, units:UnitSystem):
         attrs = {}
-        fuel_range = FordpassDataHandler.get_value_for_metrics_key(data, "fuelRange", -1)
-        if fuel_range != -1:
+        fuel_range = FordpassDataHandler.get_value_for_metrics_key(data, "fuelRange")
+        if isinstance(fuel_range, Number):
             attrs["fuelRange"] = FordpassDataHandler.localize_distance(fuel_range, units)
 
         # for PEV's
-        battery_range = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryRange", -1)
-        if battery_range != -1:
+        battery_range = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryRange")
+        if isinstance(battery_range, Number):
             attrs["batteryRange"] = FordpassDataHandler.localize_distance(battery_range, units)
 
         return attrs
@@ -123,13 +123,13 @@ class FordpassDataHandler:
     # SOC state + attributes
     def get_soc_state(data):
         battery_soc = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryStateOfCharge")
-        if battery_soc is not None:
+        if isinstance(battery_soc, Number):
             return round(battery_soc, 2)
         return None
 
     def get_soc_attrs(data, units:UnitSystem):
-        battery_range = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryRange", -1)
-        if battery_range != -1:
+        battery_range = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryRange")
+        if isinstance(battery_range, Number):
             return {"batteryRange": FordpassDataHandler.localize_distance(battery_range, units)}
         return None
 
@@ -293,7 +293,9 @@ class FordpassDataHandler:
     def get_elveh_state(data):
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "xevBatteryRange" in data_metrics:
-            return round(data_metrics.get("xevBatteryRange", {}).get("value"), 2)
+            val = data_metrics.get("xevBatteryRange", {}).get("value", UNSUPPORTED)
+            if val != UNSUPPORTED and isinstance(val, Number):
+                return round(val, 2)
         return None
 
     def get_elveh_attrs(data, units:UnitSystem):
@@ -331,7 +333,7 @@ class FordpassDataHandler:
             batt_volt = attrs.get("batteryVoltage", 0)
             batt_amps = attrs.get("batteryAmperage", 0)
 
-            if batt_volt != 0 and batt_amps != 0:
+            if isinstance(batt_volt, Number) and batt_volt != 0 and isinstance(batt_amps, Number) and batt_amps != 0:
                 attrs["batterykW"] = round((batt_volt * batt_amps) / 1000, 2)
             else:
                 attrs["batterykW"] = 0
@@ -340,7 +342,7 @@ class FordpassDataHandler:
         if "xevTractionMotorVoltage" in data_metrics and "xevTractionMotorCurrent" in data_metrics:
             motor_volt = attrs.get("motorVoltage", 0)
             motor_amps = attrs.get("motorAmperage", 0)
-            if motor_volt != 0 and motor_amps != 0:
+            if isinstance(motor_volt, Number) and motor_volt != 0 and isinstance(motor_amps, Number) and motor_amps != 0:
                 attrs["motorkW"] = round((motor_volt * motor_amps) / 1000, 2)
             else:
                 attrs["motorkW"] = 0
@@ -372,20 +374,20 @@ class FordpassDataHandler:
             tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
             for dataStr in tripDataStr:
                 tripData = json.loads(dataStr)
-                if "ambient_temperature" in tripData:
+                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
                     attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
-                if "outside_air_ambient_temperature" in tripData:
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
                     attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
                 if "trip_duration" in tripData:
                     attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
-                if "cabin_temperature" in tripData:
+                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
                     attrs["tripCabinTemp"] = FordpassDataHandler.localize_temperature(tripData["cabin_temperature"], units)
-                if "energy_consumed" in tripData:
+                if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number):
                     attrs["tripEnergyConsumed"] = round(tripData["energy_consumed"] / 1000, 2)
-                if "distance_traveled" in tripData:
+                if "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
                     attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
 
-                if "energy_consumed" in tripData and tripData["energy_consumed"] is not None and "distance_traveled" in tripData and tripData["distance_traveled"] is not None:
+                if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number)  and "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
                     if attrs["tripDistanceTraveled"] == 0 or attrs["tripEnergyConsumed"] == 0:
                         attrs["tripEfficiency"] = 0
                     else:
@@ -430,13 +432,13 @@ class FordpassDataHandler:
             ch_volt = attrs.get("chargingVoltage", 0)
             ch_amps = attrs.get("chargingAmperage", 0)
 
-            if ch_volt != 0 and ch_amps != 0:
+            if isinstance(ch_volt, Number) and ch_volt != 0 and isinstance(ch_amps, Number) and ch_amps != 0:
                 attrs["chargingkW"] = round((ch_volt * ch_amps) / 1000, 2)
-            elif ch_volt != 0 and "xevBatteryIoCurrent" in data_metrics:
+            elif isinstance(ch_volt, Number) and ch_volt != 0 and "xevBatteryIoCurrent" in data_metrics:
                 # Get Battery Io Current for DC Charging calculation
                 batt_amps = float(data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
                 # DC Charging calculation: Use absolute value for amperage to handle negative values
-                if batt_amps != 0:
+                if isinstance(batt_amps, Number) and batt_amps != 0:
                     attrs["chargingkW"] = round((ch_volt * abs(batt_amps)) / 1000, 2)
                 else:
                     attrs["chargingkW"] = 0
@@ -475,19 +477,22 @@ class FordpassDataHandler:
     # EVCC_STATUS state
     def get_evcc_status_state(data):
         data_metrics = FordpassDataHandler.get_metrics(data)
-        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED).upper()
-        if val == 'DISCONNECTED':
-            return "A"
-        elif val == 'CONNECTED':
-            if "xevBatteryChargeDisplayStatus" in data_metrics:
-                secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
-                if secondary_val == "IN_PROGRESS":
-                    return "C"
-            return "B"
-        elif val == 'CHARGING' or val == 'CHARGINGAC':
-            return "C"
-        else:
-            return "UNKNOWN"
+        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
+        if val != UNSUPPORTED:
+            val = val.upper()
+            if val == 'DISCONNECTED':
+                return "A"
+            elif val == 'CONNECTED':
+                if "xevBatteryChargeDisplayStatus" in data_metrics:
+                    secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
+                    if secondary_val == "IN_PROGRESS":
+                        return "C"
+                return "B"
+            elif val == 'CHARGING' or val == 'CHARGINGAC':
+                return "C"
+            else:
+                return "UNKNOWN"
+        return val
 
 
     # ZONE_LIGHTING state + attributes
@@ -638,7 +643,7 @@ class FordpassDataHandler:
     # OUTSIDE_TEMP attributes
     def get_outside_temp_attrs(data, units:UnitSystem):
         ambient_temp = FordpassDataHandler.get_value_for_metrics_key(data, "ambientTemp")
-        if ambient_temp is not None and ambient_temp != UNSUPPORTED:
+        if isinstance(ambient_temp, Number):
             return {"ambientTemp": FordpassDataHandler.localize_temperature(ambient_temp, units)}
         return None
 

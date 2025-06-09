@@ -19,14 +19,16 @@ from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
     CONF_PRESSURE_UNIT,
+    CONF_VIN,
     DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION,
     DOMAIN,
     MANUFACTURER,
-    CONF_VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
-    COORDINATOR_KEY, Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS, REGIONS
+    COORDINATOR_KEY,
+    Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS,
+    LEGACY_REGION_KEYS
 )
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
@@ -69,7 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # to the new format!
     region_key = check_for_deprecated_region_keys(region_key)
 
-    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key.lower(), update_interval, True)
+    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key, update_interval, True)
     await coordinator.async_refresh()  # Get initial data
     if not coordinator.last_update_success or coordinator.data is None:
         raise ConfigEntryNotReady
@@ -128,31 +130,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     return True
 
-def check_for_deprecated_region_keys(region_key):
-    # The original region options were:
-    # REGION_OPTIONS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
-    if region_key not in REGIONS:
-        org_key = region_key
-        region_key = region_key.upper()
-        if region_key == "USA":
-            # yes, this looks nonsense, but since "USA" is not in the REGIONS list,
-            # we need to patch it to avoid the final 'else' and switch to the default
-            # region ->
-            region_key = "usa"
-        elif region_key == "CANADA":
-            region_key = "can"
-        elif region_key == "UK&EUROPE":
-            region_key = "gbr"
-        elif region_key == "NETHERLANDS":
-            region_key = "nld"
-        elif region_key == "AUSTRALIA":
-            region_key = "aus"
-        elif region_key == "GERMANY":
-            region_key = "deu"
-        else:
-            region_key = DEFAULT_REGION
 
-        _LOGGER.info(f"patched region key to: {region_key} (was: {org_key}) -> please create a new config entry to avoid this message in the future!")
+def check_for_deprecated_region_keys(region_key):
+    if region_key in LEGACY_REGION_KEYS:
+        _LOGGER.info(f"current configuration contains LEGACY region-key: {region_key} -> please create a new ha-config entry to avoid this message in the future!")
     return region_key
 
 
@@ -215,7 +196,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         config_path = hass.config.path(f".storage/fordpass/{user}_access_token.txt")
-        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, vin, region_key.lower(),
+        self.bridge = ConnectedFordPassVehicle(async_get_clientsession(hass), user, vin, region_key,
                                                coordinator=self, save_token=save_token, tokens_location=config_path)
 
         self._available = True
@@ -493,10 +474,11 @@ class FordPassEntity(CoordinatorEntity):
             return None
 
         model = "unknown"
-        if self.coordinator.data["vehicles"] is not None:
-            for vehicle in self.coordinator.data["vehicles"]["vehicleProfile"]:
-                if vehicle["VIN"] == self.coordinator._vin:
-                    model = f"{vehicle['year']} {vehicle['model']}"
+        if "vehicles" in self.coordinator.data and self.coordinator.data["vehicles"] is not None:
+            if "vehicleProfile" in self.coordinator.data["vehicles"] and self.coordinator.data["vehicles"]["vehicleProfile"] is not None:
+                for vehicle in self.coordinator.data["vehicles"]["vehicleProfile"]:
+                    if vehicle["VIN"] == self.coordinator._vin:
+                        model = f"{vehicle['year']} {vehicle['model']}"
 
         return {
             "identifiers": {(DOMAIN, self.coordinator._vin)},

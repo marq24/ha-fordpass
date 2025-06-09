@@ -7,6 +7,7 @@ import random
 import time
 import traceback
 from asyncio import CancelledError
+from datetime import datetime
 from numbers import Number
 from typing import Final
 
@@ -723,6 +724,17 @@ class ConnectedFordPassVehicle:
 
                 # special handling for state updates...
                 for a_state_name, a_state_obj in data_obj[a_root_key].items():
+                    # "timestamp": "2025-06-05T21:34:47.619487Z",
+                    if "timestamp" in a_state_obj and a_state_obj["timestamp"] is not None:
+                        try:
+                            # Convert ISO 8601 format to Unix timestamp
+                            parsed_dt = datetime.fromisoformat(a_state_obj["timestamp"].replace('Z', '+00:00'))
+                            if time.time() - parsed_dt.timestamp() > 60 * 10:
+                                _LOGGER.debug(f"ws(): skip '{a_state_name}' handling - older than 10 minutes")
+                                continue
+                        except BaseException as ex:
+                            pass
+
                     if "value" in a_state_obj:
                         a_value_obj = a_state_obj["value"]
                         if "toState" in a_value_obj:
