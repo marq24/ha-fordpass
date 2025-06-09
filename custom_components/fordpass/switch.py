@@ -12,12 +12,12 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Switch from the config."""
-    _LOGGER.debug("SWITCH async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
+    _LOGGER.debug(f"{coordinator.vli}SWITCH async_setup_entry")
     entities = []
     for a_tag, value in SWITCHES.items():
         if coordinator.tag_not_supported_by_vehicle(a_tag):
-            _LOGGER.debug(f"SWITCH '{a_tag}' not supported for this vehicle")
+            _LOGGER.debug(f"{coordinator.vli}SWITCH '{a_tag}' not supported for this vehicle")
             continue
 
         sw = Switch(coordinator, a_tag)

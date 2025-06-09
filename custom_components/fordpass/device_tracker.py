@@ -13,14 +13,14 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the Entities from the config."""
-    _LOGGER.debug("DEVICE_TRACKER async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
+    _LOGGER.debug(f"{coordinator.vli}DEVICE_TRACKER async_setup_entry")
 
     # Added a check to see if the car supports GPS
     if FordpassDataHandler.get_gps_state(coordinator.data) != UNSUPPORTED:
         async_add_entities([FordPassCarTracker(coordinator)], True)
     else:
-        _LOGGER.debug("Vehicle does not support GPS")
+        _LOGGER.debug(f"{coordinator.vli}Vehicle does not support GPS")
 
 
 class FordPassCarTracker(FordPassEntity, TrackerEntity):

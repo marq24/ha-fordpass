@@ -8,11 +8,12 @@ from base64 import urlsafe_b64encode
 from collections.abc import Mapping
 from typing import Any, Final
 
+import aiohttp
 import voluptuous as vol
-from homeassistant import config_entries, core, exceptions
+from homeassistant import config_entries, exceptions
 from homeassistant.config_entries import ConfigError
 from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
-from homeassistant.core import callback
+from homeassistant.core import callback, HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
@@ -41,59 +42,25 @@ VIN_SCHEME = vol.Schema(
 
 CONF_TOKEN_STR: Final = "tokenstr"
 
-@callback
-def configured_vehicles(hass):
-    """Return a list of configured vehicles"""
-    return {
-        entry.data[CONF_VIN]
-        for entry in hass.config_entries.async_entries(DOMAIN)
-    }
+
+class CannotConnect(exceptions.HomeAssistantError):
+    """Error to indicate we cannot connect."""
 
 
-async def validate_token(hass: core.HomeAssistant, session, data, token:str, code_verifier:str):
-    _LOGGER.debug(f"validate_token: {data}")
+class InvalidToken(exceptions.HomeAssistantError):
+    """Error to indicate there is invalid token."""
 
-    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = ConnectedFordPassVehicle(session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None,
-                                       save_token=True, tokens_location=configPath)
-    results = await vehicle.generate_tokens(token, code_verifier)
 
-    if results:
-        _LOGGER.debug("Getting Vehicles")
-        vehicles = await vehicle.vehicles()
-        _LOGGER.debug(f"Getting Vehicles -> {vehicles}")
-        return vehicles
-    else:
-        _LOGGER.debug(f"validate_token failed: {results}")
-        raise CannotConnect
+class InvalidAuth(exceptions.HomeAssistantError):
+    """Error to indicate there is invalid auth."""
 
-async def validate_token_only(hass: core.HomeAssistant, session, data, token:str, code_verifier:str) -> bool:
-    _LOGGER.debug(f"validate_token_only: {data}")
 
-    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-    vehicle = ConnectedFordPassVehicle(session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None,
-                                       save_token=True, tokens_location=configPath)
-    results = await vehicle.generate_tokens(token, code_verifier)
+class InvalidVin(exceptions.HomeAssistantError):
+    """Error to indicate the wrong vin"""
 
-    if not results:
-        _LOGGER.debug(f"validate_token failed: {results}")
-        raise CannotConnect
-    else:
-        return True
 
-async def validate_vin(hass: core.HomeAssistant, session, data):
-    configPath = hass.config.path(f".storage/fordpass/{data[CONF_USERNAME]}_access_token.txt")
-
-    vehicle = ConnectedFordPassVehicle(session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION], coordinator=None,
-                                       save_token=True, tokens_location=configPath)
-    test = await vehicle.get_status()
-    _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
-    if test and test.status_code == 200:
-        _LOGGER.debug("200 Code")
-        return True
-    if not test:
-        raise InvalidVin
-    return False
+class InvalidMobile(exceptions.HomeAssistantError):
+    """Error to no mobile specified for South African Account"""
 
 
 class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -107,7 +74,65 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     cached_login_input = {}
     _vehicles = None
     _vehicle_name = None
-    _session = None
+    _session: aiohttp.ClientSession | None = None
+
+
+    @callback
+    def configured_vehicles(self, hass: HomeAssistant) -> set[str]:
+        """Return a list of configured vehicles"""
+        return {
+            entry.data[CONF_VIN]
+            for entry in hass.config_entries.async_entries(DOMAIN)
+        }
+
+
+    async def validate_token(self, data, token:str, code_verifier:str):
+        _LOGGER.debug(f"validate_token(): {data}")
+        if self._session is None:
+            self._session = async_create_clientsession(self.hass)
+
+        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None, save_token=True)
+        results = await vehicle.generate_tokens(token, code_verifier)
+
+        if results:
+            _LOGGER.debug("Getting Vehicles")
+            vehicles = await vehicle.vehicles()
+            _LOGGER.debug(f"Getting Vehicles -> {vehicles}")
+            return vehicles
+        else:
+            _LOGGER.debug(f"validate_token(): failed - {results}")
+            raise CannotConnect
+
+
+    async def validate_token_only(self, data, token:str, code_verifier:str) -> bool:
+        _LOGGER.debug(f"validate_token_only(): {data}")
+        if self._session is None:
+            self._session = async_create_clientsession(self.hass)
+
+        con = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None, save_token=True)
+        results = await con.generate_tokens(token, code_verifier)
+
+        if not results:
+            _LOGGER.debug(f"validate_token_only(): failed - {results}")
+            raise CannotConnect
+        else:
+            return True
+
+    async def validate_vin(self, data):
+        _LOGGER.debug(f"validate_vin(): {data}")
+        if self._session is None:
+            self._session = async_create_clientsession(self.hass)
+
+        con = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION], coordinator=None, save_token=True)
+        test = await con.get_status()
+        _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
+        if test and test.status_code == 200:
+            _LOGGER.debug("200 Code")
+            return True
+        if not test:
+            raise InvalidVin
+        return False
+
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -158,10 +183,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_REGION] = self.region_key
                     user_input[CONF_USERNAME] = self.username
                     _LOGGER.debug(f"user_input {user_input}")
-                    if self._session is None:
-                        self._session = async_create_clientsession(self.hass)
 
-                    info = await validate_token(self.hass, self._session, user_input, token_fragment, self.code_verifier)
+                    info = await self.validate_token(user_input, token_fragment, self.code_verifier)
                     self.cached_login_input = user_input
 
                     if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
@@ -238,11 +261,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             # add the vin to the cached_login_input (so we store this in the config entry)
             self.cached_login_input["vin"] = user_input["vin"]
             vehicle = None
-            if self._session is None:
-                self._session = async_create_clientsession(self.hass)
-
             try:
-                vehicle = await validate_vin(self.hass, self._session, self.cached_login_input)
+                vehicle = await self.validate_vin(self.cached_login_input)
             except InvalidVin:
                 errors["base"] = "invalid_vin"
             except Exception:
@@ -270,7 +290,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         _LOGGER.debug(f"async_step_vehicle with vehicles: {self._vehicles}")
 
-        configured = configured_vehicles(self.hass)
+        configured = self.configured_vehicles(self.hass)
         _LOGGER.debug(f"configured: {configured}")
         available_vehicles = {}
         for a_vehicle in self._vehicles:
@@ -324,10 +344,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_USERNAME] = self.entry.data[CONF_USERNAME]
                     _LOGGER.debug(f"async_step_reauth_token: user_input -> {user_input}")
 
-                    if self._session is None:
-                        self._session = async_create_clientsession(self.hass)
-
-                    info = await validate_token_only(self.hass, self._session, user_input, token_fragment, self.code_verifier)
+                    info = await self.validate_token_only(user_input, token_fragment, self.code_verifier)
                     if info:
                         # do we want to check, if the VIN is still accessible?!
                         # for now we just will reload the config entry...
@@ -401,23 +418,3 @@ class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
                          default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int,
         }
         return self.async_show_form(step_id="init", data_schema=vol.Schema(options))
-
-
-class CannotConnect(exceptions.HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidToken(exceptions.HomeAssistantError):
-    """Error to indicate there is invalid token."""
-
-
-class InvalidAuth(exceptions.HomeAssistantError):
-    """Error to indicate there is invalid auth."""
-
-
-class InvalidVin(exceptions.HomeAssistantError):
-    """Error to indicate the wrong vin"""
-
-
-class InvalidMobile(exceptions.HomeAssistantError):
-    """Error to no mobile specified for South African Account"""

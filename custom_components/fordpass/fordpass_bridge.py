@@ -84,10 +84,14 @@ class ConnectedFordPassVehicle:
     _ws_in_use_access_token: str | None = None
     _LAST_MESSAGES_UPDATE: float = 0.0
     _last_ignition_state: str | None = None
-    __ws_debounced_full_refresh_task: asyncio.Task | None = None
+    _ws_debounced_full_refresh_task: asyncio.Task | None = None
 
-    def __init__(self, web_session, username, vin, region_key, coordinator: DataUpdateCoordinator = None,
-                 save_token=False, tokens_location=None):
+    # when you have multiple vehicles, you need to set the vehicle log id
+    # (v)ehicle (l)og (i)d 
+    vli: str = ""
+
+    def __init__(self, web_session, username, vin, region_key,
+                 coordinator: DataUpdateCoordinator = None, save_token=False, tokens_location=None):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
             total=45,      # Total request timeout
@@ -101,6 +105,7 @@ class ConnectedFordPassVehicle:
         self.locale_code = REGIONS[region_key]["locale"]
         self.countrycode = REGIONS[region_key]["countrycode"]
         self.vin = vin
+        self.vli = f"[@{self.vin}] "
 
         self._HAS_COM_ERROR = False
         global _FOUR_NULL_ONE_COUNTER
@@ -119,7 +124,7 @@ class ConnectedFordPassVehicle:
         self.use_token_data_from_memory = False
 
         if tokens_location is None:
-            self.stored_tokens_location = f".storage/fordpass/{username}_access_token.txt"
+            self.stored_tokens_location = f".storage/fordpass/{username}_access_token@{region_key}.txt"
         else:
             self.stored_tokens_location = tokens_location
 
@@ -139,14 +144,14 @@ class ConnectedFordPassVehicle:
         self._ws_LAST_UPDATE = 0
         self._last_ignition_state = INTEGRATION_INIT
 
-        _LOGGER.info(f"init vehicle object for vin: '{self.vin}' - using token from: {tokens_location}")
+        _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
 
     def clear_data(self):
         self._cached_vehicles_data = {}
         self._data_container = {}
 
     async def generate_tokens(self, urlstring, code_verifier):
-        _LOGGER.debug(f"generate_tokens() for country_code: {self.locale_code}")
+        _LOGGER.debug(f"{self.vli}generate_tokens() for country_code: {self.locale_code}")
         code_new = urlstring.replace("fordapp://userauthorized/?code=", "")
         headers = {
             **loginHeaders,
@@ -168,10 +173,10 @@ class ConnectedFordPassVehicle:
         # do not check the status code here - since it's not always return http 200!
         token_data = await response.json()
         if "access_token" in token_data:
-            _LOGGER.debug(f"generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
+            _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
             return await self.generate_tokens_part2(token_data)
         else:
-            _LOGGER.warning(f"generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
+            _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
             return False
 
     async def generate_tokens_part2(self, token):
@@ -194,7 +199,7 @@ class ConnectedFordPassVehicle:
             final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
             del final_access_token["refresh_expires_in"]
 
-        _LOGGER.debug(f"generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
+        _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
         if self.save_token:
             await self._write_token_to_storage(final_access_token)
 
@@ -207,13 +212,13 @@ class ConnectedFordPassVehicle:
     def mark_re_auth_required(self, ws=None):
         stack_trace = traceback.format_stack()
         stack_trace_str = ''.join(stack_trace[:-1])  # Exclude the call to this function
-        _LOGGER.warning(f"mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
+        _LOGGER.warning(f"{self.vli}mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
         self.ws_close(ws)
         self._is_reauth_required = True
 
     async def __ensure_valid_tokens(self, now_time:float=None):
         # Fetch and refresh token as needed
-        _LOGGER.debug("__ensure_valid_tokens()")
+        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
         self._HAS_COM_ERROR = False
         # If a file exists, read in the token file and check it's valid
         if self.save_token:
@@ -224,11 +229,11 @@ class ConnectedFordPassVehicle:
                 prev_token_data = await self._read_token_from_storage()
                 if prev_token_data is None:
                     # no token data could be read!
-                    _LOGGER.info("__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
+                    _LOGGER.info(f"{self.vli}__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
                     return
 
                 self.use_token_data_from_memory = True
-                _LOGGER.debug(f"__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
 
                 self.access_token = prev_token_data["access_token"]
                 self.refresh_token = prev_token_data["refresh_token"]
@@ -239,7 +244,7 @@ class ConnectedFordPassVehicle:
                     self.auto_refresh_token = prev_token_data["auto_refresh_token"]
                     self.auto_expires_at = prev_token_data["auto_expiry_date"]
                 else:
-                    _LOGGER.debug("__ensure_valid_tokens: auto-token not set (or incomplete) in file")
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token not set (or incomplete) in file")
                     self.auto_access_token = None
                     self.auto_refresh_token = None
                     self.auto_expires_at = None
@@ -264,37 +269,37 @@ class ConnectedFordPassVehicle:
             now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
 
         if self.expires_at and now_time > self.expires_at:
-            _LOGGER.debug(f"__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
             refreshed_token = await self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
-                _LOGGER.warning(f"__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
             else:
                 if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
-                    _LOGGER.debug(f"__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
                     await self.refresh_auto_token_func(refreshed_token)
                 else:
-                    _LOGGER.warning(f"__ensure_valid_tokens: result for new token: ERROR, None or False")
+                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: result for new token: ERROR, None or False")
 
         if self.auto_access_token is None or self.auto_expires_at is None:
-            _LOGGER.debug(f"__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         if self.auto_expires_at and now_time > self.auto_expires_at:
-            _LOGGER.debug(f"__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         # it could be that there has been 'exceptions' when trying to update the tokens
         if self._HAS_COM_ERROR:
-            _LOGGER.warning("__ensure_valid_tokens: COMM ERROR")
+            _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: COMM ERROR")
         else:
             if self.access_token is None:
-                _LOGGER.warning("__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
             else:
-                _LOGGER.debug("__ensure_valid_tokens: Tokens are valid")
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: Tokens are valid")
 
     async def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
-        _LOGGER.debug(f"refresh_token_func()")
+        _LOGGER.debug(f"{self.vli}refresh_token_func()")
 
         token_data = await self._request_token(prev_token_data)
         if token_data is None or token_data is False:
@@ -306,10 +311,10 @@ class ConnectedFordPassVehicle:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
-            _LOGGER.warning(f"refresh_token_func: FAILED!")
+            _LOGGER.warning(f"{self.vli}refresh_token_func: FAILED!")
 
         elif token_data == ERROR:
-            _LOGGER.warning(f"refresh_token_func: COMM ERROR")
+            _LOGGER.warning(f"{self.vli}refresh_token_func: COMM ERROR")
             return ERROR
         else:
             # it looks like that the token could be requested successfully...
@@ -330,7 +335,7 @@ class ConnectedFordPassVehicle:
             self.refresh_token = token_data["refresh_token"]
             self.expires_at = token_data["expiry_date"]
 
-            _LOGGER.debug("refresh_token_func: OK")
+            _LOGGER.debug(f"{self.vli}refresh_token_func: OK")
             return token_data
 
     async def _request_token(self, prev_token_data):
@@ -339,7 +344,7 @@ class ConnectedFordPassVehicle:
             return ERROR
         else:
             try:
-                _LOGGER.debug(f"_request_token() - {_FOUR_NULL_ONE_COUNTER[self.username]}")
+                _LOGGER.debug(f"{self.vli}_request_token() - {_FOUR_NULL_ONE_COUNTER[self.username]}")
 
                 headers = {
                     **apiHeaders,
@@ -359,12 +364,12 @@ class ConnectedFordPassVehicle:
                     # ok first resetting the counter for 401 errors (if we had any)
                     _FOUR_NULL_ONE_COUNTER[self.username] = 0
                     result = await response.json()
-                    _LOGGER.debug(f"_request_token: status OK")
+                    _LOGGER.debug(f"{self.vli}_request_token: status OK")
                     return result
                 elif response.status == 401 or response.status == 400:
                     _FOUR_NULL_ONE_COUNTER[self.username] += 1
                     if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.error(f"_request_token: status_code: {response.status} - mark_re_auth_required()")
+                        _LOGGER.error(f"{self.vli}_request_token: status_code: {response.status} - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
                         # some new checking for the error message...
@@ -377,35 +382,35 @@ class ConnectedFordPassVehicle:
                                 if "invalid" in a_msg or "expired token" in a_msg:
                                     is_invalid_msg = True
                             if is_invalid_msg or ("errorCode" in msg and msg["errorCode"] == "460"):
-                                _LOGGER.warning(f"_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
+                                _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
                                 _FOUR_NULL_ONE_COUNTER[self.username] = MAX_401_RESPONSE_COUNT + 1
                         except BaseException as e:
-                            _LOGGER.debug(f"_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
+                            _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
 
-                        _LOGGER.warning(f"_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
                         await asyncio.sleep(5)
                     return False
                 else:
-                    _LOGGER.info(f"_request_token: status_code: {response.status} - Received response: {await response.text()}")
+                    _LOGGER.info(f"{self.vli}_request_token: status_code: {response.status} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
             except BaseException as e:
-                _LOGGER.warning(f"Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
                 self._HAS_COM_ERROR = True
                 return ERROR
 
     async def refresh_auto_token_func(self, cur_token_data):
-        _LOGGER.debug(f"refresh_auto_token_func()")
+        _LOGGER.debug(f"{self.vli}refresh_auto_token_func()")
         auto_token = await self._request_auto_token()
         if auto_token is None or auto_token is False:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
-            _LOGGER.warning(f"refresh_auto_token_func: FAILED!")
+            _LOGGER.warning(f"{self.vli}refresh_auto_token_func: FAILED!")
 
         elif auto_token == ERROR:
-            _LOGGER.warning(f"refresh_auto_token_func: COMM ERROR")
+            _LOGGER.warning(f"{self.vli}refresh_auto_token_func: COMM ERROR")
         else:
             # it looks like that the auto token could be requested successfully...
             if "expires_in" in auto_token:
@@ -429,7 +434,7 @@ class ConnectedFordPassVehicle:
             self.auto_refresh_token = auto_token["refresh_token"]
             self.auto_expires_at = auto_token["expiry_date"]
 
-            _LOGGER.debug("refresh_auto_token_func: OK")
+            _LOGGER.debug(f"{self.vli}refresh_auto_token_func: OK")
 
     async def _request_auto_token(self):
         """Get token from new autonomic API"""
@@ -438,7 +443,7 @@ class ConnectedFordPassVehicle:
             return ERROR
         else:
             try:
-                _LOGGER.debug("_request_auto_token()")
+                _LOGGER.debug(f"{self.vli}_request_auto_token()")
                 headers = {
                     "accept": "*/*",
                     "content-type": "application/x-www-form-urlencoded"
@@ -464,31 +469,31 @@ class ConnectedFordPassVehicle:
                     _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
 
                     result = await response.json()
-                    _LOGGER.debug(f"_request_auto_token: status OK")
+                    _LOGGER.debug(f"{self.vli}_request_auto_token: status OK")
                     return result
                 elif response.status == 401:
                     _AUTO_FOUR_NULL_ONE_COUNTER[self.username] += 1
                     if _AUTO_FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.error(f"_request_auto_token: status_code: 401 - mark_re_auth_required()")
+                        _LOGGER.error(f"{self.vli}_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.warning(f"_request_auto_token: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                        _LOGGER.warning(f"{self.vli}_request_auto_token: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                         await asyncio.sleep(5)
 
                     return False
                 else:
-                    _LOGGER.info(f"_request_auto_token: status_code: {response.status} - Received response: {await response.text()}")
+                    _LOGGER.info(f"{self.vli}_request_auto_token: status_code: {response.status} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
             except BaseException as e:
-                _LOGGER.warning(f"Error while '_request_auto_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}Error while '_request_auto_token' for vehicle {self.vin} - {type(e)} - {e}")
                 self._HAS_COM_ERROR = True
                 return ERROR
 
     async def _write_token_to_storage(self, token):
         """Save token to file for reuse"""
-        _LOGGER.debug(f"_write_token_to_storage()")
+        _LOGGER.debug(f"{self.vli}_write_token_to_storage()")
 
         # Check if the parent directory exists
         directory = os.path.dirname(self.stored_tokens_location)
@@ -512,13 +517,13 @@ class ConnectedFordPassVehicle:
 
     async def _read_token_from_storage(self):
         """Read saved token from a file"""
-        _LOGGER.debug(f"_read_token_from_storage()")
+        _LOGGER.debug(f"{self.vli}_read_token_from_storage()")
         try:
             # Run blocking file operation in executor
             token_data = await asyncio.get_running_loop().run_in_executor(None, self.__read_token_int)
             return token_data
         except ValueError:
-            _LOGGER.warning("_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
+            _LOGGER.warning(f"{self.vli}_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
             self.mark_re_auth_required()
         return None
 
@@ -527,8 +532,25 @@ class ConnectedFordPassVehicle:
         with open(self.stored_tokens_location, encoding="utf-8") as token_file:
             return json.load(token_file)
 
+    async def _rename_token_file_if_needed(self, username:str):
+        """Move a legacy token file to new region-specific location if it exists"""
+        stored_tokens_location_legacy = f".storage/fordpass/{username}_access_token.txt"
+        try:
+            # Check if the legacy file exists
+            if os.path.isfile(stored_tokens_location_legacy):
+                _LOGGER.debug(f"{self.vli}Found legacy token at {stored_tokens_location_legacy}, moving to {self.stored_tokens_location}")
+
+                # Move the file (in executor to avoid blocking)
+                await asyncio.get_running_loop().run_in_executor(None, lambda: os.rename(stored_tokens_location_legacy, self.stored_tokens_location))
+                _LOGGER.debug(f"{self.vli}Successfully moved token file to new location")
+            else:
+                _LOGGER.debug(f"{self.vli}No legacy token file found at {stored_tokens_location_legacy}, nothing to move")
+
+        except Exception as e:
+            _LOGGER.warning(f"{self.vli}Failed to move token file: {type(e)} - {e}")
+
     def clear_token(self):
-        _LOGGER.debug(f"clear_token()")
+        _LOGGER.debug(f"{self.vli}clear_token()")
         """Clear tokens from config directory"""
         if os.path.isfile("/tmp/fordpass_token.txt"):
             os.remove("/tmp/fordpass_token.txt")
@@ -546,14 +568,14 @@ class ConnectedFordPassVehicle:
 
     # the WebSocket related handling...
     async def ws_connect(self):
-        _LOGGER.debug(f"ws_connect() STARTED...")
+        _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
         await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
-            _LOGGER.debug(f"ws_connect() - COMM ERROR - skipping WebSocket connection")
+            _LOGGER.debug(f"{self.vli}ws_connect() - COMM ERROR - skipping WebSocket connection")
             return None
         else:
-            _LOGGER.debug(f"ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
+            _LOGGER.debug(f"{self.vli}ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
 
         headers_ws = {
             **apiHeaders,
@@ -572,7 +594,7 @@ class ConnectedFordPassVehicle:
             async with self.session.ws_connect(url=web_socket_url, headers=headers_ws, timeout=self.timeout) as ws:
                 self.ws_connected = True
 
-                _LOGGER.info(f"connected to websocket: {web_socket_url}")
+                _LOGGER.info(f"{self.vli}connected to websocket: {web_socket_url}")
                 async for msg in ws:
                     # store the last time we heard from the websocket
                     self._ws_LAST_UPDATE = time.time()
@@ -583,7 +605,7 @@ class ConnectedFordPassVehicle:
                         try:
                             ws_data = msg.json()
                             if ws_data is None or len(ws_data) == 0:
-                                _LOGGER.debug(f"ws_connect(): received empty 'data': '{ws_data}'")
+                                _LOGGER.debug(f"{self.vli}ws_connect(): received empty 'data': '{ws_data}'")
                                 do_housekeeping_checks = True
                             else:
                                 if "_httpStatus" in ws_data:
@@ -593,13 +615,13 @@ class ConnectedFordPassVehicle:
                                             # it looks like we have sent a new access token... and the backend just
                                             # replied with an HTTP status code...
                                             self._ws_in_use_access_token = self.auto_access_token
-                                            _LOGGER.debug(f"ws_connect(): received HTTP status 202 - auto token update accepted")
+                                            _LOGGER.debug(f"{self.vli}ws_connect(): received HTTP status 202 - auto token update accepted")
                                         else:
-                                            _LOGGER.debug(f"ws_connect(): received HTTP status: {status} - OK")
+                                            _LOGGER.debug(f"{self.vli}ws_connect(): received HTTP status: {status} - OK")
 
                                 elif "_error" in ws_data:
                                     # in case of any error, we simply close the websocket connection
-                                    _LOGGER.info(f"ws_connect(): error object read: {ws_data["_error"]}")
+                                    _LOGGER.info(f"{self.vli}ws_connect(): error object read: {ws_data["_error"]}")
                                     break
 
                                     # err_obj = ws_data["_error"]
@@ -608,36 +630,36 @@ class ConnectedFordPassVehicle:
                                     #     if "message" in err_obj:
                                     #         lower_msg = err_obj['message'].lower()
                                     #         if 'provided token was expired' in lower_msg:
-                                    #             _LOGGER.debug(f"ws_connect(): 'provided token was expired' expired - going to auto-reconnect-loop")
+                                    #             _LOGGER.debug(f"{self.vli}ws_connect(): 'provided token was expired' expired - going to auto-reconnect-loop")
                                     #             self.ws_do_reconnect = True
                                     #             err_handled = True
                                     #         if 'websocket session expired' in lower_msg:
-                                    #             _LOGGER.debug(f"ws_connect(): 'websocket session expired' - going to auto-reconnect-loop")
+                                    #             _LOGGER.debug(f"{self.vli}ws_connect(): 'websocket session expired' - going to auto-reconnect-loop")
                                     #             self.ws_do_reconnect = True
                                     #             err_handled = True
                                     #
                                     # if not err_handled:
-                                    #     _LOGGER.error(f"ws_connect(): unknown error object read: {err_obj}")
+                                    #     _LOGGER.error(f"{self.vli}ws_connect(): unknown error object read: {err_obj}")
 
                                 elif "_data" in ws_data:
                                     data_obj = ws_data["_data"]
                                     new_data_arrived = self._ws_handle_data(data_obj)
                                     if new_data_arrived is False:
-                                        _LOGGER.debug(f"ws_connect(): received unknown 'data': {data_obj}")
+                                        _LOGGER.debug(f"{self.vli}ws_connect(): received unknown 'data': {data_obj}")
                                     else:
-                                        _LOGGER.debug(f"ws_connect(): received vehicle 'data'")
+                                        _LOGGER.debug(f"{self.vli}ws_connect(): received vehicle 'data'")
                                 else:
-                                    _LOGGER.info(f"ws_connect(): unknown 'content': {ws_data}")
+                                    _LOGGER.info(f"{self.vli}ws_connect(): unknown 'content': {ws_data}")
 
                         except Exception as e:
-                            _LOGGER.debug(f"Could not read JSON from: {msg} - caused {e}")
+                            _LOGGER.debug(f"{self.vli}Could not read JSON from: {msg} - caused {e}")
 
                     elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
-                        _LOGGER.debug(f"received CLOSED or ERROR - will terminate websocket session: {msg}")
+                        _LOGGER.debug(f"{self.vli}received CLOSED or ERROR - will terminate websocket session: {msg}")
                         break
 
                     else:
-                        _LOGGER.error(f"Unknown Message Type from: {msg}")
+                        _LOGGER.error(f"{self.vli}Unknown Message Type from: {msg}")
 
                     # do we need to push new data event to the coordinator?
                     if new_data_arrived:
@@ -651,23 +673,23 @@ class ConnectedFordPassVehicle:
                         await self._ws_check_for_auth_token_refresh(ws)
 
         except ClientConnectorError as con:
-            _LOGGER.error(f"ws_connect(): Could not connect to websocket: {type(con)} - {con}")
+            _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(con)} - {con}")
         except ClientConnectionError as err:
-            _LOGGER.error(f"ws_connect(): ??? {type(err)} - {err}")
+            _LOGGER.error(f"{self.vli}ws_connect(): ??? {type(err)} - {err}")
         except asyncio.TimeoutError as time_exc:
-            _LOGGER.debug(f"ws_connect(): TimeoutError: No WebSocket message received within timeout period")
+            _LOGGER.debug(f"{self.vli}ws_connect(): TimeoutError: No WebSocket message received within timeout period")
         except CancelledError as canceled:
-            _LOGGER.info(f"ws_connect(): Terminated? - {type(canceled)} - {canceled}")
+            _LOGGER.info(f"{self.vli}ws_connect(): Terminated? - {type(canceled)} - {canceled}")
         except BaseException as x:
-            _LOGGER.error(f"ws_connect(): !!! {type(x)} - {x}")
+            _LOGGER.error(f"{self.vli}ws_connect(): !!! {type(x)} - {x}")
 
-        _LOGGER.debug(f"ws_connect() ENDED")
+        _LOGGER.debug(f"{self.vli}ws_connect() ENDED")
         try:
             await self.ws_close(ws)
         except UnboundLocalError as is_unbound:
-            _LOGGER.debug(f"ws_connect(): skipping ws_close() (since ws is unbound)")
+            _LOGGER.debug(f"{self.vli}ws_connect(): skipping ws_close() (since ws is unbound)")
         except BaseException as e:
-            _LOGGER.error(f"ws_connect(): Error while calling ws_close(): {type(e)} - {e}")
+            _LOGGER.error(f"{self.vli}ws_connect(): Error while calling ws_close(): {type(e)} - {e}")
 
         self.ws_connected = False
         return None
@@ -690,18 +712,18 @@ class ConnectedFordPassVehicle:
             # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
             new_ignition_state = self._data_container.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
 
-            #_LOGGER.info(f"ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
+            #_LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
             if self._last_ignition_state != INTEGRATION_INIT:
                 if "OFF" == new_ignition_state and new_ignition_state != self._last_ignition_state:
                     if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
                         self._ws_debounced_full_refresh_task.cancel()
-                    _LOGGER.debug(f"ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
+                    _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
                     self._ws_debounced_full_refresh_task = asyncio.create_task(self._ws_debounce_full_data_refresh())
 
                 elif "ON" == new_ignition_state:
                     # cancel any running the full refresh task if the new state is 'ON'...
                     if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
-                        _LOGGER.debug(f"ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
+                        _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
                         self._ws_debounced_full_refresh_task.cancel()
 
             self._last_ignition_state = new_ignition_state
@@ -730,7 +752,7 @@ class ConnectedFordPassVehicle:
                             # Convert ISO 8601 format to Unix timestamp
                             parsed_dt = datetime.fromisoformat(a_state_obj["timestamp"].replace('Z', '+00:00'))
                             if time.time() - parsed_dt.timestamp() > 60 * 10:
-                                _LOGGER.debug(f"ws(): skip '{a_state_name}' handling - older than 10 minutes")
+                                _LOGGER.debug(f"{self.vli}ws(): skip '{a_state_name}' handling - older than 10 minutes")
                                 continue
                         except BaseException as ex:
                             pass
@@ -738,15 +760,15 @@ class ConnectedFordPassVehicle:
                     if "value" in a_state_obj:
                         a_value_obj = a_state_obj["value"]
                         if "toState" in a_value_obj:
-                            _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+                            _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
                             if a_value_obj["toState"].lower() == "success":
                                 if ROOT_METRICS in a_value_obj:
                                     self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
-                                    _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+                                    _LOGGER.debug(f"{self.vli}ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
                         else:
-                            _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
+                            _LOGGER.debug(f"{self.vli}ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
                     else:
-                        _LOGGER.debug(f"ws(): new state (without value) '{a_state_name}' arrived")
+                        _LOGGER.debug(f"{self.vli}ws(): new state (without value) '{a_state_name}' arrived")
 
             # If we don't have states yet in the existing data, initialize it
             if a_root_key not in self._data_container:
@@ -774,7 +796,7 @@ class ConnectedFordPassVehicle:
                 collected_keys.append(a_root_key)
 
             if a_root_key == ROOT_UPDTIME:
-                _LOGGER.info(f"ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
+                _LOGGER.info(f"{self.vli}ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
 
             return True
 
@@ -789,15 +811,15 @@ class ConnectedFordPassVehicle:
     #             if "value" in a_state_obj:
     #                 a_value_obj = a_state_obj["value"]
     #                 if "toState" in a_value_obj:
-    #                     _LOGGER.debug(f"ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+    #                     _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
     #                     if a_value_obj["toState"].lower() == "success":
     #                         if ROOT_METRICS in a_value_obj:
     #                             self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
-    #                             _LOGGER.debug(f"ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+    #                             _LOGGER.debug(f"{self.vli}ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
     #                 else:
-    #                     _LOGGER.debug(f"ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
+    #                     _LOGGER.debug(f"{self.vli}ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
     #             else:
-    #                 _LOGGER.debug(f"ws(): new state (without value) '{a_state_name}' arrived")
+    #                 _LOGGER.debug(f"{self.vli}ws(): new state (without value) '{a_state_name}' arrived")
     #
     #         # core - merge recursive the dicts
     #         if a_root_key in self._data_container:
@@ -807,7 +829,7 @@ class ConnectedFordPassVehicle:
     #
     #         # just some post-processing (logging)
     #         if a_root_key == ROOT_UPDTIME:
-    #             _LOGGER.info(f"ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
+    #             _LOGGER.info(f"{self.vli}ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
     #
     #         return True
     #     return False
@@ -828,7 +850,7 @@ class ConnectedFordPassVehicle:
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
         try:
             if self.auto_expires_at and time.time() + 45 > self.auto_expires_at:
-                _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token expires in less than 45 seconds - try to refresh")
+                _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token expires in less than 45 seconds - try to refresh")
 
                 prev_token_data = {"access_token": self.access_token,
                                    "refresh_token": self.refresh_token,
@@ -842,10 +864,10 @@ class ConnectedFordPassVehicle:
             # could be that another process has refreshed the auto token...
             if self.auto_access_token is not None:
                 if self.auto_access_token != self._ws_in_use_access_token:
-                    _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token has been refreshed -> update websocket")
+                    _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token has been refreshed -> update websocket")
                     await ws.send_json({"accessToken": self.auto_access_token})
             else:
-                _LOGGER.info(f"_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error), we will close the websocket connection and wait for the watchdog to reconnect")
+                _LOGGER.info(f"{self.vli}_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error), we will close the websocket connection and wait for the watchdog to reconnect")
                 await self.ws_close(ws)
                 # if self.save_token:
                 #     stored_token = await self._read_token_from_storage()
@@ -853,10 +875,10 @@ class ConnectedFordPassVehicle:
                 #         self.auto_access_token = stored_token["auto_token"]
                 #         self.auto_refresh_token = stored_token["auto_refresh_token"]
                 #         self.auto_expires_at = stored_token["auto_expiry_date"]
-                #         _LOGGER.debug(f"_ws_check_for_auth_token_refresh(): auto token re-read from storage")
+                #         _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token re-read from storage")
 
         except BaseException as e:
-            _LOGGER.error(f"_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
+            _LOGGER.error(f"{self.vli}_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
 
     async def _ws_check_for_message_update_required(self):
         update_interval = 0
@@ -865,14 +887,14 @@ class ConnectedFordPassVehicle:
 
         to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 15 * 60)
         if to_wait_till < time.time():
-            _LOGGER.debug(f"_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
+            _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
             # we need to update the messages...
             msg_data = await self.messages()
             if msg_data is not None:
                 self._data_container[ROOT_MESSAGES] = msg_data
                 self._ws_notify_for_new_data()
         else:
-            _LOGGER.debug(f"_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
+            _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
 
     def _ws_notify_for_new_data(self):
         if self._ws_debounced_update_task is not None and not self._ws_debounced_update_task.done():
@@ -889,44 +911,44 @@ class ConnectedFordPassVehicle:
             # if the ignition state has changed to 'OFF', we will wait 30 seconds before we trigger the full refresh
             # this is to ensure that the vehicle has enough time to send all the last data updates - and that the vehicle
             # will be started again... (in a short while)
-            _LOGGER.debug(f"_ws_debounce_full_data_refresh(): started")
+            _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): started")
             await asyncio.sleep(30)
             count = 0
             while not self.status_updates_allowed and count < 11:
-                _LOGGER.debug(f"_ws_debounce_full_data_refresh(): waiting for status updates to be allowed... retry: {count}")
+                _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): waiting for status updates to be allowed... retry: {count}")
                 count += 1
                 await asyncio.sleep(random.uniform(2, 30))
 
-            _LOGGER.debug(f"_ws_debounce_full_data_refresh(): starting the full update now")
+            _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): starting the full update now")
             updated_data = await self.update_all()
             if updated_data is not None and self.coordinator is not None:
                 self.coordinator.async_set_updated_data(self._data_container)
         except CancelledError:
-            _LOGGER.debug(f"_ws_debounce_full_data_refresh(): was canceled - all good")
+            _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): was canceled - all good")
         except BaseException as ex:
-            _LOGGER.warning(f"_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex)} - {ex}")
+            _LOGGER.warning(f"{self.vli}_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex)} - {ex}")
 
     async def ws_close(self, ws):
         """Close the WebSocket connection cleanly."""
-        _LOGGER.debug(f"ws_close(): for {self.vin} called")
+        _LOGGER.debug(f"{self.vli}ws_close(): for {self.vin} called")
         self.ws_connected = False
         if ws is not None:
             try:
                 await ws.close()
-                _LOGGER.debug("ws_close(): connection closed successfully")
+                _LOGGER.debug(f"{self.vli}ws_close(): connection closed successfully")
             except BaseException as e:
-                _LOGGER.info(f"ws_close(): Error closing WebSocket connection: {type(e)} - {e}")
+                _LOGGER.info(f"{self.vli}ws_close(): Error closing WebSocket connection: {type(e)} - {e}")
             finally:
                 ws = None
         else:
-            _LOGGER.debug("ws_close(): No active WebSocket connection to close (ws is None)")
+            _LOGGER.debug(f"{self.vli}ws_close(): No active WebSocket connection to close (ws is None)")
 
     def ws_check_last_update(self) -> bool:
         if self._ws_LAST_UPDATE + 50 > time.time():
-            _LOGGER.debug(f"ws_check_last_update(): all good! [last update: {int(time.time()-self._ws_LAST_UPDATE)} sec ago]")
+            _LOGGER.debug(f"{self.vli}ws_check_last_update(): all good! [last update: {int(time.time()-self._ws_LAST_UPDATE)} sec ago]")
             return True
         else:
-            _LOGGER.info(f"ws_check_last_update(): force reconnect...")
+            _LOGGER.info(f"{self.vli}ws_check_last_update(): force reconnect...")
             return False
 
 
@@ -942,7 +964,7 @@ class ConnectedFordPassVehicle:
 
             # only update vehicle data if not present yet
             if self._cached_vehicles_data is None or len(self._cached_vehicles_data) == 0:
-                _LOGGER.debug("update_all: request vehicle data...")
+                _LOGGER.debug(f"{self.vli}update_all: request vehicle data...")
                 self._cached_vehicles_data = await self.vehicles()
 
             if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
@@ -963,10 +985,10 @@ class ConnectedFordPassVehicle:
 
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"status() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}status() - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"status() - auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"{self.vli}status() - auto_access_token exist? {self.auto_access_token is not None}")
 
             headers_state = {
                 **apiHeaders,
@@ -989,25 +1011,25 @@ class ConnectedFordPassVehicle:
 
                 result_state = await response_state.json()
                 if LOG_DATA:
-                    _LOGGER.debug(f"status: JSON: {result_state}")
+                    _LOGGER.debug(f"{self.vli}status: JSON: {result_state}")
                 return result_state
             elif response_state.status == 401:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.username] += 1
                 if _AUTO_FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"status: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"status: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"{self.vli}status: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
             else:
-                _LOGGER.info(f"status: status_code : {response_state.status} - Received response: {await response_state.text()}")
+                _LOGGER.info(f"{self.vli}status: status_code : {response_state.status} - Received response: {await response_state.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching status for vehicle {self.vin} - {type(e)} - {e}")
+            _LOGGER.warning(f"{self.vli}Error while fetching status for vehicle {self.vin} - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -1017,10 +1039,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"messages() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}messages() - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"messages() - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}messages() - access_token exist? {self.access_token is not None}")
 
             headers_msg = {
                 **apiHeaders,
@@ -1034,27 +1056,27 @@ class ConnectedFordPassVehicle:
 
                 result_msg = await response_msg.json()
                 if LOG_DATA:
-                    _LOGGER.debug(f"messages: JSON: {result_msg}")
+                    _LOGGER.debug(f"{self.vli}messages: JSON: {result_msg}")
 
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
             elif response_msg.status == 401:
                 _FOUR_NULL_ONE_COUNTER[self.username] += 1
                 if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"messages: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"messages: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"{self.vli}messages: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
             else:
-                _LOGGER.info(f"messages: status_code: {response_msg.status} - Received response: {await response_msg.text()}")
+                _LOGGER.info(f"{self.vli}messages: status_code: {response_msg.status} - Received response: {await response_msg.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching message for vehicle {self.vin} - {type(e)} - {e}")
+            _LOGGER.warning(f"{self.vli}Error while fetching message for vehicle {self.vin} - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -1064,10 +1086,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"vehicles() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}vehicles() - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"vehicles() - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}vehicles() - access_token exist? {self.access_token is not None}")
 
             headers_veh = {
                 **apiHeaders,
@@ -1091,25 +1113,37 @@ class ConnectedFordPassVehicle:
 
                 result_veh = await response_veh.json()
                 if LOG_DATA:
-                    _LOGGER.debug(f"vehicles: JSON: {result_veh}")
+                    _LOGGER.debug(f"{self.vli}vehicles: JSON: {result_veh}")
+
+                # creating our logger id for the vehicle...
+                if "@" in self.vli and result_veh is not None and "userVehicles" in result_veh and "vehicleDetails" in result_veh["userVehicles"]:
+                    self._vehicles = result_veh["userVehicles"]["vehicleDetails"]
+                    self._vehicle_name = {}
+                    if "vehicleProfile" in result_veh:
+                        for a_vehicle in result_veh["vehicleProfile"]:
+                            if "VIN" in a_vehicle and "model" in a_vehicle:
+                                if self.vin == a_vehicle["VIN"]:
+                                    self.vli = f"[{a_vehicle['model']}] "
+                                    break
                 return result_veh
+
             elif response_veh.status == 401:
                 _FOUR_NULL_ONE_COUNTER[self.username] += 1
                 if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"vehicles: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"vehicles: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    _LOGGER.warning(f"{self.vli}vehicles: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
             else:
-                _LOGGER.info(f"vehicles: status_code: {response_veh.status} - Received response: {await response_veh.text()}")
+                _LOGGER.info(f"{self.vli}vehicles: status_code: {response_veh.status} - Received response: {await response_veh.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while fetching vehicle - {type(e)} - {e}")
+            _LOGGER.warning(f"{self.vli}Error while fetching vehicle - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
 
@@ -1117,10 +1151,10 @@ class ConnectedFordPassVehicle:
         """Retrieve guard status from API"""
         await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
-            _LOGGER.debug(f"guard_status() - COMM ERROR")
+            _LOGGER.debug(f"{self.vli}guard_status() - COMM ERROR")
             return None
         else:
-            _LOGGER.debug(f"guard_status() - access_token exist? {self.access_token is not None}")
+            _LOGGER.debug(f"{self.vli}guard_status() - access_token exist? {self.access_token is not None}")
 
         headers_gs = {
             **apiHeaders,
@@ -1222,7 +1256,7 @@ class ConnectedFordPassVehicle:
         response = self.__make_request(
             "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
         )
-        _LOGGER.debug(f"enable_guard: {await response.text()}")
+        _LOGGER.debug(f"{self.vli}enable_guard: {await response.text()}")
         return response
 
     async def disable_guard(self):
@@ -1236,7 +1270,7 @@ class ConnectedFordPassVehicle:
         response = self.__make_request(
             "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
         )
-        _LOGGER.debug(f"disable_guard: {await response.text()}")
+        _LOGGER.debug(f"{self.vli}disable_guard: {await response.text()}")
         return response
 
     def request_update(self, vin=None):
@@ -1266,7 +1300,7 @@ class ConnectedFordPassVehicle:
     #             return getattr(requests, method.lower())(url, headers=headers, data=data, params=params)
     #
     #         except BaseException as e:
-    #             _LOGGER.warning(f"Error while '__make_request' for vehicle {self.vin} {e}")
+    #             _LOGGER.warning(f"{self.vli}Error while '__make_request' for vehicle {self.vin} {e}")
     #             self._HAS_COM_ERROR = True
     #             return None
     #
@@ -1278,15 +1312,15 @@ class ConnectedFordPassVehicle:
     #     if status is not None:
     #         result = status.json()
     #         if result["status"] == 552:
-    #             _LOGGER.debug("__poll_status: Command is pending")
+    #             _LOGGER.debug(f"{self.vli}__poll_status: Command is pending")
     #             time.sleep(5)
     #             return self.__poll_status(url, command_id)  # retry after 5s
     #
     #         if result["status"] == 200:
-    #             _LOGGER.debug("__poll_status: Command completed successfully")
+    #             _LOGGER.debug(f"{self.vli}__poll_status: Command completed successfully")
     #             return True
     #
-    #     _LOGGER.debug("__poll_status: Command failed")
+    #     _LOGGER.debug(f"{self.vli}__poll_status: Command failed")
     #     return False
 
     # def x_request_and_poll_command(self, command, properties={}, vin=None):
@@ -1297,10 +1331,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"__request_and_poll_command_autonomic() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_command_autonomic() - COMM ERROR")
                 return False
             else:
-                _LOGGER.debug(f"__request_and_poll_command_autonomic(): auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_command_autonomic(): auto_access_token exist? {self.auto_access_token is not None}")
 
             headers = {
                 **apiHeaders,
@@ -1326,7 +1360,7 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected, properties=properties)
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
+            _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return False
 
@@ -1334,10 +1368,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"__request_and_poll_command_ford() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford() - COMM ERROR")
                 return False
             else:
-                _LOGGER.debug(f"__request_and_poll_command_ford(): auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford(): auto_access_token exist? {self.auto_access_token is not None}")
 
             headers = {
                 **apiHeaders,
@@ -1355,7 +1389,7 @@ class ConnectedFordPassVehicle:
                 command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/START"
 
             if command_url_part is None:
-                _LOGGER.warning(f"__request_and_poll_command_ford() - command '{command}' is not supported by the integration")
+                _LOGGER.warning(f"{self.vli}__request_and_poll_command_ford() - command '{command}' is not supported by the integration")
                 return False
 
             if post_data is not None:
@@ -1371,7 +1405,7 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected)
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+            _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return False
 
@@ -1379,10 +1413,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"__request_and_poll_url_command() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_url_command() - COMM ERROR")
                 return False
             else:
-                _LOGGER.debug(f"__request_and_poll_url_command(): access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_url_command(): access_token exist? {self.access_token is not None}")
 
             headers = {
                 **apiHeaders,
@@ -1402,18 +1436,18 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=r, req_command=url_command, use_websocket=self.ws_connected)
 
         except BaseException as e:
-            _LOGGER.warning(f"Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
+            _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
             self._HAS_COM_ERROR = True
             return False
 
     async def __check_command_status(self, req, req_command, use_websocket, properties={}):
-        _LOGGER.debug(f"__check_command_status: Testing command status: {req.status} (check by {'WebSocket' if use_websocket else 'polling'})")
+        _LOGGER.debug(f"{self.vli}__check_command_status: Testing command status: {req.status} (check by {'WebSocket' if use_websocket else 'polling'})")
 
         if not (200 <= req.status <= 205):
             if req.status in (401, 403):
-                _LOGGER.info(f"__check_command_status(): '{req_command}' props:'{properties}' returned '{req.status}' status code - wtf!")
+                _LOGGER.info(f"{self.vli}__check_command_status(): '{req_command}' props:'{properties}' returned '{req.status}' status code - wtf!")
             else:
-                _LOGGER.warning(f"__check_command_status(): '{req_command}' props:'{properties}' returned unknown status code: {req.status}!")
+                _LOGGER.warning(f"{self.vli}__check_command_status(): '{req_command}' props:'{properties}' returned unknown status code: {req.status}!")
             return False
 
         # Extract command ID from response
@@ -1426,7 +1460,7 @@ class ConnectedFordPassVehicle:
                 break
 
         if command_id is None:
-            _LOGGER.warning(f"__check_command_status(): No command ID found in response: {response}")
+            _LOGGER.warning(f"{self.vli}__check_command_status(): No command ID found in response: {response}")
             return False
 
         # Wait for backend to process command
@@ -1440,7 +1474,7 @@ class ConnectedFordPassVehicle:
             i = 0
             while i < 15:
                 if i > 0:
-                    _LOGGER.debug(f"__check_command_status(): retry again [count: {i}] - COMM ERRORS: {self._HAS_COM_ERROR}")
+                    _LOGGER.debug(f"{self.vli}__check_command_status(): retry again [count: {i}] - COMM ERRORS: {self._HAS_COM_ERROR}")
 
                 # Get data based on method
                 if use_websocket:
@@ -1466,35 +1500,35 @@ class ConnectedFordPassVehicle:
                     command_key = f"{req_command}Command"
                     if command_key in states:
                         resp_command_obj = states[command_key]
-                        #_LOGGER.debug(f"__check_command_status(): Found command object")
+                        #_LOGGER.debug(f"{self.vli}__check_command_status(): Found command object")
 
                         if "commandId" in resp_command_obj and resp_command_obj["commandId"] == command_id:
-                            #_LOGGER.debug(f"__check_command_status(): Found the commandId")
+                            #_LOGGER.debug(f"{self.vli}__check_command_status(): Found the commandId")
 
                             if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
                                 to_state = resp_command_obj["value"]["toState"].upper()
 
                                 if to_state == "SUCCESS":
-                                    _LOGGER.debug("__check_command_status(): EXCELLENT! Command succeeded")
+                                    _LOGGER.debug(f"{self.vli}__check_command_status(): EXCELLENT! Command succeeded")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
                                     return True
 
                                 if to_state == "EXPIRED":
-                                    _LOGGER.info("__check_command_status(): Command EXPIRED")
+                                    _LOGGER.info(f"{self.vli}__check_command_status(): Command EXPIRED")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
                                     return False
 
                                 if to_state == "REQUEST_QUEUED" or "IN_PROGRESS" in to_state:
-                                    _LOGGER.debug(f"__check_command_status(): toState: '{to_state}'")
+                                    _LOGGER.debug(f"{self.vli}__check_command_status(): toState: '{to_state}'")
                                 else:
-                                    _LOGGER.info(f"__check_command_status(): UNKNOWN 'toState': {to_state}")
+                                    _LOGGER.info(f"{self.vli}__check_command_status(): UNKNOWN 'toState': {to_state}")
                             else:
-                                _LOGGER.debug(f"__check_command_status(): no 'value' or 'toState' in command object")
+                                _LOGGER.debug(f"{self.vli}__check_command_status(): no 'value' or 'toState' in command object")
                         else:
                             cmd_id = resp_command_obj.get("commandId", "missing")
-                            _LOGGER.info(f"__check_command_status(): Command ID mismatch: {command_id} vs {cmd_id}")
+                            _LOGGER.info(f"{self.vli}__check_command_status(): Command ID mismatch: {command_id} vs {cmd_id}")
 
                 i += 1
                 a_delay = i * 5
@@ -1505,10 +1539,10 @@ class ConnectedFordPassVehicle:
                 await asyncio.sleep(a_delay)
 
             # end of while loop reached...
-            _LOGGER.info(f"__check_command_status(): CHECK for '{req_command}' unsuccessful after 15 attempts")
+            _LOGGER.info(f"{self.vli}__check_command_status(): CHECK for '{req_command}' unsuccessful after 15 attempts")
 
         except BaseException as exc:
-            _LOGGER.warning(f"__check_command_status(): Error during status checking - {type(exc)} - {exc}")
+            _LOGGER.warning(f"{self.vli}__check_command_status(): Error during status checking - {type(exc)} - {exc}")
 
         if not use_websocket:
             self.status_updates_allowed = True

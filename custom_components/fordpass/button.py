@@ -12,8 +12,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_entity_cb: AddEntitiesCallback):
-    _LOGGER.debug("BUTTON async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
+    _LOGGER.debug(f"{coordinator.vli}BUTTON async_setup_entry")
     entities = []
     for a_tag, value in BUTTONS.items():
         entity = FordpassButton(coordinator=coordinator, a_tag=a_tag)

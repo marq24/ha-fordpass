@@ -15,8 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
     """Add the Entities from the config."""
-    _LOGGER.debug("SENSOR async_setup_entry")
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
+    _LOGGER.debug(f"{coordinator.vli}SENSOR async_setup_entry")
     sensors = []
 
     check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0
@@ -26,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         a_entity_description: ExtSensorEntityDescription
 
         if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
-            _LOGGER.debug(f"SENSOR '{a_entity_description.tag}' not supported for this vehicle")
+            _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' not supported for this vehicle")
             continue
 
         sensor = FordPassSensor(coordinator, a_entity_description)
@@ -43,7 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 sensors.append(sensor)
             else:
-                _LOGGER.debug(f"SENSOR Skipping '{a_entity_description.tag}' - {type(value)} - {value}")
+                _LOGGER.debug(f"{coordinator.vli}SENSOR Skipping '{a_entity_description.tag}' - {type(value)} - {value}")
 
     async_add_entities(sensors, True)
 
