@@ -133,16 +133,21 @@ def check_for_deprecated_region_keys(region_key):
     # REGION_OPTIONS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
     if region_key not in REGIONS:
         org_key = region_key
-        region_key = region_key.lower()
-        if region_key == "canada":
+        region_key = region_key.upper()
+        if region_key == "USA":
+            # yes, this looks nonsense, but since "USA" is not in the REGIONS list,
+            # we need to patch it to avoid the final 'else' and switch to the default
+            # region ->
+            region_key = "usa"
+        elif region_key == "CANADA":
             region_key = "can"
-        elif region_key == "uk&europe":
+        elif region_key == "UK&EUROPE":
             region_key = "gbr"
-        elif region_key == "netherlands":
+        elif region_key == "NETHERLANDS":
             region_key = "nld"
-        elif region_key == "australia":
+        elif region_key == "AUSTRALIA":
             region_key = "aus"
-        elif region_key == "germany":
+        elif region_key == "GERMANY":
             region_key = "deu"
         else:
             region_key = DEFAULT_REGION
