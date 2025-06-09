@@ -157,36 +157,37 @@ This service will contact the modem in the vehicle and request to sync data betw
 **Sensors may change as the integration is being developed**
 ~~Supports Multiple Regions~~
 
-| Sensor Name                        | Petrol/Diesel | (P)HEV/BEV |
-|------------------------------------|---------------|------------|
-| Odometer                           | X             | X          |                 
-| Battery (12V)                      | X             | X          |            
-| Oil                                | X             | X          |   
-| Tire Pressure                      | X             | X          |            
-| GPS/Location Data (JSON)           | X             | X          |                 
-| Alarm Status                       | X             | X          |
-| Status Ignition                    | X             | X          |          
-| Status Door                        | X             | X          |              
-| Window Position                    | X             | X          |    
-| last refresh (timestamp)           | X             | X          |
-| Speed                              | X             | X          |
-| Indicators/Warnings                | X             | X          |
-| Temperature Coolant                | X             | X          |
-| Temperature Outdoors               | X             | X          |
-| Status Remote Start                | X             | X          |
-| FordPass Messages                  | X             | X          |
-| Belt Status                        | X             | X          |
-| (Deep)Sleep Mode                   | X             | X          |
-| Fuel Level (can be > 100%)         | X             |            |
-| Temperature Engine Oil             | X             |            |
-| Status Diesel System               | X             |            |
-| AdBlue Level                       | X             |            |
-| EV-Data collection                 |               | X          |
-| EV Plug Status                     |               | X          |
-| EV Charging information            |               | X          |
-| State of Charge (SOC)              |               | X          |
-| EVCC status code ('A', 'B' or 'C') |               | X          |
-| ~~Zone Lighting~~                  |               |            |
+| Sensor Name                        | Petrol/Diesel | (P)HEV | &nbsp;(B)EV&nbsp; |
+|------------------------------------|---------------|--------|-------------------|
+| Odometer                           | X             | X      | X                 |                 
+| Battery (12V)                      | X             | X      | X                 |            
+| Oil                                | X             | X      | X                 |   
+| Tire Pressure                      | X             | X      | X                 |            
+| GPS/Location Data (JSON)           | X             | X      | X                 |                 
+| Alarm Status                       | X             | X      | X                 |
+| Status Ignition                    | X             | X      | X                 |          
+| Status Door                        | X             | X      | X                 |              
+| Window Position                    | X             | X      | X                 |    
+| last refresh (timestamp)           | X             | X      | X                 |
+| Speed                              | X             | X      | X                 |
+| Indicators/Warnings                | X             | X      | X                 |
+| Temperature Coolant                | X             | X      | X                 |
+| Temperature Outdoors               | X             | X      | X                 |
+| Status Remote Start                | X             | X      | X                 |
+| FordPass Messages                  | X             | X      | X                 |
+| Belt Status                        | X             | X      | X                 |
+| (Deep)Sleep Mode                   | X             | X      | X                 |
+| Revolution / Engine Speed          | X             | X      | ?                 |
+| Fuel Level (can be > 100%)         | X             | X      |                   |
+| Temperature Engine Oil             | X             | X      |                   |
+| Status Diesel System               | X             | X      |                   |
+| AdBlue Level                       | X             | X      |                   |
+| EV-Data collection                 |               | X      | X                 |
+| EV Plug Status                     |               | X      | X                 |
+| EV Charging information            |               | X      | X                 |
+| State of Charge (SOC)              |               | ?      | X                 |
+| EVCC status code ('A', 'B' or 'C') |               | ?      | X                 |
+| ~~Zone Lighting~~                  |               |        |                   |
 
 ## Buttons / Switches / Other
 
