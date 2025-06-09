@@ -147,6 +147,7 @@
             "elvehcharging":            {"name": "EV Charging"},
             "speed":                    {"name": "Speed"},
             "enginespeed":              {"name": "Revolution"},
+            "gearleverposition":        {"name": "Gear Lever Position"},
             "indicators":               {"name": "Indicators"},
             "coolanttemp":              {"name": "Temperature Coolant"},
             "outsidetemp":              {"name": "Temperature Outdoors"},

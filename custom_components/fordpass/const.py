@@ -308,6 +308,8 @@ class Tag(ApiKey, Enum):
                                  attrs_fn=FordpassDataHandler.get_speed_attrs)
     ENGINESPEED         = ApiKey(key="engineSpeed",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineSpeed"))
+    GEARLEVERPOSITION   = ApiKey(key="gearLeverPosition",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "gearLeverPosition"))
     INDICATORS          = ApiKey(key="indicators",
                                  state_fn=FordpassDataHandler.get_indicators_state,
                                  attrs_fn=FordpassDataHandler.get_indicators_attrs)
@@ -496,6 +498,12 @@ SENSORS = [
         key=Tag.ENGINESPEED.key,
         icon="mdi:gauge-low",
         state_class=SensorStateClass.MEASUREMENT,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.GEARLEVERPOSITION,
+        key=Tag.GEARLEVERPOSITION.key,
+        icon="mdi:car-shift-pattern",
         has_entity_name=True,
     ),
     # Tag.INDICATORS: {"icon": "mdi:engine-outline", "api_key": "indicators"},

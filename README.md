@@ -170,6 +170,7 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Window Position                    | X             | X      | X                 |    
 | last refresh (timestamp)           | X             | X      | X                 |
 | Speed                              | X             | X      | X                 |
+| Gear Lever Position                | X             | X      | X                 |
 | Indicators/Warnings                | X             | X      | X                 |
 | Temperature Coolant                | X             | X      | X                 |
 | Temperature Outdoors               | X             | X      | X                 |

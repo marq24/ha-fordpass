@@ -144,6 +144,7 @@
             "elvehcharging":            {"name": "EV Ladestatus"},
             "speed":                    {"name": "Geschwindigkeit"},
             "enginespeed":              {"name": "Motordrehzal"},
+            "gearleverposition":        {"name": "Gang"},
             "indicators":               {"name": "Warnmeldungen"},
             "coolanttemp":              {"name": "Temperatur Kühlmittel"},
             "outsidetemp":              {"name": "Temperatur Außen"},
