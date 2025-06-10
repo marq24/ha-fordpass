@@ -41,7 +41,11 @@ VIN_SCHEME = vol.Schema(
 )
 
 CONF_TOKEN_STR: Final = "tokenstr"
+CONF_SETUP_TYPE: Final = "setup_type"
+CONF_ACCOUNT: Final = "account"
 
+NEW_ACCOUNT: Final = "new_account"
+ADD_VEHICLE: Final = "add_vehicle"
 
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
@@ -72,6 +76,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     username = None
     code_verifier = None
     cached_login_input = {}
+    _accounts = None
     _vehicles = None
     _vehicle_name = None
     _session: aiohttp.ClientSession | None = None
@@ -85,6 +90,24 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             for entry in hass.config_entries.async_entries(DOMAIN)
         }
 
+    @callback
+    def configured_accounts(self, hass: HomeAssistant):
+        """Return a dict of configured accounts and their entry data"""
+        accounts = {}
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            a_username = entry.data.get(CONF_USERNAME)
+            a_region = entry.data.get(CONF_REGION)
+            if a_username is not None and a_region is not None:
+                a_key = f"{a_username}µ@µ{a_region}"
+                if a_key not in accounts:
+                    accounts[a_key] = []
+
+                accounts[a_key].append({
+                    "username": a_username,
+                    "region": a_region,
+                    "vehicle_id": entry.data.get(CONF_VIN),
+                })
+        return accounts
 
     async def validate_token(self, data, token:str, code_verifier:str):
         _LOGGER.debug(f"validate_token(): {data}")
@@ -95,14 +118,13 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         results = await vehicle.generate_tokens(token, code_verifier)
 
         if results:
-            _LOGGER.debug("Getting Vehicles")
+            _LOGGER.debug(f"validate_token(): request Vehicles")
             vehicles = await vehicle.vehicles()
-            _LOGGER.debug(f"Getting Vehicles -> {vehicles}")
+            _LOGGER.debug(f"validate_token(): got Vehicles -> {vehicles}")
             return vehicles
         else:
             _LOGGER.debug(f"validate_token(): failed - {results}")
             raise CannotConnect
-
 
     async def validate_token_only(self, data, token:str, code_verifier:str) -> bool:
         _LOGGER.debug(f"validate_token_only(): {data}")
@@ -117,6 +139,20 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             raise CannotConnect
         else:
             return True
+
+    async def get_vehicles_from_existing_account(self, hass: HomeAssistant, data):
+        _LOGGER.debug(f"get_vehicles_from_existing_account(): {data}")
+        if self._session is None:
+            self._session = async_create_clientsession(self.hass)
+
+        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None, save_token=True)
+        _LOGGER.debug(f"get_vehicles_from_existing_account(): request Vehicles")
+        vehicles = await vehicle.vehicles()
+        _LOGGER.debug(f"get_vehicles_from_existing_account(): got Vehicles -> {vehicles}")
+        if vehicles is not None:
+            return vehicles
+        else:
+            raise CannotConnect
 
     async def validate_vin(self, data):
         _LOGGER.debug(f"validate_vin(): {data}")
@@ -135,6 +171,90 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
 
     async def async_step_user(self, user_input=None):
+        """Handle the initial step."""
+        errors = {}
+
+        # lookup if there are already configured accounts?!
+        self._accounts = self.configured_accounts(self.hass)
+
+        if user_input is not None:
+            if user_input.get(CONF_SETUP_TYPE) == NEW_ACCOUNT:
+                return await self.async_step_new_account()
+            elif user_input.get(CONF_SETUP_TYPE) == ADD_VEHICLE:
+                return await self.async_step_select_account()
+
+        # Show different options based on existing accounts
+        if len(self._accounts) > 0:
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_SETUP_TYPE):
+                        selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=[ADD_VEHICLE, NEW_ACCOUNT],
+                                mode=selector.SelectSelectorMode.LIST,
+                                translation_key=CONF_SETUP_TYPE,
+                            )
+                        )
+                }),
+                errors=errors
+            )
+        else:
+            # No existing accounts, go directly to new account setup
+            return await self.async_step_new_account()
+
+
+    async def async_step_select_account(self, user_input=None):
+        """Handle adding a vehicle to an existing account."""
+        errors = {}
+
+        if user_input is not None:
+            parts = user_input[CONF_ACCOUNT].split("µ@µ")
+            self.username = parts[0]
+            self.region_key = parts[1]
+            self.cached_login_input = {
+                CONF_USERNAME: self.username,
+                CONF_REGION: self.region_key,
+            }
+            try:
+                info = await self.get_vehicles_from_existing_account(self.hass, data=self.cached_login_input)
+                return await self.extract_vehicle_info_and_proceed_with_next_step(info)
+
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception as ex:
+                _LOGGER.error(f"Error validating existing account: {ex}")
+                errors["base"] = "unknown"
+
+        # Create account selection options (when there are multiple accounts...)
+        if len(self._accounts) > 1:
+            account_options = {}
+            for a_key, entries in self._accounts.items():
+                configured_vehicles = len(entries)
+                parts = a_key.split("µ@µ")
+                account_options[a_key] = f"{parts[0]} [{parts[1].upper()}]"
+
+            return self.async_show_form(
+                step_id="select_account",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_ACCOUNT): vol.In(account_options)
+                }),
+                errors=errors
+            )
+        else:
+            # when there is only one account configured, we can directly jump into the vehicle selection
+            parts = next(iter(self._accounts.keys()))  # Get the first account key
+            self.username = parts[0]
+            self.region_key = parts[1]
+            self.cached_login_input = {
+                CONF_USERNAME: self.username,
+                CONF_REGION: self.region_key,
+            }
+            info = await self.get_vehicles_from_existing_account(self.hass, data=self.cached_login_input)
+            return await self.extract_vehicle_info_and_proceed_with_next_step(info)
+
+
+    async def async_step_new_account(self, user_input=None):
         errors = {}
         if user_input is not None:
             try:
@@ -143,7 +263,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
                 return await self.async_step_token(None)
             except CannotConnect as ex:
-                _LOGGER.debug(f"async_step_user {ex}")
+                _LOGGER.debug(f"async_step_user {type(ex)} - {ex}")
                 errors["base"] = "cannot_connect"
         else:
             user_input = {}
@@ -151,7 +271,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_USERNAME] = ""
 
         return self.async_show_form(
-            step_id="user",
+            step_id="new_account",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_USERNAME, default=""): str,
@@ -187,20 +307,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     info = await self.validate_token(user_input, token_fragment, self.code_verifier)
                     self.cached_login_input = user_input
 
-                    if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
-                        self._vehicles = info["userVehicles"]["vehicleDetails"]
-                        self._vehicle_name = {}
-                        if "vehicleProfile" in info:
-                            for a_vehicle in info["vehicleProfile"]:
-                                if "VIN" in a_vehicle and "year" in a_vehicle and "model" in a_vehicle:
-                                    self._vehicle_name[a_vehicle["VIN"]] = f"{a_vehicle['year']} {a_vehicle['model']}"
+                    return await self.extract_vehicle_info_and_proceed_with_next_step(info)
 
-                        _LOGGER.debug(f"Extracted vehicle names:  {self._vehicle_name}")
-                        return await self.async_step_vehicle()
-                    else:
-                        _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
-                        self._vehicles = None
-                        return await self.async_step_vin()
                 else:
                     errors["base"] = "invalid_token"
 
@@ -222,7 +330,24 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.error("No region_key set - FATAL ERROR")
             raise ConfigError(f"No region_key set - FATAL ERROR")
 
-    def check_token(self, token):
+    async def extract_vehicle_info_and_proceed_with_next_step(self, info):
+        if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
+            self._vehicles = info["userVehicles"]["vehicleDetails"]
+            self._vehicle_name = {}
+            if "vehicleProfile" in info:
+                for a_vehicle in info["vehicleProfile"]:
+                    if "VIN" in a_vehicle and "year" in a_vehicle and "model" in a_vehicle:
+                        self._vehicle_name[a_vehicle["VIN"]] = f"{a_vehicle['year']} {a_vehicle['model']}"
+
+            _LOGGER.debug(f"Extracted vehicle names:  {self._vehicle_name}")
+            return await self.async_step_vehicle()
+        else:
+            _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
+            self._vehicles = None
+            return await self.async_step_vin()
+
+    @staticmethod
+    def check_token(token):
         if "fordapp://userauthorized/?code=" in token:
             return True
         return False
@@ -237,7 +362,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&ford_application_id={REGIONS[region_key]['app_id']}&country_code={REGIONS[region_key]['countrycode']}"
         return url
 
-    def base64_url_encode(self, data):
+    @staticmethod
+    def base64_url_encode(data):
         """Encode string to base64"""
         return urlsafe_b64encode(data).rstrip(b'=')
 
@@ -247,10 +373,12 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         hashengine.update(code.encode('utf-8'))
         return self.base64_url_encode(hashengine.digest()).decode('utf-8')
 
-    def validNumber(self, phone_number):
+    @staticmethod
+    def valid_number(phone_number):
         pattern = re.compile(r'^([+]\d{2})?\d{10}$', re.IGNORECASE)
         pattern2 = re.compile(r'^([+]\d{2})?\d{9}$', re.IGNORECASE)
         return pattern.match(phone_number) is not None or pattern2.match(phone_number) is not None
+
 
     async def async_step_vin(self, user_input=None):
         """Handle manual VIN entry"""
@@ -274,6 +402,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         _LOGGER.debug(f"{self.cached_login_input}")
         return self.async_show_form(step_id="vin", data_schema=VIN_SCHEME, errors=errors)
+
 
     async def async_step_vehicle(self, user_input=None):
         if user_input is not None:
@@ -316,17 +445,18 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors={}
         )
 
+
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Handle re-authentication"""
         self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         return await self.async_step_reauth_token()
+
 
     async def async_step_reauth_token(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Dialog that informs the user that reauth is required."""
 
         errors: dict[str, str] = {}
         assert self.entry is not None
-
 
         if user_input is not None:
             try:
@@ -395,7 +525,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        """Get the options flow for this handler."""
+        """Get the options' flow for this handler."""
         return FordPassOptionsFlowHandler(config_entry)
 
 

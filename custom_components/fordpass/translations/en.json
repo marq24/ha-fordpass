@@ -18,6 +18,12 @@
                 "rest_of_europe": "Other European Countries",
                 "rest_of_world": "Rest of the World"
             }
+        },
+        "setup_type": {
+            "options": {
+                "new_account": "Add a new FordPass account or configure a new region",
+                "add_vehicle": "Add a vehicle from an existing FordPass account/region"
+            }
         }
     },
     "config": {
@@ -36,6 +42,20 @@
             "unknown": "Unexpected error"
         },
         "step": {
+            "user": {
+                "title": "Add new FordPass account or vehicle",
+                "description": "Since you have already configured at least one FordPass account, you must first select whether you want to add another vehicle or a new account (or region).",
+                "data": {
+                    "setup_type": "What do you want to do?"
+                }
+            },
+            "select_account": {
+                "title": "Select your FordPass-Account",
+                "description": "Please select the FordPass account from which you want to add another vehicle.",
+                "data": {
+                    "account": "FordPass account"
+                }
+            },
             "token": {
                 "title": "Setup Token",
                 "description": "The Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
@@ -52,7 +72,7 @@
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
                 }
             },
-            "user": {
+            "new_account": {
                 "data": {
                     "password": "FordPass Password",
                     "username": "FordPass Username (Email)",

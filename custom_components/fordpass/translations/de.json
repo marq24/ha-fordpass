@@ -18,6 +18,12 @@
                 "rest_of_europe": "Andere europäische Länder",
                 "rest_of_world": "Rest der Welt"
             }
+        },
+        "setup_type": {
+            "options": {
+                "new_account": "Ein neues FordPass Konto (oder neue Region) hinzufügen",
+                "add_vehicle": "Ein weiteres Fahrzeug aus einem bestehenden FordPass Konto/Region hinzufügen"
+            }
         }
     },
     "config": {
@@ -34,6 +40,20 @@
             "unknown": "Unbekannter Fehler"
         },
         "step": {
+            "user": {
+                "title": "Neues FordPass-Konto oder weiteres Fahrzeug hinzufügen",
+                "description": "Da Du schon mindestens ein FordPass-Konto konfiguriert hast, musst Du zunächst auswählen, ob Du ein weiteres Fahrzeug, oder neues Konto (oder eine neue Region) hinzufügen möchtest",
+                "data": {
+                    "setup_type": "Was möchtest Du tun?"
+                }
+            },
+            "select_account": {
+                "title": "FordPass-Konto auswählen",
+                "description": "Bitte wähle das FordPass-Konto, aus dem Du ein weiteres Fahrzeug hinzufügen möchtest.",
+                "data": {
+                    "account": "FordPass Konto"
+                }
+            },
             "token": {
                 "title": "Zugriffs-Token Einrichtung",
                 "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine FordPass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
@@ -50,17 +70,7 @@
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
                 }
             },
-            "user": {
-                "data": {
-                    "password": "FordPass Password",
-                    "username": "FordPass Benutzername (Email)",
-                    "region" : "FordPass Region"
-                },
-                "data_description": {
-                    "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwenden, gib bitte Deine Nummer (ohne die führede 0) ein, einschließlich + und der Landesvorwahl (z. B. +99123456789).",
-                    "region": "Die Auswirkung der Auswahl der Region ist nicht bekannt, aber es wird empfohlen, die Region zu wählen, in der sich Dein Fahrzeug befindet (wenn diese in der Auswahl verfügbar ist). Wenn Du Dir nicht sicher bist, wähle 'Rest der Welt' aus."
-                }
-            },
+            "add_vehicle": {},
             "vehicle": {
                 "title": "Zum Hinzufügen ein Fahrzeug auswählen",
                 "description": "Es werden nur Fahrzeuge angezeigt, die derzeit nicht hinzugefügt wurden",
