@@ -243,7 +243,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         else:
             # when there is only one account configured, we can directly jump into the vehicle selection
-            parts = next(iter(self._accounts.keys()))  # Get the first account key
+            # Get the first account key and split it to get username and region...
+            parts = next(iter(self._accounts)).split("µ@µ")
             self.username = parts[0]
             self.region_key = parts[1]
             self.cached_login_input = {
