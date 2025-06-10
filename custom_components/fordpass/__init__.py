@@ -4,6 +4,7 @@ import logging
 from datetime import timedelta
 from typing import Final
 
+import aiohttp
 import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -187,6 +188,18 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     return unload_ok
 
+_session_cache = {}
+
+@staticmethod
+def get_cached_session(hass: HomeAssistant, user: str, region_key: str, vli:str) -> aiohttp.ClientSession:
+    """Get a cached aiohttp session for the user & region."""
+    global _session_cache
+    a_key = f"{user}µ@µ{region_key}"
+    if a_key not in _session_cache:
+        _session_cache[a_key] = async_create_clientsession(hass)
+    else:
+        _LOGGER.debug(f"{vli}Using cached aiohttp.ClientSession (so we share cookies) for user: {user}, region: {region_key}")
+    return _session_cache[a_key]
 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
@@ -197,7 +210,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         self.vli = f"[@{self._vin}] "
-        self.bridge = ConnectedFordPassVehicle(async_create_clientsession(hass), user, vin, region_key,
+        self.bridge = ConnectedFordPassVehicle(get_cached_session(hass, user, region_key, self.vli), user, vin, region_key,
                                                coordinator=self, save_token=save_token)
 
         self._available = True
