@@ -1,6 +1,7 @@
 """The FordPass integration."""
 import asyncio
 import logging
+import threading
 from datetime import timedelta
 from typing import Final
 
@@ -52,10 +53,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     user = config_entry.data[CONF_USERNAME]
     vin = config_entry.data[CONF_VIN]
     if UPDATE_INTERVAL in config_entry.options:
-        update_interval = config_entry.options[UPDATE_INTERVAL]
+        update_interval_as_int = config_entry.options[UPDATE_INTERVAL]
     else:
-        update_interval = UPDATE_INTERVAL_DEFAULT
-    _LOGGER.debug(f"[@{vin}] Update interval: {update_interval}")
+        update_interval_as_int = UPDATE_INTERVAL_DEFAULT
+    _LOGGER.debug(f"[@{vin}] Update interval: {update_interval_as_int}")
 
     for config_emtry_data in config_entry.data:
         _LOGGER.debug(f"[@{vin}] config_entry.data: {config_emtry_data}")
@@ -72,7 +73,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # to the new format!
     region_key = check_for_deprecated_region_keys(region_key)
 
-    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key, update_interval, True)
+    coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key, update_interval_as_int=update_interval_as_int, save_token=True)
     await coordinator.bridge._rename_token_file_if_needed(user)
     await coordinator.async_refresh()  # Get initial data
     if not coordinator.last_update_success or coordinator.data is None:
@@ -189,29 +190,32 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     return unload_ok
 
 _session_cache = {}
+_sync_lock = threading.Lock()
 
 @staticmethod
-def get_cached_session(hass: HomeAssistant, user: str, region_key: str, vli:str) -> aiohttp.ClientSession:
+def get_none_closed_cached_session(hass: HomeAssistant, user: str, region_key: str, vli:str) -> aiohttp.ClientSession:
     """Get a cached aiohttp session for the user & region."""
     global _session_cache
     a_key = f"{user}µ@µ{region_key}"
-    if a_key not in _session_cache:
-        _session_cache[a_key] = async_create_clientsession(hass)
-    else:
-        _LOGGER.debug(f"{vli}Using cached aiohttp.ClientSession (so we share cookies) for user: {user}, region: {region_key}")
+    with _sync_lock:
+        if a_key not in _session_cache or _session_cache[a_key].closed:
+            _LOGGER.debug(f"{vli}Create new aiohttp.ClientSession for user: {user}, region: {region_key}")
+            _session_cache[a_key] = async_create_clientsession(hass)
+        else:
+            _LOGGER.debug(f"{vli}Using cached aiohttp.ClientSession (so we share cookies) for user: {user}, region: {region_key}")
     return _session_cache[a_key]
 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry,
-                 user, vin, region_key, update_interval, save_token=False):
+                 user, vin, region_key, update_interval_as_int:int, save_token=False):
         """Initialize the coordinator and set up the Vehicle object."""
         self._config_entry = config_entry
         self._vin = vin
         self.vli = f"[@{self._vin}] "
-        self.bridge = ConnectedFordPassVehicle(get_cached_session(hass, user, region_key, self.vli), user, vin, region_key,
-                                               coordinator=self, save_token=save_token)
+        self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, user, region_key, self.vli),
+                                               user, vin, region_key, coordinator=self, save_token=save_token)
 
         self._available = True
         self._reauth_requested = False
@@ -247,7 +251,13 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._watchdog = None
         self._a_task = None
         self._force_classic_requests = False
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval))
+        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval_as_int))
+
+    async def get_new_client_session(self, user: str, region_key: str) -> aiohttp.ClientSession:
+        """Get a new aiohttp ClientSession for the user and region."""
+        if self.hass is None:
+            raise ValueError(f"{self.vli}Home Assistant instance is not available")
+        return get_none_closed_cached_session(self.hass, user, region_key, self.vli)
 
     async def start_watchdog(self, event=None):
         """Start websocket watchdog."""

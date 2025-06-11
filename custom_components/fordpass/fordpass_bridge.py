@@ -87,7 +87,7 @@ class ConnectedFordPassVehicle:
     _ws_debounced_full_refresh_task: asyncio.Task | None = None
 
     # when you have multiple vehicles, you need to set the vehicle log id
-    # (v)ehicle (l)og (i)d 
+    # (v)ehicle (l)og (i)d
     vli: str = ""
 
     def __init__(self, web_session, username, vin, region_key,
@@ -100,6 +100,7 @@ class ConnectedFordPassVehicle:
             sock_read=120   # Socket read timeout
         )
         self.username = username
+        self.region_key = region_key
         self.save_token = save_token
         self.app_id = REGIONS[region_key]["app_id"]
         self.locale_code = REGIONS[region_key]["locale"]
@@ -149,6 +150,17 @@ class ConnectedFordPassVehicle:
     def clear_data(self):
         self._cached_vehicles_data = {}
         self._data_container = {}
+
+    async def __check_for_closed_session(self, e:BaseException):
+       if isinstance(e, RuntimeError) and self.session is not None and self.session.closed:
+            _LOGGER.debug(f"{self.vli}__check_for_closed_session: RuntimeError - session is closed - trying to create a new session")
+            # this might look a bit strange - but I don't want to pass the hass object down to the vehicle object...
+            if self.coordinator is not None:
+                new_session = await self.coordinator.get_new_client_session(user=self.username, region_key=self.region_key)
+                if new_session is not None and not new_session.closed:
+                    self.session = new_session
+                else:
+                    _LOGGER.info(f"{self.vli}__check_for_closed_session: session is closed - but no new session could be created!")
 
     async def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"{self.vli}generate_tokens() for country_code: {self.locale_code}")
@@ -396,6 +408,7 @@ class ConnectedFordPassVehicle:
                     return ERROR
 
             except BaseException as e:
+                await self.__check_for_closed_session(e)
                 _LOGGER.warning(f"{self.vli}Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
                 self._HAS_COM_ERROR = True
                 return ERROR
@@ -487,6 +500,7 @@ class ConnectedFordPassVehicle:
                     return ERROR
 
             except BaseException as e:
+                await self.__check_for_closed_session(e)
                 _LOGGER.warning(f"{self.vli}Error while '_request_auto_token' for vehicle {self.vin} - {type(e)} - {e}")
                 self._HAS_COM_ERROR = True
                 return ERROR
@@ -1029,6 +1043,7 @@ class ConnectedFordPassVehicle:
                 return None
 
         except BaseException as e:
+            await self.__check_for_closed_session(e)
             _LOGGER.warning(f"{self.vli}Error while fetching status for vehicle {self.vin} - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
@@ -1076,6 +1091,7 @@ class ConnectedFordPassVehicle:
                 return None
 
         except BaseException as e:
+            await self.__check_for_closed_session(e)
             _LOGGER.warning(f"{self.vli}Error while fetching message for vehicle {self.vin} - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
@@ -1143,6 +1159,7 @@ class ConnectedFordPassVehicle:
                 return None
 
         except BaseException as e:
+            await self.__check_for_closed_session(e)
             _LOGGER.warning(f"{self.vli}Error while fetching vehicle - {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return None
@@ -1360,6 +1377,7 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected, properties=properties)
 
         except BaseException as e:
+            await self.__check_for_closed_session(e)
             _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return False
@@ -1405,6 +1423,7 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected)
 
         except BaseException as e:
+            await self.__check_for_closed_session(e)
             _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
             self._HAS_COM_ERROR = True
             return False
@@ -1436,6 +1455,7 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=r, req_command=url_command, use_websocket=self.ws_connected)
 
         except BaseException as e:
+            await self.__check_for_closed_session(e)
             _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
             self._HAS_COM_ERROR = True
             return False
@@ -1542,6 +1562,7 @@ class ConnectedFordPassVehicle:
             _LOGGER.info(f"{self.vli}__check_command_status(): CHECK for '{req_command}' unsuccessful after 15 attempts")
 
         except BaseException as exc:
+            await self.__check_for_closed_session(exc)
             _LOGGER.warning(f"{self.vli}__check_command_status(): Error during status checking - {type(exc)} - {exc}")
 
         if not use_websocket:
