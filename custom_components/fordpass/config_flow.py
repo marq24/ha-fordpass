@@ -114,7 +114,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None, save_token=True)
+        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None)
         results = await vehicle.generate_tokens(token, code_verifier)
 
         if results:
@@ -131,7 +131,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        con = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None, save_token=True)
+        con = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None)
         results = await con.generate_tokens(token, code_verifier)
 
         if not results:
@@ -145,7 +145,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None, save_token=True)
+        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None)
         _LOGGER.debug(f"get_vehicles_from_existing_account(): request Vehicles")
         vehicles = await vehicle.vehicles()
         _LOGGER.debug(f"get_vehicles_from_existing_account(): got Vehicles -> {vehicles}")
@@ -159,7 +159,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        con = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION], coordinator=None, save_token=True)
+        con = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION], coordinator=None)
         test = await con.get_status()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
         if test and test.status_code == 200:

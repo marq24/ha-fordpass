@@ -214,8 +214,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         self.vli = f"[@{self._vin}] "
-        self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, user, region_key, self.vli),
-                                               user, vin, region_key, coordinator=self, save_token=save_token)
+        self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, user, region_key, self.vli), user,
+                                               vin, region_key, coordinator=self)
 
         self._available = True
         self._reauth_requested = False

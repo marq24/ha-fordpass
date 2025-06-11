@@ -68,10 +68,9 @@ ERROR: Final = "ERROR"
 _FOUR_NULL_ONE_COUNTER: dict = {}
 _AUTO_FOUR_NULL_ONE_COUNTER: dict = {}
 
-_sync_lock_cache = {}
 _sync_lock = threading.Lock()
+_sync_lock_cache = {}
 
-@staticmethod
 def get_sync_lock_for_user_and_region(user: str, region_key: str, vli:str) -> threading.Lock:
     """Get a cached threading.Lock for the user and region."""
     global _sync_lock_cache
@@ -107,9 +106,11 @@ class ConnectedFordPassVehicle:
     # when you have multiple vehicles, you need to set the vehicle log id
     # (v)ehicle (l)og (i)d
     vli: str = ""
+    username: Final[str]
+    region_key: Final[str]
+    accout_key: Final[str]
 
-    def __init__(self, web_session, username, vin, region_key,
-                 coordinator: DataUpdateCoordinator = None, save_token=False, tokens_location=None):
+    def __init__(self, web_session, username, vin, region_key, coordinator: DataUpdateCoordinator=None, tokens_location=None):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
             total=45,      # Total request timeout
@@ -119,7 +120,7 @@ class ConnectedFordPassVehicle:
         )
         self.username = username
         self.region_key = region_key
-        self.save_token = save_token
+        self.account_key = f"{username}µ@µ{region_key}"
         self.app_id = REGIONS[region_key]["app_id"]
         self.locale_code = REGIONS[region_key]["locale"]
         self.countrycode = REGIONS[region_key]["countrycode"]
@@ -128,13 +129,15 @@ class ConnectedFordPassVehicle:
 
         self._HAS_COM_ERROR = False
         global _FOUR_NULL_ONE_COUNTER
-        _FOUR_NULL_ONE_COUNTER[self.username] = 0
+        if self.account_key not in _FOUR_NULL_ONE_COUNTER:
+            _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
         self.access_token = None
         self.refresh_token = None
         self.expires_at = None
 
         global _AUTO_FOUR_NULL_ONE_COUNTER
-        _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
+        if self.account_key not in _AUTO_FOUR_NULL_ONE_COUNTER:
+            _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] = 0
         self.auto_access_token = None
         self.auto_refresh_token = None
         self.auto_expires_at = None
@@ -233,8 +236,7 @@ class ConnectedFordPassVehicle:
             del final_access_token["refresh_expires_in"]
 
         _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
-        if self.save_token:
-            await self._write_token_to_storage(final_access_token)
+        await self._write_token_to_storage(final_access_token)
 
         return True
 
@@ -251,85 +253,79 @@ class ConnectedFordPassVehicle:
 
     async def __ensure_valid_tokens(self, now_time:float=None):
         # Fetch and refresh token as needed
-        with get_sync_lock_for_user_and_region(self.username, self.region_key, self.vli):
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
-            self._HAS_COM_ERROR = False
-            # If a file exists, read in the token file and check it's valid
-            if self.save_token:
-                # do not access every time the file system - since we are the only one
-                # using the vehicle object, we can keep the token in memory (and
-                # invalidate it if needed)
-                if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
-                    prev_token_data = await self._read_token_from_storage()
-                    if prev_token_data is None:
-                        # no token data could be read!
-                        _LOGGER.info(f"{self.vli}__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
-                        return
+        # with get_sync_lock_for_user_and_region(self.username, self.region_key, self.vli):
 
-                    self.use_token_data_from_memory = True
-                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
+        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
+        self._HAS_COM_ERROR = False
+        # If a file exists, read in the token file and check it's valid
 
-                    self.access_token = prev_token_data["access_token"]
-                    self.refresh_token = prev_token_data["refresh_token"]
-                    self.expires_at = prev_token_data["expiry_date"]
+        # do not access every time the file system - since we are the only one
+        # using the vehicle object, we can keep the token in memory (and
+        # invalidate it if needed)
+        if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
+            prev_token_data = await self._read_token_from_storage()
+            if prev_token_data is None:
+                # no token data could be read!
+                _LOGGER.info(f"{self.vli}__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
+                return
 
-                    if "auto_token" in prev_token_data and "auto_refresh_token" in prev_token_data and "auto_expiry_date" in prev_token_data:
-                        self.auto_access_token = prev_token_data["auto_token"]
-                        self.auto_refresh_token = prev_token_data["auto_refresh_token"]
-                        self.auto_expires_at = prev_token_data["auto_expiry_date"]
-                    else:
-                        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token not set (or incomplete) in file")
-                        self.auto_access_token = None
-                        self.auto_refresh_token = None
-                        self.auto_expires_at = None
-                else:
-                    # we will use the token data from memory...
-                    prev_token_data = {"access_token": self.access_token,
-                                       "refresh_token": self.refresh_token,
-                                       "expiry_date": self.expires_at,
-                                       "auto_token": self.auto_access_token,
-                                       "auto_refresh_token": self.auto_refresh_token,
-                                       "auto_expiry_date": self.auto_expires_at}
+            self.use_token_data_from_memory = True
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
+
+            self.access_token = prev_token_data["access_token"]
+            self.refresh_token = prev_token_data["refresh_token"]
+            self.expires_at = prev_token_data["expiry_date"]
+
+            if "auto_token" in prev_token_data and "auto_refresh_token" in prev_token_data and "auto_expiry_date" in prev_token_data:
+                self.auto_access_token = prev_token_data["auto_token"]
+                self.auto_refresh_token = prev_token_data["auto_refresh_token"]
+                self.auto_expires_at = prev_token_data["auto_expiry_date"]
             else:
-                prev_token_data = {"access_token": self.access_token,
-                                   "refresh_token": self.refresh_token,
-                                   "expiry_date": self.expires_at,
-                                   "auto_token": self.auto_access_token,
-                                   "auto_refresh_token": self.auto_refresh_token,
-                                   "auto_expiry_date": self.auto_expires_at}
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token not set (or incomplete) in file")
+                self.auto_access_token = None
+                self.auto_refresh_token = None
+                self.auto_expires_at = None
+        else:
+            # we will use the token data from memory...
+            prev_token_data = {"access_token": self.access_token,
+                               "refresh_token": self.refresh_token,
+                               "expiry_date": self.expires_at,
+                               "auto_token": self.auto_access_token,
+                               "auto_refresh_token": self.auto_refresh_token,
+                               "auto_expiry_date": self.auto_expires_at}
 
-            # checking token data (and refreshing if needed)
-            if now_time is None:
-                now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
+        # checking token data (and refreshing if needed)
+        if now_time is None:
+            now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
 
-            if self.expires_at and now_time > self.expires_at:
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
-                refreshed_token = await self.refresh_token_func(prev_token_data)
-                if self._HAS_COM_ERROR:
-                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
-                else:
-                    if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
-                        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
-                        await self.refresh_auto_token_func(refreshed_token)
-                    else:
-                        _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: result for new token: ERROR, None or False")
-
-            if self.auto_access_token is None or self.auto_expires_at is None:
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
-                await self.refresh_auto_token_func(prev_token_data)
-
-            if self.auto_expires_at and now_time > self.auto_expires_at:
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
-                await self.refresh_auto_token_func(prev_token_data)
-
-            # it could be that there has been 'exceptions' when trying to update the tokens
+        if self.expires_at and now_time > self.expires_at:
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
+            refreshed_token = await self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
-                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: COMM ERROR")
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
             else:
-                if self.access_token is None:
-                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
+                if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+                    await self.refresh_auto_token_func(refreshed_token)
                 else:
-                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: Tokens are valid")
+                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: result for new token: ERROR, None or False")
+
+        if self.auto_access_token is None or self.auto_expires_at is None:
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+            await self.refresh_auto_token_func(prev_token_data)
+
+        if self.auto_expires_at and now_time > self.auto_expires_at:
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
+            await self.refresh_auto_token_func(prev_token_data)
+
+        # it could be that there has been 'exceptions' when trying to update the tokens
+        if self._HAS_COM_ERROR:
+            _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: COMM ERROR")
+        else:
+            if self.access_token is None:
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
+            else:
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: Tokens are valid")
 
     async def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
@@ -362,8 +358,7 @@ class ConnectedFordPassVehicle:
                 token_data["refresh_expiry_date"] = time.time() + token_data["refresh_expires_in"]
                 del token_data["refresh_expires_in"]
 
-            if self.save_token:
-                await self._write_token_to_storage(token_data)
+            await self._write_token_to_storage(token_data)
 
             self.access_token = token_data["access_token"]
             self.refresh_token = token_data["refresh_token"]
@@ -378,7 +373,7 @@ class ConnectedFordPassVehicle:
             return ERROR
         else:
             try:
-                _LOGGER.debug(f"{self.vli}_request_token() - {_FOUR_NULL_ONE_COUNTER[self.username]}")
+                _LOGGER.debug(f"{self.vli}_request_token() - {_FOUR_NULL_ONE_COUNTER[self.account_key]}")
 
                 headers = {
                     **apiHeaders,
@@ -396,13 +391,13 @@ class ConnectedFordPassVehicle:
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    _FOUR_NULL_ONE_COUNTER[self.username] = 0
+                    _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
                     result = await response.json()
                     _LOGGER.debug(f"{self.vli}_request_token: status OK")
                     return result
                 elif response.status == 401 or response.status == 400:
-                    _FOUR_NULL_ONE_COUNTER[self.username] += 1
-                    if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
+                    _FOUR_NULL_ONE_COUNTER[self.account_key] += 1
+                    if _FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"{self.vli}_request_token: status_code: {response.status} - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
@@ -417,7 +412,7 @@ class ConnectedFordPassVehicle:
                                     is_invalid_msg = True
                             if is_invalid_msg or ("errorCode" in msg and msg["errorCode"] == "460"):
                                 _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
-                                _FOUR_NULL_ONE_COUNTER[self.username] = MAX_401_RESPONSE_COUNT + 1
+                                _FOUR_NULL_ONE_COUNTER[self.account_key] = MAX_401_RESPONSE_COUNT + 1
                         except BaseException as e:
                             _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
 
@@ -459,12 +454,11 @@ class ConnectedFordPassVehicle:
                 auto_token["refresh_expiry_date"] = time.time() + auto_token["refresh_expires_in"]
                 del auto_token["refresh_expires_in"]
 
-            if self.save_token:
-                cur_token_data["auto_token"] = auto_token["access_token"]
-                cur_token_data["auto_refresh_token"] = auto_token["refresh_token"]
-                cur_token_data["auto_expiry_date"] = auto_token["expiry_date"]
+            cur_token_data["auto_token"] = auto_token["access_token"]
+            cur_token_data["auto_refresh_token"] = auto_token["refresh_token"]
+            cur_token_data["auto_expiry_date"] = auto_token["expiry_date"]
 
-                await self._write_token_to_storage(cur_token_data)
+            await self._write_token_to_storage(cur_token_data)
 
             # finally, setting our internal values...
             self.auto_access_token = auto_token["access_token"]
@@ -503,14 +497,14 @@ class ConnectedFordPassVehicle:
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
+                    _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] = 0
 
                     result = await response.json()
                     _LOGGER.debug(f"{self.vli}_request_auto_token: status OK")
                     return result
                 elif response.status == 401:
-                    _AUTO_FOUR_NULL_ONE_COUNTER[self.username] += 1
-                    if _AUTO_FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
+                    _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] += 1
+                    if _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"{self.vli}_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
@@ -909,13 +903,6 @@ class ConnectedFordPassVehicle:
             else:
                 _LOGGER.info(f"{self.vli}_ws_check_for_auth_token_refresh(): 'self.auto_access_token' is None (might be cause of 401 error), we will close the websocket connection and wait for the watchdog to reconnect")
                 await self.ws_close(ws)
-                # if self.save_token:
-                #     stored_token = await self._read_token_from_storage()
-                #     if stored_token is not None and "auto_token" in stored_token:
-                #         self.auto_access_token = stored_token["auto_token"]
-                #         self.auto_refresh_token = stored_token["auto_refresh_token"]
-                #         self.auto_expires_at = stored_token["auto_expiry_date"]
-                #         _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token re-read from storage")
 
         except BaseException as e:
             _LOGGER.error(f"{self.vli}_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
@@ -1047,15 +1034,15 @@ class ConnectedFordPassVehicle:
 
             if response_state.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                _AUTO_FOUR_NULL_ONE_COUNTER[self.username] = 0
+                _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] = 0
 
                 result_state = await response_state.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"{self.vli}status: JSON: {result_state}")
                 return result_state
             elif response_state.status == 401:
-                _AUTO_FOUR_NULL_ONE_COUNTER[self.username] += 1
-                if _AUTO_FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
+                _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] += 1
+                if _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"{self.vli}status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
@@ -1095,7 +1082,7 @@ class ConnectedFordPassVehicle:
             response_msg = await self.session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                _FOUR_NULL_ONE_COUNTER[self.username] = 0
+                _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
 
                 result_msg = await response_msg.json()
                 if LOG_DATA:
@@ -1104,8 +1091,8 @@ class ConnectedFordPassVehicle:
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
             elif response_msg.status == 401:
-                _FOUR_NULL_ONE_COUNTER[self.username] += 1
-                if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
+                _FOUR_NULL_ONE_COUNTER[self.account_key] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"{self.vli}messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
@@ -1155,7 +1142,7 @@ class ConnectedFordPassVehicle:
             )
             if response_veh.status == 207 or response_veh.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                _FOUR_NULL_ONE_COUNTER[self.username] = 0
+                _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
 
                 result_veh = await response_veh.json()
                 if LOG_DATA:
@@ -1174,8 +1161,8 @@ class ConnectedFordPassVehicle:
                 return result_veh
 
             elif response_veh.status == 401:
-                _FOUR_NULL_ONE_COUNTER[self.username] += 1
-                if _FOUR_NULL_ONE_COUNTER[self.username] > MAX_401_RESPONSE_COUNT:
+                _FOUR_NULL_ONE_COUNTER[self.account_key] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"{self.vli}vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
