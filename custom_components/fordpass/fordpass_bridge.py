@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import random
+import threading
 import time
 import traceback
 from asyncio import CancelledError
@@ -66,6 +67,23 @@ ERROR: Final = "ERROR"
 # we need global variables to keep track of the number of 401 responses per user account(=token file)
 _FOUR_NULL_ONE_COUNTER: dict = {}
 _AUTO_FOUR_NULL_ONE_COUNTER: dict = {}
+
+_sync_lock_cache = {}
+_sync_lock = threading.Lock()
+
+@staticmethod
+def get_sync_lock_for_user_and_region(user: str, region_key: str, vli:str) -> threading.Lock:
+    """Get a cached threading.Lock for the user and region."""
+    global _sync_lock_cache
+    a_key = f"{user}µ@µ{region_key}"
+    with _sync_lock:
+        if a_key not in _sync_lock_cache:
+            _LOGGER.debug(f"{vli}Create new threading.Lock for user: {user}, region: {region_key}")
+            _sync_lock_cache[a_key] = threading.Lock()
+        else:
+            pass
+            #_LOGGER.debug(f"{vli}Using cached threading.Lock for user: {user}, region: {region_key}")
+    return _sync_lock_cache[a_key]
 
 class ConnectedFordPassVehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
@@ -152,15 +170,18 @@ class ConnectedFordPassVehicle:
         self._data_container = {}
 
     async def __check_for_closed_session(self, e:BaseException):
-       if isinstance(e, RuntimeError) and self.session is not None and self.session.closed:
-            _LOGGER.debug(f"{self.vli}__check_for_closed_session: RuntimeError - session is closed - trying to create a new session")
+        if isinstance(e, RuntimeError) and self.session is not None and self.session.closed:
+            self.ws_connected = False
+            _LOGGER.debug(f"{self.vli}__check_for_closed_session(): RuntimeError - session is closed - trying to create a new session")
             # this might look a bit strange - but I don't want to pass the hass object down to the vehicle object...
             if self.coordinator is not None:
                 new_session = await self.coordinator.get_new_client_session(user=self.username, region_key=self.region_key)
                 if new_session is not None and not new_session.closed:
                     self.session = new_session
+                    return True
                 else:
-                    _LOGGER.info(f"{self.vli}__check_for_closed_session: session is closed - but no new session could be created!")
+                    _LOGGER.info(f"{self.vli}__check_for_closed_session(): session is closed - but no new session could be created!")
+        return False
 
     async def generate_tokens(self, urlstring, code_verifier):
         _LOGGER.debug(f"{self.vli}generate_tokens() for country_code: {self.locale_code}")
@@ -230,84 +251,85 @@ class ConnectedFordPassVehicle:
 
     async def __ensure_valid_tokens(self, now_time:float=None):
         # Fetch and refresh token as needed
-        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
-        self._HAS_COM_ERROR = False
-        # If a file exists, read in the token file and check it's valid
-        if self.save_token:
-            # do not access every time the file system - since we are the only one
-            # using the vehicle object, we can keep the token in memory (and
-            # invalidate it if needed)
-            if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
-                prev_token_data = await self._read_token_from_storage()
-                if prev_token_data is None:
-                    # no token data could be read!
-                    _LOGGER.info(f"{self.vli}__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
-                    return
+        with get_sync_lock_for_user_and_region(self.username, self.region_key, self.vli):
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
+            self._HAS_COM_ERROR = False
+            # If a file exists, read in the token file and check it's valid
+            if self.save_token:
+                # do not access every time the file system - since we are the only one
+                # using the vehicle object, we can keep the token in memory (and
+                # invalidate it if needed)
+                if (not self.use_token_data_from_memory) and os.path.isfile(self.stored_tokens_location):
+                    prev_token_data = await self._read_token_from_storage()
+                    if prev_token_data is None:
+                        # no token data could be read!
+                        _LOGGER.info(f"{self.vli}__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
+                        return
 
-                self.use_token_data_from_memory = True
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
+                    self.use_token_data_from_memory = True
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
 
-                self.access_token = prev_token_data["access_token"]
-                self.refresh_token = prev_token_data["refresh_token"]
-                self.expires_at = prev_token_data["expiry_date"]
+                    self.access_token = prev_token_data["access_token"]
+                    self.refresh_token = prev_token_data["refresh_token"]
+                    self.expires_at = prev_token_data["expiry_date"]
 
-                if "auto_token" in prev_token_data and "auto_refresh_token" in prev_token_data and "auto_expiry_date" in prev_token_data:
-                    self.auto_access_token = prev_token_data["auto_token"]
-                    self.auto_refresh_token = prev_token_data["auto_refresh_token"]
-                    self.auto_expires_at = prev_token_data["auto_expiry_date"]
+                    if "auto_token" in prev_token_data and "auto_refresh_token" in prev_token_data and "auto_expiry_date" in prev_token_data:
+                        self.auto_access_token = prev_token_data["auto_token"]
+                        self.auto_refresh_token = prev_token_data["auto_refresh_token"]
+                        self.auto_expires_at = prev_token_data["auto_expiry_date"]
+                    else:
+                        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token not set (or incomplete) in file")
+                        self.auto_access_token = None
+                        self.auto_refresh_token = None
+                        self.auto_expires_at = None
                 else:
-                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token not set (or incomplete) in file")
-                    self.auto_access_token = None
-                    self.auto_refresh_token = None
-                    self.auto_expires_at = None
+                    # we will use the token data from memory...
+                    prev_token_data = {"access_token": self.access_token,
+                                       "refresh_token": self.refresh_token,
+                                       "expiry_date": self.expires_at,
+                                       "auto_token": self.auto_access_token,
+                                       "auto_refresh_token": self.auto_refresh_token,
+                                       "auto_expiry_date": self.auto_expires_at}
             else:
-                # we will use the token data from memory...
                 prev_token_data = {"access_token": self.access_token,
                                    "refresh_token": self.refresh_token,
                                    "expiry_date": self.expires_at,
                                    "auto_token": self.auto_access_token,
                                    "auto_refresh_token": self.auto_refresh_token,
                                    "auto_expiry_date": self.auto_expires_at}
-        else:
-            prev_token_data = {"access_token": self.access_token,
-                               "refresh_token": self.refresh_token,
-                               "expiry_date": self.expires_at,
-                               "auto_token": self.auto_access_token,
-                               "auto_refresh_token": self.auto_refresh_token,
-                               "auto_expiry_date": self.auto_expires_at}
 
-        # checking token data (and refreshing if needed)
-        if now_time is None:
-            now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
+            # checking token data (and refreshing if needed)
+            if now_time is None:
+                now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
 
-        if self.expires_at and now_time > self.expires_at:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
-            refreshed_token = await self.refresh_token_func(prev_token_data)
-            if self._HAS_COM_ERROR:
-                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
-            else:
-                if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
-                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
-                    await self.refresh_auto_token_func(refreshed_token)
+            if self.expires_at and now_time > self.expires_at:
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
+                refreshed_token = await self.refresh_token_func(prev_token_data)
+                if self._HAS_COM_ERROR:
+                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
                 else:
-                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: result for new token: ERROR, None or False")
+                    if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
+                        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+                        await self.refresh_auto_token_func(refreshed_token)
+                    else:
+                        _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: result for new token: ERROR, None or False")
 
-        if self.auto_access_token is None or self.auto_expires_at is None:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
-            await self.refresh_auto_token_func(prev_token_data)
+            if self.auto_access_token is None or self.auto_expires_at is None:
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+                await self.refresh_auto_token_func(prev_token_data)
 
-        if self.auto_expires_at and now_time > self.auto_expires_at:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
-            await self.refresh_auto_token_func(prev_token_data)
+            if self.auto_expires_at and now_time > self.auto_expires_at:
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
+                await self.refresh_auto_token_func(prev_token_data)
 
-        # it could be that there has been 'exceptions' when trying to update the tokens
-        if self._HAS_COM_ERROR:
-            _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: COMM ERROR")
-        else:
-            if self.access_token is None:
-                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
+            # it could be that there has been 'exceptions' when trying to update the tokens
+            if self._HAS_COM_ERROR:
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: COMM ERROR")
             else:
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: Tokens are valid")
+                if self.access_token is None:
+                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
+                else:
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: Tokens are valid")
 
     async def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
@@ -408,8 +430,10 @@ class ConnectedFordPassVehicle:
                     return ERROR
 
             except BaseException as e:
-                await self.__check_for_closed_session(e)
-                _LOGGER.warning(f"{self.vli}Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                if not await self.__check_for_closed_session(e):
+                    _LOGGER.warning(f"{self.vli}_request_token(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                else:
+                    _LOGGER.info(f"{self.vli}_request_token(): RuntimeError - Session was closed occurred - but a new Session could be generated")
                 self._HAS_COM_ERROR = True
                 return ERROR
 
@@ -500,8 +524,10 @@ class ConnectedFordPassVehicle:
                     return ERROR
 
             except BaseException as e:
-                await self.__check_for_closed_session(e)
-                _LOGGER.warning(f"{self.vli}Error while '_request_auto_token' for vehicle {self.vin} - {type(e)} - {e}")
+                if not await self.__check_for_closed_session(e):
+                    _LOGGER.warning(f"{self.vli}_request_auto_token(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                else:
+                    _LOGGER.info(f"{self.vli}_request_auto_token(): RuntimeError - Session was closed occurred - but a new Session could be generated")
                 self._HAS_COM_ERROR = True
                 return ERROR
 
@@ -1043,8 +1069,10 @@ class ConnectedFordPassVehicle:
                 return None
 
         except BaseException as e:
-            await self.__check_for_closed_session(e)
-            _LOGGER.warning(f"{self.vli}Error while fetching status for vehicle {self.vin} - {type(e)} - {e}")
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}status(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
@@ -1091,8 +1119,10 @@ class ConnectedFordPassVehicle:
                 return None
 
         except BaseException as e:
-            await self.__check_for_closed_session(e)
-            _LOGGER.warning(f"{self.vli}Error while fetching message for vehicle {self.vin} - {type(e)} - {e}")
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}messages(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
@@ -1159,8 +1189,10 @@ class ConnectedFordPassVehicle:
                 return None
 
         except BaseException as e:
-            await self.__check_for_closed_session(e)
-            _LOGGER.warning(f"{self.vli}Error while fetching vehicle - {type(e)} - {e}")
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}vehicles(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}vehicles(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
@@ -1377,8 +1409,11 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected, properties=properties)
 
         except BaseException as e:
-            await self.__check_for_closed_session(e)
-            _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}RuntimeError while '__request_and_poll_command_autonomic' - Session was closed occurred - but a new Session could be generated")
+
             self._HAS_COM_ERROR = True
             return False
 
@@ -1423,8 +1458,11 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected)
 
         except BaseException as e:
-            await self.__check_for_closed_session(e)
-            _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}RuntimeError while '__request_and_poll_command_ford' - Session was closed occurred - but a new Session could be generated")
+
             self._HAS_COM_ERROR = True
             return False
 
@@ -1455,8 +1493,11 @@ class ConnectedFordPassVehicle:
             return await self.__check_command_status(req=r, req_command=url_command, use_websocket=self.ws_connected)
 
         except BaseException as e:
-            await self.__check_for_closed_session(e)
-            _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_url_command' for vehicle '{self.vin}' command: '{url_command}' -> {e}")
+            else:
+                _LOGGER.info(f"{self.vli}RuntimeError while '__request_and_poll_url_command' - Session was closed occurred - but a new Session could be generated")
+
             self._HAS_COM_ERROR = True
             return False
 
@@ -1464,7 +1505,7 @@ class ConnectedFordPassVehicle:
         _LOGGER.debug(f"{self.vli}__check_command_status: Testing command status: {req.status} (check by {'WebSocket' if use_websocket else 'polling'})")
 
         if not (200 <= req.status <= 205):
-            if req.status in (401, 403):
+            if req.status in (401, 402, 403, 404, 405):
                 _LOGGER.info(f"{self.vli}__check_command_status(): '{req_command}' props:'{properties}' returned '{req.status}' status code - wtf!")
             else:
                 _LOGGER.warning(f"{self.vli}__check_command_status(): '{req_command}' props:'{properties}' returned unknown status code: {req.status}!")
@@ -1562,8 +1603,10 @@ class ConnectedFordPassVehicle:
             _LOGGER.info(f"{self.vli}__check_command_status(): CHECK for '{req_command}' unsuccessful after 15 attempts")
 
         except BaseException as exc:
-            await self.__check_for_closed_session(exc)
-            _LOGGER.warning(f"{self.vli}__check_command_status(): Error during status checking - {type(exc)} - {exc}")
+            if not await self.__check_for_closed_session(exc):
+                _LOGGER.warning(f"{self.vli}__check_command_status(): Error during status checking - {type(exc)} - {exc}")
+            else:
+                _LOGGER.info(f"{self.vli}__check_command_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
 
         if not use_websocket:
             self.status_updates_allowed = True
