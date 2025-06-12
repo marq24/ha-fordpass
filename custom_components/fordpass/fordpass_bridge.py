@@ -59,6 +59,7 @@ AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
 AUTONOMIC_WS_URL: Final = "wss://api.autonomic.ai/v1beta"
 AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 FORD_LOGIN_URL: Final = "https://login.ford.com"
+FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
 
@@ -220,7 +221,7 @@ class ConnectedFordPassVehicle:
         headers = {**apiHeaders, "Application-Id": self.app_id}
         data = {"idpToken": token["access_token"]}
         response = await self.session.post(
-            f"{GUARD_URL}/token/v2/cat-with-b2c-access-token",
+            f"{FORD_FOUNDATIONAL_API}/token/v2/cat-with-b2c-access-token",
             data=json.dumps(data),
             headers=headers,
             ssl=True
@@ -384,7 +385,7 @@ class ConnectedFordPassVehicle:
                     "refresh_token": prev_token_data["refresh_token"]
                 }
                 response = await self.session.post(
-                    f"{GUARD_URL}/token/v2/cat-with-refresh-token",
+                    f"{FORD_FOUNDATIONAL_API}/token/v2/cat-with-refresh-token",
                     data=json.dumps(data),
                     headers=headers,
                     timeout=self.timeout
@@ -421,7 +422,7 @@ class ConnectedFordPassVehicle:
                         await asyncio.sleep(5)
                     return False
                 else:
-                    _LOGGER.info(f"{self.vli}_request_token: status_code: {response.status} - Received response: {await response.text()}")
+                    _LOGGER.info(f"{self.vli}_request_token: status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
@@ -514,7 +515,7 @@ class ConnectedFordPassVehicle:
 
                     return False
                 else:
-                    _LOGGER.info(f"{self.vli}_request_auto_token: status_code: {response.status} - Received response: {await response.text()}")
+                    _LOGGER.info(f"{self.vli}_request_auto_token: status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
@@ -913,7 +914,8 @@ class ConnectedFordPassVehicle:
         if self.coordinator is not None:
             update_interval = int(self.coordinator.update_interval.total_seconds())
 
-        to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 15 * 60)
+        # only request every 20 minutes for new messages...
+        to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 20 * 60)
         if to_wait_till < time.time():
             _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
             # we need to update the messages...
@@ -921,6 +923,12 @@ class ConnectedFordPassVehicle:
             if msg_data is not None:
                 self._data_container[ROOT_MESSAGES] = msg_data
                 self._ws_notify_for_new_data()
+            elif self._HAS_COM_ERROR:
+                # we have some communication issues when try to read messages - as long as the
+                # websocket is connected, we should not panic...
+                # we will still update the last messages update time... so that we don't hammer
+                # the backend with requests...
+                self._LAST_MESSAGES_UPDATE = time.time()
         else:
             _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
 
@@ -1052,7 +1060,7 @@ class ConnectedFordPassVehicle:
 
                 return None
             else:
-                _LOGGER.info(f"{self.vli}status: status_code : {response_state.status} - Received response: {await response_state.text()}")
+                _LOGGER.info(f"{self.vli}status: status_code : {response_state.status} - {response_state.real_url} - Received response: {await response_state.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -1080,7 +1088,7 @@ class ConnectedFordPassVehicle:
                 "auth-token": self.access_token,
                 "Application-Id": self.app_id,
             }
-            response_msg = await self.session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
+            response_msg = await self.session.get(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1102,7 +1110,7 @@ class ConnectedFordPassVehicle:
 
                 return None
             else:
-                _LOGGER.info(f"{self.vli}messages: status_code: {response_msg.status} - Received response: {await response_msg.text()}")
+                _LOGGER.info(f"{self.vli}messages: status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -1136,7 +1144,7 @@ class ConnectedFordPassVehicle:
                 "dashboardRefreshRequest": "All"
             }
             response_veh = await self.session.post(
-                f"{GUARD_URL}/expdashboard/v1/details/",
+                f"{FORD_VEHICLE_API}/expdashboard/v1/details/",
                 headers=headers_veh,
                 data=json.dumps(data_veh),
                 timeout=self.timeout
@@ -1172,7 +1180,7 @@ class ConnectedFordPassVehicle:
 
                 return None
             else:
-                _LOGGER.info(f"{self.vli}vehicles: status_code: {response_veh.status} - Received response: {await response_veh.text()}")
+                _LOGGER.info(f"{self.vli}vehicles: status_code: {response_veh.status} - {response_veh.real_url} - Received response: {await response_veh.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
@@ -1425,9 +1433,9 @@ class ConnectedFordPassVehicle:
 
             command_url_part = None
             if command == "cancelGlobalCharge":
-                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/CANCEL"
+                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/PAUSE"
             elif command == "startGlobalCharge":
-                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/START"
+                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/CANCEL"
 
             if command_url_part is None:
                 _LOGGER.warning(f"{self.vli}__request_and_poll_command_ford() - command '{command}' is not supported by the integration")
@@ -1474,7 +1482,7 @@ class ConnectedFordPassVehicle:
 
             # URL commands wil be posted to ANOTHER endpoint!
             r = await self.session.post(
-                f"{GUARD_URL}/fordconnect/v1/vehicles/{vin}/{url_command}",
+                f"{FORD_VEHICLE_API}/fordconnect/v1/vehicles/{vin}/{url_command}",
                 headers=headers,
                 timeout=self.timeout
             )
