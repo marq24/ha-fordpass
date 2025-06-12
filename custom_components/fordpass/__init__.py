@@ -1,7 +1,7 @@
 """The FordPass integration."""
 import asyncio
 import logging
-import threading
+# import threading
 from datetime import timedelta
 from typing import Final
 
@@ -189,21 +189,28 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     return unload_ok
 
-_session_cache = {}
-_sync_lock = threading.Lock()
+#_session_cache = {}
+#_sync_lock = threading.Lock()
 
 @staticmethod
 def get_none_closed_cached_session(hass: HomeAssistant, user: str, region_key: str, vli:str) -> aiohttp.ClientSession:
-    """Get a cached aiohttp session for the user & region."""
-    global _session_cache
-    a_key = f"{user}µ@µ{region_key}"
-    with _sync_lock:
-        if a_key not in _session_cache or _session_cache[a_key].closed:
-            _LOGGER.debug(f"{vli}Create new aiohttp.ClientSession for user: {user}, region: {region_key}")
-            _session_cache[a_key] = async_create_clientsession(hass)
-        else:
-            _LOGGER.debug(f"{vli}Using cached aiohttp.ClientSession (so we share cookies) for user: {user}, region: {region_key}")
-    return _session_cache[a_key]
+    """Get a ~~cached~~ aiohttp session for the user & region."""
+
+    # 2025-06-12 for now we do not cache anything for a new vehicle... if we start to share a client session
+    # across multiple vehicles (= multiple instances of this integration), then WE MUST also sync the token's!
+    # When we share tokens, we must synchonize the refresh tokens and share them across multiple vehicles.
+    _LOGGER.debug(f"{vli}Create new aiohttp.ClientSession for user: {user}, region: {region_key}")
+    return async_create_clientsession(hass)
+
+    # global _session_cache
+    # a_key = f"{user}µ@µ{region_key}"
+    # with _sync_lock:
+    #     if a_key not in _session_cache or _session_cache[a_key].closed:
+    #         _LOGGER.debug(f"{vli}Create new aiohttp.ClientSession for user: {user}, region: {region_key}")
+    #         _session_cache[a_key] = async_create_clientsession(hass)
+    #     else:
+    #         _LOGGER.debug(f"{vli}Using cached aiohttp.ClientSession (so we share cookies) for user: {user}, region: {region_key}")
+    # return _session_cache[a_key]
 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""

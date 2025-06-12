@@ -106,6 +106,7 @@ class ConnectedFordPassVehicle:
     # when you have multiple vehicles, you need to set the vehicle log id
     # (v)ehicle (l)og (i)d
     vli: str = ""
+    vin: Final[str]
     username: Final[str]
     region_key: Final[str]
     accout_key: Final[str]
@@ -121,23 +122,23 @@ class ConnectedFordPassVehicle:
         self.username = username
         self.region_key = region_key
         self.account_key = f"{username}µ@µ{region_key}"
-        self.app_id = REGIONS[region_key]["app_id"]
-        self.locale_code = REGIONS[region_key]["locale"]
-        self.countrycode = REGIONS[region_key]["countrycode"]
+        self.app_id = REGIONS[self.region_key]["app_id"]
+        self.locale_code = REGIONS[self.region_key]["locale"]
+        self.countrycode = REGIONS[self.region_key]["countrycode"]
         self.vin = vin
+        # this is just our initial log identifier for the vehicle... we will
+        # fetch the vehicle name later and use it as vli
         self.vli = f"[@{self.vin}] "
 
         self._HAS_COM_ERROR = False
         global _FOUR_NULL_ONE_COUNTER
-        if self.account_key not in _FOUR_NULL_ONE_COUNTER:
-            _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+        _FOUR_NULL_ONE_COUNTER[self.vin] = 0
         self.access_token = None
         self.refresh_token = None
         self.expires_at = None
 
         global _AUTO_FOUR_NULL_ONE_COUNTER
-        if self.account_key not in _AUTO_FOUR_NULL_ONE_COUNTER:
-            _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+        _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
         self.auto_access_token = None
         self.auto_refresh_token = None
         self.auto_expires_at = None
@@ -373,7 +374,7 @@ class ConnectedFordPassVehicle:
             return ERROR
         else:
             try:
-                _LOGGER.debug(f"{self.vli}_request_token() - {_FOUR_NULL_ONE_COUNTER[self.account_key]}")
+                _LOGGER.debug(f"{self.vli}_request_token() - {_FOUR_NULL_ONE_COUNTER[self.vin]}")
 
                 headers = {
                     **apiHeaders,
@@ -391,13 +392,13 @@ class ConnectedFordPassVehicle:
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+                    _FOUR_NULL_ONE_COUNTER[self.vin] = 0
                     result = await response.json()
                     _LOGGER.debug(f"{self.vli}_request_token: status OK")
                     return result
                 elif response.status == 401 or response.status == 400:
-                    _FOUR_NULL_ONE_COUNTER[self.account_key] += 1
-                    if _FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
+                    _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                    if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"{self.vli}_request_token: status_code: {response.status} - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
@@ -412,7 +413,7 @@ class ConnectedFordPassVehicle:
                                     is_invalid_msg = True
                             if is_invalid_msg or ("errorCode" in msg and msg["errorCode"] == "460"):
                                 _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
-                                _FOUR_NULL_ONE_COUNTER[self.account_key] = MAX_401_RESPONSE_COUNT + 1
+                                _FOUR_NULL_ONE_COUNTER[self.vin] = MAX_401_RESPONSE_COUNT + 1
                         except BaseException as e:
                             _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
 
@@ -497,14 +498,14 @@ class ConnectedFordPassVehicle:
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
-                    _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+                    _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                     result = await response.json()
                     _LOGGER.debug(f"{self.vli}_request_auto_token: status OK")
                     return result
                 elif response.status == 401:
-                    _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] += 1
-                    if _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
+                    _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                    if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
                         _LOGGER.error(f"{self.vli}_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
@@ -1034,15 +1035,15 @@ class ConnectedFordPassVehicle:
 
             if response_state.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+                _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_state = await response_state.json()
                 if LOG_DATA:
                     _LOGGER.debug(f"{self.vli}status: JSON: {result_state}")
                 return result_state
             elif response_state.status == 401:
-                _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] += 1
-                if _AUTO_FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
+                _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"{self.vli}status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
@@ -1082,7 +1083,7 @@ class ConnectedFordPassVehicle:
             response_msg = await self.session.get(f"{GUARD_URL}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_msg = await response_msg.json()
                 if LOG_DATA:
@@ -1091,8 +1092,8 @@ class ConnectedFordPassVehicle:
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
             elif response_msg.status == 401:
-                _FOUR_NULL_ONE_COUNTER[self.account_key] += 1
-                if _FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"{self.vli}messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
@@ -1142,7 +1143,7 @@ class ConnectedFordPassVehicle:
             )
             if response_veh.status == 207 or response_veh.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
-                _FOUR_NULL_ONE_COUNTER[self.account_key] = 0
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_veh = await response_veh.json()
                 if LOG_DATA:
@@ -1161,8 +1162,8 @@ class ConnectedFordPassVehicle:
                 return result_veh
 
             elif response_veh.status == 401:
-                _FOUR_NULL_ONE_COUNTER[self.account_key] += 1
-                if _FOUR_NULL_ONE_COUNTER[self.account_key] > MAX_401_RESPONSE_COUNT:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
                     _LOGGER.error(f"{self.vli}vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
