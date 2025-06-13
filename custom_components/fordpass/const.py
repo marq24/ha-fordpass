@@ -218,7 +218,7 @@ class Tag(ApiKey, Enum):
     # LOCKS
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "doorLockStatus", 0))
+                                 state_fn=lambda data: FordpassDataHandler.get_door_lock_state(data))
 
     # SWITCHES
     ##################################################

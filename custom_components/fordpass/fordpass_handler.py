@@ -226,6 +226,16 @@ class FordpassDataHandler:
             attrs["panicAlarmStatus"] = data_metrics.get("panicAlarmStatus", {}).get("value", UNSUPPORTED)
         return attrs or None
 
+    # DOOR_LOCK state
+    def get_door_lock_state(data):
+        data_metrics = FordpassDataHandler.get_metrics(data)
+        key_list = ["ALL_DOORS", "UNSPECIFIED_FRONT"]
+        for a_key in key_list:
+            for a_lock_state in data_metrics.get("doorLockStatus", []):
+                if a_lock_state.get("vehicleDoor", "").upper() == a_key:
+                    return a_lock_state.get("value", UNSUPPORTED)
+
+        return UNSUPPORTED
 
     # DOOR_STATUS state + attributes
     def get_door_status_state(data):
