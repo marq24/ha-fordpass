@@ -2,9 +2,6 @@
 import logging
 from typing import Final
 
-from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
-from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory
-
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN: Final = "fordpass"
@@ -13,6 +10,7 @@ MANUFACTURER: Final = "Ford Motor Company"
 
 CONF_VIN: Final = "vin"
 CONF_PRESSURE_UNIT: Final = "pressure_unit"
+CONF_LOG_TO_FILESYSTEM: Final = "log_to_filesystem"
 COORDINATOR_KEY: Final = "coordinator"
 
 UPDATE_INTERVAL: Final = "update_interval"

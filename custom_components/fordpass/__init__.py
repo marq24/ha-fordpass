@@ -22,6 +22,7 @@ from homeassistant.util.unit_system import UnitSystem
 from custom_components.fordpass.const import (
     CONF_PRESSURE_UNIT,
     CONF_VIN,
+    CONF_LOG_TO_FILESYSTEM,
     DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION,
     DOMAIN,
@@ -223,7 +224,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._vin = vin
         self.vli = f"[@{self._vin}] "
         self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, user, region_key, self.vli), user,
-                                               vin, region_key, coordinator=self)
+                                               vin, region_key, coordinator=self,
+                                               local_logging=config_entry.options.get(CONF_LOG_TO_FILESYSTEM, False))
 
         self._available = True
         self._reauth_requested = False

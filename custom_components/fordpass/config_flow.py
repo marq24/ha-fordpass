@@ -20,13 +20,14 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_PRESSURE_UNIT,
+    CONF_VIN,
+    CONF_LOG_TO_FILESYSTEM,
     DEFAULT_PRESSURE_UNIT,
     DOMAIN,
     PRESSURE_UNITS,
     REGION_OPTIONS,
     DEFAULT_REGION,
     REGIONS,
-    CONF_VIN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT
 )
@@ -545,6 +546,8 @@ class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
         options = {
             vol.Optional(CONF_PRESSURE_UNIT,
                          default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
+            vol.Optional(CONF_LOG_TO_FILESYSTEM,
+                         default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
             vol.Optional(UPDATE_INTERVAL,
                          default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int,
         }

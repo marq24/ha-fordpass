@@ -93,7 +93,11 @@
                 "data": {
                     "pressure_unit": "Maßeinheit für Druck",
                     "distance_unit": "Maßeinheit für Entfernung",
-                    "update_interval": "Aktualisierungsintervall FordPass-API (Sekunden)"
+                    "update_interval": "Aktualisierungsintervall FordPass-API (Sekunden)",
+                    "log_to_filesystem": "Protokolliere API-Antworten im im lokalen HA Dateisystem"
+                },
+                "data_description": {
+                    "log_to_filesystem": "Diese Option sollte nicht über einen längern Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/fordpass/data_dumps'"
                 },
                 "description": "Optionen konfigurieren"
             }

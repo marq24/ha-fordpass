@@ -8,7 +8,7 @@ import threading
 import time
 import traceback
 from asyncio import CancelledError
-from datetime import datetime
+from datetime import datetime, timezone
 from numbers import Number
 from typing import Final
 
@@ -116,8 +116,10 @@ class ConnectedFordPassVehicle:
     username: Final[str]
     region_key: Final[str]
     accout_key: Final[str]
+    _LOCAL_LOGGING: Final[bool]
 
-    def __init__(self, web_session, username, vin, region_key, coordinator: DataUpdateCoordinator=None, tokens_location=None):
+    def __init__(self, web_session, username, vin, region_key, coordinator: DataUpdateCoordinator=None,
+                 tokens_location=None, local_logging:bool=False):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
             total=45,      # Total request timeout
@@ -125,6 +127,7 @@ class ConnectedFordPassVehicle:
             sock_connect=30,
             sock_read=120   # Socket read timeout
         )
+        self._LOCAL_LOGGING = local_logging
         self.username = username
         self.region_key = region_key
         self.account_key = f"{username}µ@µ{region_key}"
@@ -174,6 +177,22 @@ class ConnectedFordPassVehicle:
         self._last_ignition_state = INTEGRATION_INIT
 
         _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
+
+    async def _local_logging(self, type, data):
+        if self._LOCAL_LOGGING:
+            await asyncio.get_running_loop().run_in_executor(None, lambda: self.__dump_data(type, data))
+
+    def __dump_data(self, type:str, data:dict):
+        a_datetime = datetime.now(timezone.utc)
+        path = f".storage/fordpass/data_dumps/{self.username}/{self.region_key}/{self.vin}/{a_datetime.year}/{a_datetime.month:02d}/{a_datetime.day:02d}/{a_datetime.hour:02d}"
+        filename = f"{path}/{a_datetime.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]}_{type}.json"
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        #file_path = os.path.join(os.getcwd(), filename)
+        with open(filename, "w", encoding="utf-8") as outfile:
+            json.dump(data, outfile, indent=4)
 
     def clear_data(self):
         self._cached_vehicles_data = {}
@@ -687,12 +706,18 @@ class ConnectedFordPassVehicle:
 
                                 elif "_data" in ws_data:
                                     data_obj = ws_data["_data"]
+                                    if self._LOCAL_LOGGING:
+                                        await self._local_logging("ws", data_obj)
+
                                     new_data_arrived = self._ws_handle_data(data_obj)
                                     if new_data_arrived is False:
                                         _LOGGER.debug(f"{self.vli}ws_connect(): received unknown 'data': {data_obj}")
                                     else:
                                         _LOGGER.debug(f"{self.vli}ws_connect(): received vehicle 'data'")
                                 else:
+                                    if self._LOCAL_LOGGING:
+                                        await self._local_logging("ws", ws_data)
+
                                     _LOGGER.info(f"{self.vli}ws_connect(): unknown 'content': {ws_data}")
 
                         except Exception as e:
@@ -1054,8 +1079,8 @@ class ConnectedFordPassVehicle:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_state = await response_state.json()
-                if LOG_DATA:
-                    _LOGGER.debug(f"{self.vli}status: JSON: {result_state}")
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("state", result_state)
                 return result_state
             elif response_state.status == 401:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
@@ -1120,8 +1145,8 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_msg = await response_msg.json()
-                if LOG_DATA:
-                    _LOGGER.debug(f"{self.vli}messages: JSON: {result_msg}")
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("msg", result_msg)
 
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
@@ -1180,8 +1205,8 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_veh = await response_veh.json()
-                if LOG_DATA:
-                    _LOGGER.debug(f"{self.vli}vehicles: JSON: {result_veh}")
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("veh", result_veh)
 
                 # creating our logger id for the vehicle...
                 if "@" in self.vli and result_veh is not None and "userVehicles" in result_veh and "vehicleDetails" in result_veh["userVehicles"]:
@@ -1468,6 +1493,9 @@ class ConnectedFordPassVehicle:
                     return False
 
                 response = await req.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("command", response)
+
                 _LOGGER.debug(f"{self.vli}__request_command(): '{command}' response: {response}")
                 return True
 
@@ -1620,6 +1648,8 @@ class ConnectedFordPassVehicle:
         # Extract command ID from response
         command_id = None
         response = await req.json()
+        if self._LOCAL_LOGGING:
+            await self._local_logging("command+poll", response)
 
         for id_key in ["id", "commandId", "correlationId"]:
             if id_key in response:

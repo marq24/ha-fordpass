@@ -106,7 +106,11 @@
                     "pressure_unit": "Unit of Pressure",
                     "distance_unit": "Unit of Distance",
                     "distance_conversion": "Disable distance conversion",
-                    "update_interval": "Interval to poll FordPass API (Seconds)"
+                    "update_interval": "Interval to poll FordPass API (Seconds)",
+                    "log_to_filesystem": "Log API responses to local HA filesystem"
+                },
+                "data_description": {
+                    "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/fordpass/data_dumps'"
                 },
                 "description": "Configure fordpass options"
             }
