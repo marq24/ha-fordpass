@@ -1331,33 +1331,33 @@ class ConnectedFordPassVehicle:
         # CANCEL_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command="cancelGlobalCharge")
 
-    async def set_zone_lighting(self, option, current_option=None):
-        if option is None or str(option) == ZONE_LIGHTS_VALUE_OFF:
+    async def set_zone_lighting(self, target_option:str, current_option=None):
+        if target_option is None or str(target_option) == ZONE_LIGHTS_VALUE_OFF:
             return await self.__request_command(command="turnZoneLightsOff")
         else:
             light_is_one = False
             if current_option is not None:
                 str_current_option = str(current_option)
-                if str_current_option == str(option):
-                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' is already set, no action required")
+                if str_current_option == str(target_option):
+                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{target_option}' is already set, no action required")
                     return True
                 elif str_current_option == ZONE_LIGHTS_VALUE_OFF:
-                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' to set, but current option is OFF [we MUST turn on the lights first]")
+                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{target_option}' to set, but current option is OFF [we MUST turn on the lights first]")
                     light_is_one = await self.__request_command(command="turnZoneLightsOn")
                     if light_is_one:
                         # wait a bit to ensure the lights are on
                         await asyncio.sleep(5)
                 else:
-                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' to set, current option is '{current_option}' [we just need to switch the mode]")
+                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{target_option}' to set, current option is '{current_option}' [we just need to switch the mode]")
                     light_is_one = True
             else:
-                _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' to set, but current option is unknown [we assume it's on]")
+                _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{target_option}' to set, but current option is unknown [we assume it's on]")
                 light_is_one = True
 
             if light_is_one:
-                return await self.__request_command(command="setZoneLightsMode", post_data={"zone": str(option)})
+                return await self.__request_command(command="setZoneLightsMode", post_data={"zone": str(target_option)})
             else:
-                _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' but lights are not on, so we cannot set the option")
+                _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{target_option}' but lights are not on, so we cannot set the option")
 
         return False
 

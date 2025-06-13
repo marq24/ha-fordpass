@@ -19,7 +19,7 @@ class ApiKey(NamedTuple):
     state_fn: Callable[[dict], Any] = None
     attrs_fn: Callable[[dict, UnitSystem], Any] = None
     on_off_fn: Callable[[Any, bool], Any] = None
-    select_fn: Callable[[Any, bool], Any] = None
+    select_fn: Callable[[Any, str, str], Any] = None
 
 
 class Tag(ApiKey, Enum):
@@ -48,7 +48,7 @@ class Tag(ApiKey, Enum):
             return False
 
     async def async_select_option(self, data, vehicle, new_value: Any) -> bool:
-        if self.state_fn:
+        if self.select_fn:
             return await self.select_fn(vehicle, new_value, self.get_state(data))
         return None
 

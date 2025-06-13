@@ -562,8 +562,8 @@ class FordpassDataHandler:
                         attrs[FordpassDataHandler.to_camel(key)] = value
             return attrs
 
-    def set_zone_lighting(vehicle, option):
-        return vehicle.set_zone_lighting(option)
+    def set_zone_lighting(vehicle, target_value: str, current_value:str) -> bool:
+        return vehicle.set_zone_lighting(target_value, current_value)
 
 
     # REMOTE_START state + on_off
