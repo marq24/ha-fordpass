@@ -101,8 +101,8 @@ class FordpassDataHandler:
 
     # FUEL state + attributes
     def get_fuel_state(data):
-        fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel")
-        if isinstance(fuel_level, Number):
+        fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel", None)
+        if fuel_level is not None and isinstance(fuel_level, Number):
             return round(fuel_level)
         return None
 
@@ -182,7 +182,7 @@ class FordpassDataHandler:
 
     # GPS state + attributes [+ LAT & LON getters for device tracker]
     def get_gps_state(data):
-        return FordpassDataHandler.get_metrics(data).get("position", {}).get("value", UNSUPPORTED).get("location", {})
+        return FordpassDataHandler.get_metrics(data).get("position", {}).get("value", {}).get("location", {})
 
     def get_gps_attr(data, units:UnitSystem):
         attrs = FordpassDataHandler.get_metrics_dict(data, "position")
@@ -286,7 +286,7 @@ class FordpassDataHandler:
 
     # LAST_REFRESH state
     def get_last_refresh_state(data):
-        return dt.as_local(dt.parse_datetime(data.get(ROOT_UPDTIME, 0)))
+        return dt.as_local(dt.parse_datetime(data.get(ROOT_UPDTIME, "1970-01-01T00:00:00.000Z")))
 
 
     # ELVEH state + attributes

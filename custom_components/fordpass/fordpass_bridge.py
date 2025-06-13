@@ -610,6 +610,9 @@ class ConnectedFordPassVehicle:
         if self._HAS_COM_ERROR:
             _LOGGER.debug(f"{self.vli}ws_connect() - COMM ERROR - skipping WebSocket connection")
             return None
+        elif len(self._data_container.get(ROOT_METRICS, {})) == 0:
+            _LOGGER.warning(f"{self.vli}ws_connect() - no metrics data available - skipping WebSocket connection")
+            return None
         else:
             _LOGGER.debug(f"{self.vli}ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
 
@@ -1059,6 +1062,24 @@ class ConnectedFordPassVehicle:
                     await asyncio.sleep(5)
 
                 return None
+            elif response_state.status == 403:
+                try:
+                    msg = await response_state.json()
+                    if msg is not None and "error" in msg and msg.get("error", "").upper() == "FORBIDDEN":
+                        if "message" in msg and "NOT AUTHORIZED TO PERFORM" in msg.get("message", "").upper():
+                            _LOGGER.error(f"{self.vli}The vehicle with the VIN '{self.vin}' is not authorized in FordPass - user action required!")
+                            return {ROOT_METRICS: {}}
+
+                    # if the message is not the 'NOT AUTHORIZED', then we at least must also return the
+                    # default error
+                    _LOGGER.debug(f"{self.vli}status():  status_code: 403 - response: '{msg}'")
+                    self._HAS_COM_ERROR = True
+                    return None
+                except BaseException as e:
+                    _LOGGER.debug(f"{self.vli}status():  status_code: 403 - Error while handle 'response' - {type(e)} - {e}")
+                    self._HAS_COM_ERROR = True
+                    return None
+                pass
             else:
                 _LOGGER.info(f"{self.vli}status: status_code : {response_state.status} - {response_state.real_url} - Received response: {await response_state.text()}")
                 self._HAS_COM_ERROR = True

@@ -243,16 +243,16 @@ class Tag(ApiKey, Enum):
     # SENSORS
     ##################################################
     ODOMETER            = ApiKey(key="odometer",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "odometer"),
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "odometer", None),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "odometer"))
     FUEL                = ApiKey(key="fuel",
                                  state_fn=FordpassDataHandler.get_fuel_state,
                                  attrs_fn=FordpassDataHandler.get_fuel_attrs)
     BATTERY             = ApiKey(key="battery",
-                                 state_fn=lambda data: round(FordpassDataHandler.get_value_for_metrics_key(data, "batteryStateOfCharge", 0)),
+                                 state_fn=lambda data: round(FordpassDataHandler.get_value_for_metrics_key(data, "batteryStateOfCharge", -1)),
                                  attrs_fn=FordpassDataHandler.get_battery_attrs)
     OIL                 = ApiKey(key="oil",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "oilLifeRemaining"),
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "oilLifeRemaining", None),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "oilLifeRemaining"))
     SEATBELT            = ApiKey(key="seatbelt",
                                  state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "seatBeltStatus", 0),
@@ -301,25 +301,25 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFilterStatus"),
                                  attrs_fn=FordpassDataHandler.get_diesel_system_status_attrs)
     EXHAUST_FLUID_LEVEL = ApiKey(key="exhaustFluidLevel",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFluidLevel"),
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFluidLevel", None),
                                  attrs_fn=FordpassDataHandler.get_exhaust_fluid_level_attrs)
     SPEED               = ApiKey(key="speed",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "speed"),
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "speed", None),
                                  attrs_fn=FordpassDataHandler.get_speed_attrs)
     ENGINESPEED         = ApiKey(key="engineSpeed",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineSpeed"))
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineSpeed", None))
     GEARLEVERPOSITION   = ApiKey(key="gearLeverPosition",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "gearLeverPosition"))
     INDICATORS          = ApiKey(key="indicators",
                                  state_fn=FordpassDataHandler.get_indicators_state,
                                  attrs_fn=FordpassDataHandler.get_indicators_attrs)
     COOLANT_TEMP        = ApiKey(key="coolantTemp",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineCoolantTemp"))
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineCoolantTemp", None))
     OUTSIDE_TEMP        = ApiKey(key="outsideTemp",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "outsideTemperature"),
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "outsideTemperature", None),
                                  attrs_fn=FordpassDataHandler.get_outside_temp_attrs)
     ENGINE_OIL_TEMP     = ApiKey(key="engineOilTemp",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineOilTemp"))
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineOilTemp", None))
     SOC                 = ApiKey(key="soc",
                                  state_fn=FordpassDataHandler.get_soc_state,
                                  attrs_fn=FordpassDataHandler.get_soc_attrs)
