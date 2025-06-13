@@ -187,6 +187,19 @@
             "soc":                      {"name": "State of Charge"},
             "evccstatus":               {"name": "EVCC status code"},
             "seatbelt":                 {"name": "Belt Status"}
+        },
+        "select": {
+            "zonelighting": {
+                "name": "Zone Lighting",
+                "state": {
+                    "0": "ON",
+                    "1": "Front",
+                    "2": "Rear",
+                    "3": "Driver",
+                    "4": "Passenger",
+                    "off": "OFF"
+                }
+            }
         }
     }
 }

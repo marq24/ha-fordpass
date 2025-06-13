@@ -4,11 +4,11 @@ import logging
 from homeassistant.components.lock import LockEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, Tag
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const_tags import Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
-
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):

@@ -16,7 +16,7 @@ import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from custom_components.fordpass.const import REGIONS
+from custom_components.fordpass.const import REGIONS, ZONE_LIGHTS_VALUE_OFF
 from custom_components.fordpass.fordpass_handler import (
     ROOT_STATES,
     ROOT_EVENTS,
@@ -52,12 +52,17 @@ loginHeaders = {
 MAX_401_RESPONSE_COUNT: Final = 10
 LOG_DATA: Final = False
 
-BASE_URL: Final = "https://usapi.cv.ford.com/api"
-GUARD_URL: Final = "https://api.mps.ford.com/api"
-SSO_URL: Final = "https://sso.ci.ford.com"
+# DEPRECATED - do not use anymore!
+# BASE_URL: Final = "https://usapi.cv.ford.com/api"
+# SSO_URL: Final = "https://sso.ci.ford.com"
+
+# hopefully also not used anylonger...
+# GUARD_URL: Final = "https://api.mps.ford.com/api"
+
 AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
 AUTONOMIC_WS_URL: Final = "wss://api.autonomic.ai/v1beta"
 AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
+
 FORD_LOGIN_URL: Final = "https://login.ford.com"
 FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
@@ -1213,29 +1218,62 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return None
 
-    async def guard_status(self):
-        """Retrieve guard status from API"""
-        await self.__ensure_valid_tokens()
-        if self._HAS_COM_ERROR:
-            _LOGGER.debug(f"{self.vli}guard_status() - COMM ERROR")
-            return None
-        else:
-            _LOGGER.debug(f"{self.vli}guard_status() - access_token exist? {self.access_token is not None}")
+    # ***********************************************************
+    # ***********************************************************
+    # ***********************************************************
+    # async def guard_status(self):
+    #     """Retrieve guard status from API"""
+    #     await self.__ensure_valid_tokens()
+    #     if self._HAS_COM_ERROR:
+    #         _LOGGER.debug(f"{self.vli}guard_status() - COMM ERROR")
+    #         return None
+    #     else:
+    #         _LOGGER.debug(f"{self.vli}guard_status() - access_token exist? {self.access_token is not None}")
+    #
+    #     headers_gs = {
+    #         **apiHeaders,
+    #         "auth-token": self.access_token,
+    #         "Application-Id": self.app_id,
+    #     }
+    #     params_gs = {"lrdt": "01-01-1970 00:00:00"}
+    #
+    #     response_gs = await self.session.get(
+    #         f"{GUARD_URL}/guardmode/v1/{self.vin}/session",
+    #         params=params_gs,
+    #         headers=headers_gs,
+    #         timeout=self.timeout
+    #     )
+    #     return await response_gs.json()
+    #
+    # async def enable_guard(self):
+    #     """
+    #     Enable Guard mode on supported models
+    #     """
+    #     await self.__ensure_valid_tokens()
+    #     if self._HAS_COM_ERROR:
+    #         return None
+    #
+    #     response = self.__make_request(
+    #         "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
+    #     )
+    #     _LOGGER.debug(f"{self.vli}enable_guard: {await response.text()}")
+    #     return response
+    #
+    # async def disable_guard(self):
+    #     """
+    #     Disable Guard mode on supported models
+    #     """
+    #     await self.__ensure_valid_tokens()
+    #     if self._HAS_COM_ERROR:
+    #         return None
+    #
+    #     response = self.__make_request(
+    #         "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
+    #     )
+    #     _LOGGER.debug(f"{self.vli}disable_guard: {await response.text()}")
+    #     return response
 
-        headers_gs = {
-            **apiHeaders,
-            "auth-token": self.access_token,
-            "Application-Id": self.app_id,
-        }
-        params_gs = {"lrdt": "01-01-1970 00:00:00"}
 
-        response_gs = await self.session.get(
-            f"{GUARD_URL}/guardmode/v1/{self.vin}/session",
-            params=params_gs,
-            headers=headers_gs,
-            timeout=self.timeout
-        )
-        return await response_gs.json()
 
     # public final GenericCommand<CommandStateActuation> actuationCommand;
     # public final GenericCommand<CommandStateActuation> antiTheft;
@@ -1277,6 +1315,7 @@ class ConnectedFordPassVehicle:
     # }
 
     # operations
+
     async def remote_start(self):
         return await self.__request_and_poll_command_autonomic(command="remoteStart")
 
@@ -1291,6 +1330,36 @@ class ConnectedFordPassVehicle:
     async def stop_charge(self):
         # CANCEL_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command="cancelGlobalCharge")
+
+    async def set_zone_lighting(self, option, current_option=None):
+        if option is None or str(option) == ZONE_LIGHTS_VALUE_OFF:
+            return await self.__request_command(command="turnZoneLightsOff")
+        else:
+            light_is_one = False
+            if current_option is not None:
+                str_current_option = str(current_option)
+                if str_current_option == str(option):
+                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' is already set, no action required")
+                    return True
+                elif str_current_option == ZONE_LIGHTS_VALUE_OFF:
+                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' to set, but current option is OFF [we MUST turn on the lights first]")
+                    light_is_one = await self.__request_command(command="turnZoneLightsOn")
+                    if light_is_one:
+                        # wait a bit to ensure the lights are on
+                        await asyncio.sleep(5)
+                else:
+                    _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' to set, current option is '{current_option}' [we just need to switch the mode]")
+                    light_is_one = True
+            else:
+                _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' to set, but current option is unknown [we assume it's on]")
+                light_is_one = True
+
+            if light_is_one:
+                return await self.__request_command(command="setZoneLightsMode", post_data={"zone": str(option)})
+            else:
+                _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{option}' but lights are not on, so we cannot set the option")
+
+        return False
 
     # NOT USED YET
     # def start_engine(self):
@@ -1311,34 +1380,6 @@ class ConnectedFordPassVehicle:
         """
         return await self.__request_and_poll_command_autonomic(command="unlock")
 
-    async def enable_guard(self):
-        """
-        Enable Guard mode on supported models
-        """
-        await self.__ensure_valid_tokens()
-        if self._HAS_COM_ERROR:
-            return None
-
-        response = self.__make_request(
-            "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
-        )
-        _LOGGER.debug(f"{self.vli}enable_guard: {await response.text()}")
-        return response
-
-    async def disable_guard(self):
-        """
-        Disable Guard mode on supported models
-        """
-        await self.__ensure_valid_tokens()
-        if self._HAS_COM_ERROR:
-            return None
-
-        response = self.__make_request(
-            "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
-        )
-        _LOGGER.debug(f"{self.vli}disable_guard: {await response.text()}")
-        return response
-
     def request_update(self, vin=None):
         """Send request to vehicle for update"""
         if vin is None or len(vin) == 0:
@@ -1349,48 +1390,95 @@ class ConnectedFordPassVehicle:
         status = self.__request_and_poll_command_autonomic(command="statusRefresh", vin=vin_to_request)
         return status
 
-    # core functions...
-    # def __make_request(self, method, url, data, params):
-    #     """
-    #     Make a request to the given URL, passing data/params as needed
-    #     """
-    #     if self._HAS_COM_ERROR:
-    #         return None
-    #     else:
-    #         try:
-    #             headers = {
-    #                 **apiHeaders,
-    #                 "auth-token": self.access_token,
-    #                 "Application-Id": self.region,
-    #             }
-    #             return getattr(requests, method.lower())(url, headers=headers, data=data, params=params)
-    #
-    #         except BaseException as e:
-    #             _LOGGER.warning(f"{self.vli}Error while '__make_request' for vehicle {self.vin} {e}")
-    #             self._HAS_COM_ERROR = True
-    #             return None
-    #
-    # def __poll_status(self, url, command_id):
-    #     """
-    #     Poll the given URL with the given command ID until the command is completed
-    #     """
-    #     status = self.__make_request("GET", f"{url}/{command_id}", None, None)
-    #     if status is not None:
-    #         result = status.json()
-    #         if result["status"] == 552:
-    #             _LOGGER.debug(f"{self.vli}__poll_status: Command is pending")
-    #             time.sleep(5)
-    #             return self.__poll_status(url, command_id)  # retry after 5s
-    #
-    #         if result["status"] == 200:
-    #             _LOGGER.debug(f"{self.vli}__poll_status: Command completed successfully")
-    #             return True
-    #
-    #     _LOGGER.debug(f"{self.vli}__poll_status: Command failed")
-    #     return False
-
     # def x_request_and_poll_command(self, command, properties={}, vin=None):
     #     return self.__request_and_poll_command(command, properties, vin)
+
+    async def __request_command(self, command:str, post_data=None, vin=None):
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"{self.vli}__request_command() - COMM ERROR")
+                return False
+            else:
+                _LOGGER.debug(f"{self.vli}__request_command(): access_token exist? {self.access_token is not None}")
+
+            headers = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+            }
+            # do we want to overwrite the vin?!
+            if vin is None:
+                vin = self.vin
+
+            request_type = None
+            if command == "turnZoneLightsOff":
+                request_type = "DELETE"
+                command_url = f"https://api.mps.ford.com/vehicles/vpfi/zonelightingactivation"
+                post_data = {"vin": vin}
+
+            elif command == "turnZoneLightsOn":
+                request_type = "PUT"
+                command_url = f"https://api.mps.ford.com/vehicles/vpfi/zonelightingactivation"
+                post_data = {"vin": vin}
+
+            elif command == "setZoneLightsMode":
+                # if we can't get the target mode, we assume the default mode '0' (= ALL)
+                target_zone = post_data.get("zone", "0")
+                request_type = "PUT"
+                command_url = f"https://api.mps.ford.com/vehicles/vpfi/{target_zone}/zonelightingzone"
+                post_data = {"vin": vin}
+
+            if command_url is None:
+                _LOGGER.warning(f"{self.vli}__request_command() - command '{command}' is not supported by the integration")
+                return False
+
+            if post_data is not None:
+                json_post_data = json.dumps(post_data)
+            else:
+                json_post_data = None
+
+            if request_type is None or request_type not in ["POST", "PUT", "DELETE"]:
+                _LOGGER.warning(f"{self.vli}__request_command() - Unsupported request type '{request_type}' for command '{command}'")
+                return False
+
+            req = None
+            if request_type == "POST":
+                req = await self.session.post(f"{command_url}",
+                                              data=json_post_data,
+                                              headers=headers,
+                                              timeout=self.timeout)
+            elif request_type == "PUT":
+                req = await self.session.put(f"{command_url}",
+                                             data=json_post_data,
+                                             headers=headers,
+                                             timeout=self.timeout)
+            elif request_type == "DELETE":
+                req = await self.session.delete(f"{command_url}",
+                                                data=json_post_data,
+                                                headers=headers,
+                                                timeout=self.timeout)
+
+            if req is not None:
+                if not (200 <= req.status <= 205):
+                    if req.status in (401, 402, 403, 404, 405):
+                        _LOGGER.info(f"{self.vli}__request_command(): '{command}' returned '{req.status}' status code - wtf!")
+                    else:
+                        _LOGGER.warning(f"{self.vli}__request_command(): '{command}' returned unknown status code: {req.status}!")
+                    return False
+
+                response = await req.json()
+                _LOGGER.debug(f"{self.vli}__request_command(): '{command}' response: {response}")
+                return True
+
+        except BaseException as e:
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}Error while '__request_command()' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}RuntimeError while '__request_command()' - Session was closed occurred - but a new Session could be generated")
+
+            self._HAS_COM_ERROR = True
+            return False
 
     async def __request_and_poll_command_autonomic(self, command, properties={}, vin=None):
         """Send command to the new Command endpoint"""
@@ -1441,7 +1529,7 @@ class ConnectedFordPassVehicle:
                 _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford() - COMM ERROR")
                 return False
             else:
-                _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford(): auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford(): access_token exist? {self.access_token is not None}")
 
             headers = {
                 **apiHeaders,
@@ -1452,6 +1540,7 @@ class ConnectedFordPassVehicle:
             if vin is None:
                 vin = self.vin
 
+            # YES this is for sure very UGLY - and not following any clean code principles...
             command_url_part = None
             if command == "cancelGlobalCharge":
                 command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/PAUSE"

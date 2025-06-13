@@ -5,6 +5,14 @@ from numbers import Number
 from re import sub
 from typing import Final
 
+from custom_components.fordpass.const import (
+    ZONE_LIGHTS_VALUE_ALL_ON,
+    ZONE_LIGHTS_VALUE_FRONT,
+    ZONE_LIGHTS_VALUE_REAR,
+    ZONE_LIGHTS_VALUE_DRIVER,
+    ZONE_LIGHTS_VALUE_PASSENGER,
+    ZONE_LIGHTS_VALUE_OFF
+)
 from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
 from homeassistant.util import dt
 from homeassistant.util.unit_system import UnitSystem
@@ -507,37 +515,55 @@ class FordpassDataHandler:
 
     # ZONE_LIGHTING state + attributes
     def get_zone_lighting_state(data):
-        data_metrics = FordpassDataHandler.get_metrics(data)
-        return data_metrics.get("zoneLighting", {}).get("zoneStatusData", {}).get("value", UNSUPPORTED)
+        # "pttb-power-mode-change-event": {
+        #     "updateTime": "2025-06-12T21:45:25Z",
+        #     "oemData": {
+        #         "ftcp_version": { "stringValue": "6.0.45"},
+        #         "current_power_mode": {"stringValue": "Off"},
+        #         "zone_2_active_power_status": {"stringValue": "Off"},
+        #         "vehicle_common_correlation_id": {},
+        #         "zone_3_active_power_status": {"stringValue": "Off"}
+        #     }
+        # }
+        # it's a bit sad, but it looks like, that only in the event section we can find the status of the zoneLight stuff
+        oem_data = FordpassDataHandler.get_events(data).get("customEvents", {}).get("pttb-power-mode-change-event", {}).get("oemData", {})
+        value = oem_data.get("current_power_mode", {}).get("stringValue", UNSUPPORTED)
+        if value != UNSUPPORTED:
+            if value.upper() == "ON":
+                zone1 = oem_data.get("zone_1_active_power_status", {}).get("stringValue", "OFF").upper() == "ON"
+                zone2 = oem_data.get("zone_2_active_power_status", {}).get("stringValue", "OFF").upper() == "ON"
+                zone3 = oem_data.get("zone_3_active_power_status", {}).get("stringValue", "OFF").upper() == "ON"
+                zone4 = oem_data.get("zone_4_active_power_status", {}).get("stringValue", "OFF").upper() == "ON"
+                if (zone1 or zone2) and (zone3 or zone4):
+                    return ZONE_LIGHTS_VALUE_ALL_ON
+                elif zone1:
+                    return ZONE_LIGHTS_VALUE_FRONT
+                elif zone2:
+                    return ZONE_LIGHTS_VALUE_REAR
+                elif zone3:
+                    return ZONE_LIGHTS_VALUE_DRIVER
+                elif zone4:
+                    return ZONE_LIGHTS_VALUE_PASSENGER
+            else:
+                return ZONE_LIGHTS_VALUE_OFF
+        return None
 
     def get_zone_lighting_attrs(data, units:UnitSystem):
-        data_metrics = FordpassDataHandler.get_metrics(data)
-        if "zoneLighting" not in data_metrics:
+        oem_data = FordpassDataHandler.get_events(data).get("customEvents", {}).get("pttb-power-mode-change-event", {}).get("oemData", {})
+        if len(oem_data) == 0:
             return None
+        else:
+            attrs = {}
+            list = ["current_power_mode", "zone_1_active_power_status", "zone_2_active_power_status", "zone_3_active_power_status", "zone_4_active_power_status"]
+            for key in list:
+                if key in oem_data:
+                    value = oem_data[key].get("stringValue", UNSUPPORTED)
+                    if value != UNSUPPORTED:
+                        attrs[FordpassDataHandler.to_camel(key)] = value
+            return attrs
 
-        if data_metrics["zoneLighting"] is None or data_metrics["zoneLighting"].get("zoneStatusData") is None:
-            return None
-
-        attrs = {}
-
-        # Process zone status data
-        if data_metrics["zoneLighting"]["zoneStatusData"]:
-            for key, value in data_metrics["zoneLighting"]["zoneStatusData"].items():
-                if value and "value" in value:
-                    attrs[FordpassDataHandler.to_camel("zone_" + key)] = value["value"]
-
-        # Process light switch status data
-        if data_metrics["zoneLighting"].get("lightSwitchStatusData"):
-            for key, value in data_metrics["zoneLighting"]["lightSwitchStatusData"].items():
-                if value and "value" in value:
-                    attrs[FordpassDataHandler.to_camel(key)] = value["value"]
-
-        # Process fault status and shutdown warning
-        for status_field in ["zoneLightingFaultStatus", "zoneLightingShutDownWarning"]:
-            if data_metrics["zoneLighting"].get(status_field) and "value" in data_metrics["zoneLighting"][status_field]:
-                attrs[status_field] = data_metrics["zoneLighting"][status_field]["value"]
-
-        return attrs
+    def set_zone_lighting(vehicle, option):
+        return vehicle.set_zone_lighting(option)
 
 
     # REMOTE_START state + on_off
@@ -545,7 +571,7 @@ class FordpassDataHandler:
         val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
         return "ON" if val > 0 else "OFF"
 
-    # this was 'IGNITION' swicth - we keep the key name for compatibility...
+    # this was 'IGNITION' switch - we keep the key name for compatibility...
     def remote_start_on_off(vehicle, turn_on:bool) -> bool:
         if turn_on:
             return vehicle.remote_start()

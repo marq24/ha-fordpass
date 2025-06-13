@@ -29,16 +29,17 @@ from custom_components.fordpass.const import (
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
     COORDINATOR_KEY,
-    Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, PRESSURE_UNITS,
+    PRESSURE_UNITS,
     LEGACY_REGION_KEYS
 )
+from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-PLATFORMS = ["button", "lock", "sensor", "switch", "device_tracker"]
+PLATFORMS = ["button", "lock", "sensor", "switch", "select", "device_tracker"]
 WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
 
@@ -226,9 +227,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._available = True
         self._reauth_requested = False
-        self._engineType = None
+        self._engine_type = None
+        self._number_of_lighting_zones = 0
         self._supports_GUARD_MODE = None
         self._supports_REMOTE_START = None
+        self._supports_ZONE_LIGHTING = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -323,6 +326,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if a_tag == Tag.GUARD_MODE:
             return self._supports_GUARD_MODE is None or self._supports_GUARD_MODE is False
 
+        if a_tag == Tag.ZONE_LIGHTING:
+            return self._supports_ZONE_LIGHTING is None or self._supports_ZONE_LIGHTING is False
+
         return False
 
     async def clear_data(self):
@@ -333,11 +339,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def supportPureEvOrPluginEv(self) -> bool:
-        return self._engineType is not None and self._engineType in ["BEV", "HEV", "PHEV"]
+        return self._engine_type is not None and self._engine_type in ["BEV", "HEV", "PHEV"]
 
     @property
     def supportFuel(self) -> bool:
-        return self._engineType is not None and self._engineType not in ["BEV"]
+        return self._engine_type is not None and self._engine_type not in ["BEV"]
 
     async def read_config_on_startup(self, hass: HomeAssistant):
         _LOGGER.debug(f"{self.vli}read_config_on_startup...")
@@ -353,8 +359,14 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                         if a_vehicle_profile["VIN"] == self._vin:
                             if "model" in a_vehicle_profile:
                                 self.vli = f"[{a_vehicle_profile['model']}] "
-                            self._engineType = a_vehicle_profile["engineType"]
-                            _LOGGER.debug(f"{self.vli}EngineType is: {self._engineType}")
+
+                            if "engineType" in a_vehicle_profile:
+                                self._engine_type = a_vehicle_profile["engineType"]
+                                _LOGGER.debug(f"{self.vli}EngineType is: {self._engine_type}")
+
+                            if "numberOfLightingZones" in a_vehicle_profile:
+                                self._number_of_lighting_zones = int(a_vehicle_profile["numberOfLightingZones"])
+
                             break
                 else:
                     _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data["vehicles"]}")
@@ -365,11 +377,13 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                         if capability_obj["VIN"] == self._vin:
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
+                            self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
                             break
                 else:
                     _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data["vehicles"]}")
 
                 # check, if GuardMode is supported
+                # [original impl]
                 self._supports_GUARD_MODE = FordpassDataHandler.is_guard_mode_supported(self.data)
 
             else:

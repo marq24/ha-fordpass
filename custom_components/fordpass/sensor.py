@@ -8,7 +8,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, RestoreStateData
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
-from custom_components.fordpass.const import DOMAIN, SENSORS, COORDINATOR_KEY, ExtSensorEntityDescription
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription
+
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)

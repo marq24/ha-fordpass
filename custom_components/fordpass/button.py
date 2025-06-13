@@ -6,7 +6,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import BUTTONS, DOMAIN, COORDINATOR_KEY, Tag
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const_tags import BUTTONS, Tag
 
 _LOGGER = logging.getLogger(__name__)
 

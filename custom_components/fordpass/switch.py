@@ -4,7 +4,8 @@ import logging
 from homeassistant.components.switch import SwitchEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, SWITCHES, COORDINATOR_KEY, Tag
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const_tags import SWITCHES, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,13 +21,13 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             _LOGGER.debug(f"{coordinator.vli}SWITCH '{a_tag}' not supported for this vehicle")
             continue
 
-        sw = Switch(coordinator, a_tag)
+        sw = FordPassSwitch(coordinator, a_tag)
         entities.append(sw)
 
     async_add_entities(entities, True)
 
 
-class Switch(FordPassEntity, SwitchEntity):
+class FordPassSwitch(FordPassEntity, SwitchEntity):
     """Define the Switch for turning ignition off/on"""
 
     def __init__(self, coordinator, a_tag: Tag):
