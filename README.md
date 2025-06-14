@@ -128,15 +128,15 @@ More details (how to deal with the browser developer tools) to get your token ca
 > [!TIP]
 > It's recommended to use a separate FordPass account for this integration. This is to prevent any issues with the FordPass account being locked due to the polling of the API.
 
-Here is a short procedure how to create a second account:
+Here is a short procedure how to create and connect a second account:
 
-1. Create a new FordPass account with a different email address (and confirm the account by eMail) - It's important, that you can access this eMail account from your mobile phone with the installed FordPass App!
-2. From the FordPass app (logged in with your original account), you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
+1. Create a new FordPass account (via the regular Ford website) with a different email address (and confirm this account by eMail). All this can be done via a regular web browser.<br/>__It's important, that you can access this eMail account from your mobile phone where the FordPass App is installed__ (we need this in step 6).
+2. On a mobile Device: Open the FordPass app (logged in with your original account), then you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
 3. On the next screen select `Vehicle Access` (from the options: `Phone As A Key >`, `Software updates >` & `Vehicle Access >`)
 4. Select `Invite Driver(s) Invite` and then enter the next screen the eMail address of the new account you created in step 1. 
-5. Now you can log out from the FordPass app and log-in with the new account.
-6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.
-7. Finally, you should have now connected your car to the new FordPass account.
+5. Now you can log out with your main account from the FordPass app and log-in again with the new account (created in step 1).
+6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.<br/>__This step must be performed on the mobile device where the FordPass app is installed!__ (since only on a mobile device with installed Fordpass you can open the acceptance-link of this eMail)
+7. Finally, you should now have connected your car to the new FordPass account.
 8. You can now log out again of the FordPass app with your second account and re-login with your original FordPass account.
 9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
 
@@ -188,7 +188,6 @@ This service will contact the modem in the vehicle and request to sync data betw
 | EV Charging information            |               | X      | X                 |
 | State of Charge (SOC)              |               | ?      | X                 |
 | EVCC status code ('A', 'B' or 'C') |               | ?      | X                 |
-| ~~Zone Lighting~~                  |               |        |                   |
 
 ## Buttons / Switches / Other
 
@@ -200,6 +199,7 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Switch        | Remote Start (❄/☀)                  | X             | X          |
 | Switch        | ~~Guard Mode (Only supported cars)~~ |               |            |
 | DeviceTracker | Vehicle Tracker                      | X             | X          |
+| Select        | Zone Lighting (experimental)         | X             | X          |
 
 ## Want to report an issue?
 
