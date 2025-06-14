@@ -442,8 +442,8 @@ class ConnectedFordPassVehicle:
                         except BaseException as e:
                             _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
 
-                        _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
-                        await asyncio.sleep(5)
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
                     return False
                 else:
                     _LOGGER.info(f"{self.vli}_request_token: status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
@@ -465,7 +465,7 @@ class ConnectedFordPassVehicle:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
-            _LOGGER.warning(f"{self.vli}refresh_auto_token_func: FAILED!")
+            (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}refresh_auto_token_func: FAILED!")
 
         elif auto_token == ERROR:
             _LOGGER.warning(f"{self.vli}refresh_auto_token_func: COMM ERROR")
@@ -534,9 +534,8 @@ class ConnectedFordPassVehicle:
                         _LOGGER.error(f"{self.vli}_request_auto_token: status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        _LOGGER.warning(f"{self.vli}_request_auto_token: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                        (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_auto_token: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                         await asyncio.sleep(5)
-
                     return False
                 else:
                     _LOGGER.info(f"{self.vli}_request_auto_token: status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
@@ -1088,9 +1087,8 @@ class ConnectedFordPassVehicle:
                     _LOGGER.error(f"{self.vli}status: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"{self.vli}status: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}status: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
-
                 return None
             elif response_state.status == 403:
                 try:
@@ -1156,9 +1154,8 @@ class ConnectedFordPassVehicle:
                     _LOGGER.error(f"{self.vli}messages: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"{self.vli}messages: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}messages: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
-
                 return None
             else:
                 _LOGGER.info(f"{self.vli}messages: status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
@@ -1226,7 +1223,7 @@ class ConnectedFordPassVehicle:
                     _LOGGER.error(f"{self.vli}vehicles: status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    _LOGGER.warning(f"{self.vli}vehicles: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}vehicles: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
