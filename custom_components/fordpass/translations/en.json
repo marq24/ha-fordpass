@@ -144,8 +144,9 @@
 
     "entity": {
         "button": {
-            "update_data": {"name": "Local Sync"},
-            "request_refresh": {"name": "Remote Sync"}
+            "update_data":      {"name": "Local Sync"},
+            "request_refresh":  {"name": "Remote Sync"},
+            "doorlock":         {"name": "Lock"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},

@@ -131,8 +131,9 @@
 
     "entity": {
         "button": {
-            "update_data": {"name": "Lokaler Sync"},
-            "request_refresh": {"name": "Remote Sync"}
+            "update_data":      {"name": "Lokaler Sync"},
+            "request_refresh":  {"name": "Remote Sync"},
+            "doorlock":         {"name": "Verriegeln"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},

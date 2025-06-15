@@ -61,5 +61,7 @@ class FordPassLock(FordPassEntity, LockEntity):
 
     @property
     def icon(self):
-        """Return MDI Icon"""
-        return "mdi:car-door-lock"
+        if self.is_locked:
+            return "mdi:car-door-lock"
+        else:
+            return "mdi:car-door-lock-open"

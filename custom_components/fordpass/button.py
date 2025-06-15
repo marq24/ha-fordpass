@@ -34,6 +34,8 @@ class FordpassButton(FordPassEntity, ButtonEntity):
             elif self._tag == Tag.REQUEST_REFRESH:
                 await self.coordinator.bridge.request_update()
                 await self.coordinator.async_request_refresh_force_classic_requests()
+            elif self._tag == Tag.DOOR_LOCK:
+                await self.coordinator.bridge.lock()
         except ValueError:
             return "unavailable"
 
@@ -41,3 +43,13 @@ class FordpassButton(FordPassEntity, ButtonEntity):
     def icon(self):
         """Return sensor icon"""
         return BUTTONS[self._tag]["icon"]
+
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        state = super().available
+        if self._tag == Tag.DOOR_LOCK:
+            # Update Data button is always available
+            return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED"
+
+        return state

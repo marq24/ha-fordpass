@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final, NamedTuple, Callable, Any
 
-from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory
 from homeassistant.util.unit_system import UnitSystem
 
+from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS
 from custom_components.fordpass.fordpass_handler import FordpassDataHandler
 
 _LOGGER = logging.getLogger(__name__)
@@ -526,7 +526,8 @@ SWITCHES = {
 
 BUTTONS = {
     Tag.UPDATE_DATA:        {"icon": "mdi:refresh"},
-    Tag.REQUEST_REFRESH:    {"icon": "mdi:car-connected"}
+    Tag.REQUEST_REFRESH:    {"icon": "mdi:car-connected"},
+    Tag.DOOR_LOCK:          {"icon": "mdi:car-door-lock"},
 }
 
 SELECTS = [
