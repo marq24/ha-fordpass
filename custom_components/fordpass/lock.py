@@ -1,4 +1,5 @@
 """Represents the primary lock of the vehicle."""
+import asyncio
 import logging
 
 from homeassistant.components.lock import LockEntity
@@ -37,7 +38,16 @@ class FordPassLock(FordPassEntity, LockEntity):
         self.async_write_ha_state()
         status = await self.coordinator.bridge.lock()
         _LOGGER.debug(f"async_lock status: {status}")
-        await self.coordinator.async_request_refresh()
+
+        if self.coordinator._supports_ALARM:
+            await asyncio.sleep(5)
+            if Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED":
+                await asyncio.sleep(25)
+                if Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED":
+                    await self.coordinator.bridge.request_update()
+
+            _LOGGER.debug(f"async_lock status: {status} - after waiting for alarm 'ARMED' state")
+
         self._attr_is_locking = False
         self.async_write_ha_state()
 
@@ -47,7 +57,6 @@ class FordPassLock(FordPassEntity, LockEntity):
         self.async_write_ha_state()
         status = await self.coordinator.bridge.unlock()
         _LOGGER.debug(f"async_unlock status: {status}")
-        await self.coordinator.async_request_refresh()
         self._attr_is_unlocking = False
         self.async_write_ha_state()
 

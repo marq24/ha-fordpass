@@ -4,9 +4,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final, NamedTuple, Callable, Any
 
+from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS
@@ -18,9 +20,10 @@ class ApiKey(NamedTuple):
     key: str
     state_fn: Callable[[dict], Any] = None
     attrs_fn: Callable[[dict, UnitSystem], Any] = None
+    # asynchronous functions
     on_off_fn: Callable[[Any, bool], Any] = None
     select_fn: Callable[[Any, str, str], Any] = None
-
+    press_fn: Callable[[DataUpdateCoordinator, Any], Any] = None
 
 class Tag(ApiKey, Enum):
 
@@ -40,9 +43,9 @@ class Tag(ApiKey, Enum):
             return self.attrs_fn(data, units)
         return None
 
-    def turn_on_off(self, vehicle, turn_on:bool) -> bool:
+    async def turn_on_off(self, vehicle, turn_on:bool) -> bool:
         if self.on_off_fn:
-            return self.on_off_fn(vehicle, turn_on)
+            return await self.on_off_fn(vehicle, turn_on)
         else:
             _LOGGER.warning(f"Tag {self.key} does not support turning ON.")
             return False
@@ -50,6 +53,11 @@ class Tag(ApiKey, Enum):
     async def async_select_option(self, data, vehicle, new_value: Any) -> bool:
         if self.select_fn:
             return await self.select_fn(vehicle, new_value, self.get_state(data))
+        return None
+
+    async def async_push(self, coordinator, vehicle) -> bool:
+        if self.press_fn:
+            return await self.press_fn(coordinator, vehicle)
         return None
 
     ##################################################
@@ -60,10 +68,20 @@ class Tag(ApiKey, Enum):
     TRACKER             = ApiKey(key="tracker",
                                  attrs_fn=FordpassDataHandler.get_gps_tracker_attr)
 
+    # BUTTON
+    ##################################################
+    UPDATE_DATA         = ApiKey(key="update_data",
+                                 press_fn=FordpassDataHandler.reload_data)
+    REQUEST_REFRESH     = ApiKey(key="request_refresh",
+                                 press_fn=FordpassDataHandler.request_update_and_reload)
+    DOOR_UNLOCK         = ApiKey(key="doorunlock",
+                                 press_fn=FordpassDataHandler.unlock_vehicle)
+
     # LOCKS
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
-                                 state_fn=lambda data: FordpassDataHandler.get_door_lock_state(data))
+                                 state_fn=lambda data: FordpassDataHandler.get_door_lock_state(data),
+                                 press_fn=FordpassDataHandler.lock_vehicle)
 
     # NUMBERS/SELECTS
     ZONE_LIGHTING       = ApiKey(key="zoneLighting",
@@ -84,12 +102,6 @@ class Tag(ApiKey, Enum):
     ELVEH_CHARGE        = ApiKey(key="elVehCharge",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryChargeDisplayStatus"),
                                  on_off_fn=FordpassDataHandler.get_elveh_on_off)
-
-
-    # BUTTONS
-    ##################################################
-    UPDATE_DATA         = ApiKey(key="update_data")
-    REQUEST_REFRESH     = ApiKey(key="request_refresh")
 
     # SENSORS
     ##################################################
@@ -213,14 +225,19 @@ EV_ONLY_TAGS: Final = [
 ]
 
 
-@dataclass
-class ExtSensorEntityDescription(SensorEntityDescription, frozen_or_thawed=True):
+@dataclass(frozen=True)
+class ExtButtonEntityDescription(ButtonEntityDescription):
+    tag: Tag | None = None
+
+@dataclass(frozen=True)
+class ExtSensorEntityDescription(SensorEntityDescription):
     tag: Tag | None = None
     skip_existence_check: bool | None = None
 
-@dataclass
-class ExtSelectEntityDescription(SelectEntityDescription, frozen_or_thawed=True):
+@dataclass(frozen=True)
+class ExtSelectEntityDescription(SelectEntityDescription):
     tag: Tag | None = None
+
 
 
 SENSORS = [
@@ -515,7 +532,6 @@ SENSORS = [
 
 SENSORSX = {
     # Tag.FIRMWAREUPGINPROGRESS: {"icon": "mdi:one-up", "name": "Firmware Update In Progress"},
-    # Tag.ZONELIGHTING: {"icon": "mdi:spotlight-beam"},
 }
 
 SWITCHES = {
@@ -524,17 +540,40 @@ SWITCHES = {
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
 }
 
-BUTTONS = {
-    Tag.UPDATE_DATA:        {"icon": "mdi:refresh"},
-    Tag.REQUEST_REFRESH:    {"icon": "mdi:car-connected"},
-    Tag.DOOR_LOCK:          {"icon": "mdi:car-door-lock"},
-}
+BUTTONS = [
+    ExtButtonEntityDescription(
+        tag=Tag.UPDATE_DATA,
+        key=Tag.UPDATE_DATA.key,
+        icon="mdi:refresh",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.REQUEST_REFRESH,
+        key=Tag.REQUEST_REFRESH.key,
+        icon="mdi:car-connected",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.DOOR_LOCK,
+        key=Tag.DOOR_LOCK.key,
+        icon="mdi:car-door-lock",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.DOOR_UNLOCK,
+        key=Tag.DOOR_UNLOCK.key,
+        icon="mdi:car-door-lock-open",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    )
+]
 
 SELECTS = [
     ExtSelectEntityDescription(
         tag=Tag.ZONE_LIGHTING,
         key=Tag.ZONE_LIGHTING.key,
-        icon="mdi:car-parking-lights",
+        icon="mdi:car-parking-lights", # mdi:spotlight-beam
         options=ZONE_LIGHTS_OPTIONS,
         has_entity_name=True,
     ),

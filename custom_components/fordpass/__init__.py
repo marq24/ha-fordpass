@@ -234,6 +234,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_GUARD_MODE = None
         self._supports_REMOTE_START = None
         self._supports_ZONE_LIGHTING = None
+        self._supports_ALARM = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -322,14 +323,15 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if a_tag in EV_ONLY_TAGS:
             return self.supportPureEvOrPluginEv is False
 
-        if a_tag == Tag.REMOTE_START_STATUS or a_tag == Tag.REMOTE_START:
-            return self._supports_REMOTE_START is None or self._supports_REMOTE_START is False
+        if a_tag in (Tag.REMOTE_START_STATUS, Tag.REMOTE_START, Tag.GUARD_MODE, Tag.ZONE_LIGHTING, Tag.ALARM):
+            # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
+            # share the same 'support_ATTR_NAME'...
+            if a_tag == Tag.REMOTE_START_STATUS:
+                support_ATTR_NAME = f"_supports_{Tag.REMOTE_START.name}"
+            else:
+                support_ATTR_NAME = f"_supports_{a_tag.name}"
 
-        if a_tag == Tag.GUARD_MODE:
-            return self._supports_GUARD_MODE is None or self._supports_GUARD_MODE is False
-
-        if a_tag == Tag.ZONE_LIGHTING:
-            return self._supports_ZONE_LIGHTING is None or self._supports_ZONE_LIGHTING is False
+            return getattr(self, support_ATTR_NAME, None) is None or getattr(self, support_ATTR_NAME) is False
 
         return False
 
@@ -377,6 +379,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 if "vehicleCapabilities" in veh_data:
                     for capability_obj in veh_data["vehicleCapabilities"]:
                         if capability_obj["VIN"] == self._vin:
+                            self._supports_ALARM = Tag.ALARM.get_state(self.data).upper() != "UNSUPPORTED"
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0

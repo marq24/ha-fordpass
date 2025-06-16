@@ -1391,15 +1391,11 @@ class ConnectedFordPassVehicle:
     #     return self.__request_and_poll_command(command="stop")
 
     async def lock(self):
-        """
-        Issue a lock command to the doors
-        """
+        """Issue a lock command to the doors"""
         return await self.__request_and_poll_command_autonomic(command="lock")
 
     async def unlock(self):
-        """
-        Issue an unlock command to the doors
-        """
+        """Issue an unlock command to the doors"""
         return await self.__request_and_poll_command_autonomic(command="unlock")
 
     def request_update(self, vin=None):

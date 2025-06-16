@@ -146,7 +146,8 @@
         "button": {
             "update_data":      {"name": "Local Sync"},
             "request_refresh":  {"name": "Remote Sync"},
-            "doorlock":         {"name": "Lock"}
+            "doorlock":         {"name": "Lock"},
+            "doorunlock":       {"name": "Unlock"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},

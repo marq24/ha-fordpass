@@ -414,11 +414,11 @@ class FordpassDataHandler:
 
 
     # ELVEH_CHARGING attributes
-    def get_elveh_on_off(vehicle, turn_on:bool) -> bool:
+    async def get_elveh_on_off(vehicle, turn_on:bool) -> bool:
             if turn_on:
-                return vehicle.start_charge()
+                return await vehicle.start_charge()
             else:
-                return vehicle.stop_charge()
+                return await vehicle.stop_charge()
 
     def get_elveh_charging_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
@@ -562,8 +562,8 @@ class FordpassDataHandler:
                         attrs[FordpassDataHandler.to_camel(key)] = value
             return attrs
 
-    def set_zone_lighting(vehicle, target_value: str, current_value:str) -> bool:
-        return vehicle.set_zone_lighting(target_value, current_value)
+    async def set_zone_lighting(vehicle, target_value: str, current_value:str) -> bool:
+        return await vehicle.set_zone_lighting(target_value, current_value)
 
 
     # REMOTE_START state + on_off
@@ -572,11 +572,11 @@ class FordpassDataHandler:
         return "ON" if val > 0 else "OFF"
 
     # this was 'IGNITION' switch - we keep the key name for compatibility...
-    def remote_start_on_off(vehicle, turn_on:bool) -> bool:
+    async def remote_start_on_off(vehicle, turn_on:bool) -> bool:
         if turn_on:
-            return vehicle.remote_start()
+            return await vehicle.remote_start()
         else:
-            return vehicle.cancel_remote_start()
+            return await vehicle.cancel_remote_start()
 
     # REMOTE_START_STATUS state + attributes
     def get_remote_start_status_state(data):
@@ -717,8 +717,24 @@ class FordpassDataHandler:
             return UNSUPPORTED
         return UNSUPPORTED
 
-    def guardmode_on_off(vehicle, turn_on:bool) -> bool:
+    async def guardmode_on_off(vehicle, turn_on:bool) -> bool:
         if turn_on:
-            return vehicle.enable_guard()
+            return await vehicle.enable_guard()
         else:
-            return vehicle.disable_guard()
+            return await vehicle.disable_guard()
+
+
+    # BUTTON actions
+    ##################
+    async def reload_data(coordinator, vehicle):
+        await coordinator.async_request_refresh_force_classic_requests()
+
+    async def request_update_and_reload(coordinator, vehicle):
+        await vehicle.request_update()
+        await coordinator.async_request_refresh_force_classic_requests()
+
+    async def lock_vehicle(coordinator, vehicle):
+        await vehicle.lock()
+
+    async def unlock_vehicle(coordinator, vehicle):
+        await vehicle.unlock()
