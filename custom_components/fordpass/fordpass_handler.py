@@ -5,6 +5,10 @@ from numbers import Number
 from re import sub
 from typing import Final
 
+from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
+from homeassistant.util import dt
+from homeassistant.util.unit_system import UnitSystem
+
 from custom_components.fordpass.const import (
     ZONE_LIGHTS_VALUE_ALL_ON,
     ZONE_LIGHTS_VALUE_FRONT,
@@ -13,9 +17,6 @@ from custom_components.fordpass.const import (
     ZONE_LIGHTS_VALUE_PASSENGER,
     ZONE_LIGHTS_VALUE_OFF
 )
-from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
-from homeassistant.util import dt
-from homeassistant.util.unit_system import UnitSystem
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -237,11 +238,18 @@ class FordpassDataHandler:
     # DOOR_LOCK state
     def get_door_lock_state(data):
         data_metrics = FordpassDataHandler.get_metrics(data)
-        key_list = ["ALL_DOORS", "UNSPECIFIED_FRONT"]
+        key_list = ["ALL_DOORS", "UNSPECIFIED_FRONT", "DRIVER"]
         for a_key in key_list:
             for a_lock_state in data_metrics.get("doorLockStatus", []):
                 if a_lock_state.get("vehicleDoor", "").upper() == a_key:
                     return a_lock_state.get("value", UNSUPPORTED)
+
+        # fallback implementation...
+        if "doorLockStatus" in data_metrics:
+            all_lock_states = data_metrics["doorLockStatus"]
+            if len(all_lock_states) > 0:
+                _LOGGER.warning(f"Unknown vehicleDoor - please create a issue https://github.com/marq24/ha-fordpass/issues and provide this warning message - TIA VehicleDoor is: '{all_lock_states[0].get('vehicleDoor', '@@@UNKNOWN@@@')}', all vehicleDoors are: '{all_lock_states}'")
+                return all_lock_states[0].get("value", UNSUPPORTED)
 
         return UNSUPPORTED
 
