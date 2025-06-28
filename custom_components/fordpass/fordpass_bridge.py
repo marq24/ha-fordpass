@@ -68,6 +68,19 @@ FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
 
+START_CHARGE_KEY:Final = "START_CHARGE"
+STOP_CHARGE_KEY:Final = "STOP_CHARGE"
+
+FORD_COMMAND_URL_TEMPLATES: Final = {
+    # Templates with {vin} placeholder
+    START_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/CANCEL",
+    STOP_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/PAUSE",
+}
+FORD_COMMAND_MAP: Final ={
+    # the code will always add 'Command' at the end!
+    START_CHARGE_KEY: "cancelGlobalCharge",
+    STOP_CHARGE_KEY: "pauseGlobalCharge",
+}
 #session = None #requests.Session()
 
 # we need global variables to keep track of the number of 401 responses per user account(=token file)
@@ -1347,11 +1360,11 @@ class ConnectedFordPassVehicle:
     async def start_charge(self):
         # VALUE_CHARGE, CHARGE_NOW, CHARGE_DT, CHARGE_DT_COND, CHARGE_SOLD, HOME_CHARGE_NOW, HOME_STORE_CHARGE, HOME_CHARGE_DISCHARGE
         # START_GLOBAL_CHARGE
-        return await self.__request_and_poll_command_ford(command="startGlobalCharge")
+        return await self.__request_and_poll_command_ford(command_key=START_CHARGE_KEY)
 
     async def stop_charge(self):
         # CANCEL_GLOBAL_CHARGE
-        return await self.__request_and_poll_command_ford(command="cancelGlobalCharge")
+        return await self.__request_and_poll_command_ford(command_key=STOP_CHARGE_KEY)
 
     async def set_zone_lighting(self, target_option:str, current_option=None):
         if target_option is None or str(target_option) == ZONE_LIGHTS_VALUE_OFF:
@@ -1543,7 +1556,14 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_ford(self, command:str, post_data=None, vin=None):
+    def get_command_and_url_for_key_and_vin(self, command_key, vin):
+        template = FORD_COMMAND_URL_TEMPLATES.get(command_key, None)
+        if template:
+            return {"url":      template.format(a_vin=vin),
+                    "command":  FORD_COMMAND_MAP.get(command_key, None)}
+        return None
+
+    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, vin=None):
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -1561,15 +1581,11 @@ class ConnectedFordPassVehicle:
             if vin is None:
                 vin = self.vin
 
-            # YES this is for sure very UGLY - and not following any clean code principles...
-            command_url_part = None
-            if command == "cancelGlobalCharge":
-                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/PAUSE"
-            elif command == "startGlobalCharge":
-                command_url_part = f"/electrification/experiences/v1/vehicles/{vin}/global-charge-command/CANCEL"
-
-            if command_url_part is None:
-                _LOGGER.warning(f"{self.vli}__request_and_poll_command_ford() - command '{command}' is not supported by the integration")
+            a_cmd_obj = self.get_command_and_url_for_key_and_vin(command_key, vin)
+            command_url_part = a_cmd_obj.get("url", None)
+            command = a_cmd_obj.get("command", None)
+            if command_url_part is None or command is None:
+                _LOGGER.warning(f"{self.vli}__request_and_poll_command_ford() - command_key '{command_key}' is not supported by the integration: '{a_cmd_obj}'")
                 return False
 
             if post_data is not None:
@@ -1664,7 +1680,7 @@ class ConnectedFordPassVehicle:
             i = 0
             while i < 15:
                 if i > 0:
-                    _LOGGER.debug(f"{self.vli}__check_command_status(): retry again [count: {i}] - COMM ERRORS: {self._HAS_COM_ERROR}")
+                    _LOGGER.debug(f"{self.vli}__check_command_status(): retry again [count: {i}] waiting for '{req_command}' - COMM ERRORS: {self._HAS_COM_ERROR}")
 
                 # Get data based on method
                 if use_websocket:
@@ -1691,6 +1707,7 @@ class ConnectedFordPassVehicle:
                     if command_key in states:
                         resp_command_obj = states[command_key]
                         #_LOGGER.debug(f"{self.vli}__check_command_status(): Found command object")
+                        #_LOGGER.info(f"{resp_command_obj}")
 
                         if "commandId" in resp_command_obj and resp_command_obj["commandId"] == command_id:
                             #_LOGGER.debug(f"{self.vli}__check_command_status(): Found the commandId")
@@ -1704,13 +1721,13 @@ class ConnectedFordPassVehicle:
                                         self.status_updates_allowed = True
                                     return True
 
-                                if to_state == "EXPIRED":
-                                    _LOGGER.info(f"{self.vli}__check_command_status(): Command EXPIRED")
+                                elif to_state == "EXPIRED":
+                                    _LOGGER.info(f"{self.vli}__check_command_status(): Command EXPIRED - wait is OVER")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
                                     return False
 
-                                if to_state == "REQUEST_QUEUED" or "IN_PROGRESS" in to_state:
+                                elif to_state == "REQUEST_QUEUED" or "IN_PROGRESS" in to_state:
                                     _LOGGER.debug(f"{self.vli}__check_command_status(): toState: '{to_state}'")
                                 else:
                                     _LOGGER.info(f"{self.vli}__check_command_status(): UNKNOWN 'toState': {to_state}")
@@ -1718,7 +1735,7 @@ class ConnectedFordPassVehicle:
                                 _LOGGER.debug(f"{self.vli}__check_command_status(): no 'value' or 'toState' in command object")
                         else:
                             cmd_id = resp_command_obj.get("commandId", "missing")
-                            _LOGGER.info(f"{self.vli}__check_command_status(): Command ID mismatch: {command_id} vs {cmd_id}")
+                            _LOGGER.debug(f"{self.vli}__check_command_status(): Command ID mismatch: {command_id} vs {cmd_id}")
 
                 i += 1
                 a_delay = i * 5

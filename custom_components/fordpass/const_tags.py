@@ -100,7 +100,7 @@ class Tag(ApiKey, Enum):
                                  on_off_fn=FordpassDataHandler.guardmode_on_off)
 
     ELVEH_CHARGE        = ApiKey(key="elVehCharge",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryChargeDisplayStatus"),
+                                 state_fn=FordpassDataHandler.get_elveh_switch_state,
                                  on_off_fn=FordpassDataHandler.get_elveh_on_off)
 
     # SENSORS
@@ -149,6 +149,8 @@ class Tag(ApiKey, Enum):
     ELVEH_PLUG          = ApiKey(key="elVehPlug",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "xevPlugChargerStatus"),
                                  attrs_fn=FordpassDataHandler.get_elveh_plug_attrs)
+    EVCC_STATUS         = ApiKey(key="evccStatus",
+                                 state_fn=FordpassDataHandler.get_evcc_status_state)
     DEEPSLEEP           = ApiKey(key="deepSleep",
                                  state_fn=FordpassDataHandler.get_deepsleep_state)
     REMOTE_START_STATUS = ApiKey(key="remoteStartStatus",
@@ -183,8 +185,6 @@ class Tag(ApiKey, Enum):
     SOC                 = ApiKey(key="soc",
                                  state_fn=FordpassDataHandler.get_soc_state,
                                  attrs_fn=FordpassDataHandler.get_soc_attrs)
-    EVCC_STATUS         = ApiKey(key="evccStatus",
-                                 state_fn=FordpassDataHandler.get_evcc_status_state)
 
     DEEPSLEEP_IN_PROGRESS   = ApiKey(key="deepSleepInProgress",
                                      state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
@@ -536,7 +536,7 @@ SENSORSX = {
 
 SWITCHES = {
     Tag.REMOTE_START: {"icon": "mdi:air-conditioner"},
-    #Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
+    Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
 }
 

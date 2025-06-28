@@ -15,7 +15,10 @@ from custom_components.fordpass.const import (
     ZONE_LIGHTS_VALUE_REAR,
     ZONE_LIGHTS_VALUE_DRIVER,
     ZONE_LIGHTS_VALUE_PASSENGER,
-    ZONE_LIGHTS_VALUE_OFF
+    ZONE_LIGHTS_VALUE_OFF,
+    XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
+    XEVPLUGCHARGER_STATE_CHARGINGAC,
+    XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -422,6 +425,20 @@ class FordpassDataHandler:
 
 
     # ELVEH_CHARGING attributes
+    def get_elveh_switch_state(data):
+        # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
+        data_metrics = FordpassDataHandler.get_metrics(data)
+        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
+        if val != UNSUPPORTED:
+            val = val.upper()
+            if val == XEVPLUGCHARGER_STATE_CHARGING or val == XEVPLUGCHARGER_STATE_CHARGINGAC:
+                return "ON"
+            elif val == XEVPLUGCHARGER_STATE_CONNECTED and "xevBatteryChargeDisplayStatus" in data_metrics:
+                secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
+                if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
+                    return "ON"
+        return "OFF"
+
     async def get_elveh_on_off(vehicle, turn_on:bool) -> bool:
             if turn_on:
                 return await vehicle.start_charge()
@@ -499,22 +516,21 @@ class FordpassDataHandler:
 
         return attrs
 
-
     # EVCC_STATUS state
     def get_evcc_status_state(data):
         data_metrics = FordpassDataHandler.get_metrics(data)
         val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
         if val != UNSUPPORTED:
             val = val.upper()
-            if val == 'DISCONNECTED':
+            if val == XEVPLUGCHARGER_STATE_DISCONNECTED:
                 return "A"
-            elif val == 'CONNECTED':
+            elif val == XEVPLUGCHARGER_STATE_CONNECTED:
                 if "xevBatteryChargeDisplayStatus" in data_metrics:
                     secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
-                    if secondary_val == "IN_PROGRESS":
+                    if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
                         return "C"
                 return "B"
-            elif val == 'CHARGING' or val == 'CHARGINGAC':
+            elif val == XEVPLUGCHARGER_STATE_CHARGING or val == XEVPLUGCHARGER_STATE_CHARGINGAC:
                 return "C"
             else:
                 return "UNKNOWN"
