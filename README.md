@@ -122,6 +122,19 @@ More details (how to deal with the browser developer tools) to get your token ca
 
 [All information, how to use this integration as provider for Ford EV data can be found in a separate section in this repository.](./doc/EVCC.md)
 
+## Charge Control of your EV
+
+Currently, the integration supports to pause and unpause an EV charging session. This is done by a switch in the Home Assistant UI. The switch will be available for all PHEV and BEV vehicles.
+
+> [!NOTE]
+> I (marq24) must admit that I have not fully understood how the charging control works in detail, since I have not yet found a way to start a charging session via the FordPass API. The commands the FordPass App sends to the Ford backend are quite confusing for me.
+> 
+> So please don't be disappointed if the charging control does not work as expected, there might be a general misunderstanding on my site, how the current FordPass APP is intended to control the charging process of the vehicle.
+> 
+> But what works at least for me is, then when the vehicle is plugged in and the wallbox has started to charge my car that the new switch is toggled to it's `ON` state. When I then use the switch, the charging process is paused and the switch is toggled to `OFF`. When I toggle the switch `ON` again, the charging process resumes — so it seems to work somehow. 
+> 
+> Unfortunately (at least for me) the switch (and the API commands underneath) __can't__ start a charging session. This seems to be some sort of consequent, since I can't do this via the FodPass App either.
+
 
 ## Use of a separate FordPass account is recommended
 
@@ -196,8 +209,9 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Button        | Remote Sync (Car with Ford backend)  | X             | X          |
 | Button        | Local Sync (Ford backend with HA)    | X             | X          |
 | Lock          | Lock/Unlock Vehicle                  | X             | X          |
-| Switch        | Remote Start (❄/☀)                  | X             | X          |
+| Switch        | Remote Start (❄/☀)                   | X             | X          |
 | Switch        | ~~Guard Mode (Only supported cars)~~ |               |            |
+| Switch        | PAUSE/UNPAUSE charging               |               | X          |
 | DeviceTracker | Vehicle Tracker                      | X             | X          |
 | Select        | Zone Lighting (experimental)         | X             | X          |
 
