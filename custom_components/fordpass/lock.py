@@ -5,7 +5,7 @@ import logging
 from homeassistant.components.lock import LockEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, VEHICLE_LOCK_STATE_LOCKED
 from custom_components.fordpass.const_tags import Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
@@ -65,7 +65,7 @@ class FordPassLock(FordPassEntity, LockEntity):
         """Determine if the lock is locked."""
         lock_state = self._tag.get_state(self.coordinator.data)
         if lock_state != UNSUPPORTED:
-            return lock_state.upper() == "LOCKED"
+            return lock_state == VEHICLE_LOCK_STATE_LOCKED
         return None
 
     @property

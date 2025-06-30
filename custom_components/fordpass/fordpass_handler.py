@@ -16,9 +16,10 @@ from custom_components.fordpass.const import (
     ZONE_LIGHTS_VALUE_DRIVER,
     ZONE_LIGHTS_VALUE_PASSENGER,
     ZONE_LIGHTS_VALUE_OFF,
-    XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
-    XEVPLUGCHARGER_STATE_CHARGINGAC,
-    XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS
+    XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC,
+    XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
+    XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
+    VEHICLE_LOCK_STATE_LOCKED, VEHICLE_LOCK_STATE_PARTLY, VEHICLE_LOCK_STATE_UNLOCKED
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -240,21 +241,137 @@ class FordpassDataHandler:
 
     # DOOR_LOCK state
     def get_door_lock_state(data):
+        # EXAMPLE data:
+
+        # # UNKNOWN
+        # obj1 = [{
+        #     "updateTime": "2025-06-30T05:34:24.902Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "FRONT_LEFT",
+        #     "determinationMethod": "ACTUAL"
+        # }, {
+        #     "updateTime": "2025-06-30T05:34:24.902Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "FRONT_RIGHT",
+        #     "determinationMethod": "ACTUAL"
+        # }, {
+        #     "updateTime": "2025-06-30T05:34:24.902Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "REAR_LEFT",
+        #     "determinationMethod": "ACTUAL"
+        # }, {
+        #     "updateTime": "2025-06-30T05:34:24.902Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "REAR_RIGHT",
+        #     "determinationMethod": "ACTUAL"
+        # }]
+        #
+        # # MACH-E
+        # obj2 = [{
+        #     "updateTime": "2025-06-09T11:09:31Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "UNSPECIFIED_FRONT",
+        #     "vehicleOccupantRole": "DRIVER",
+        #     "vehicleSide": "DRIVER"
+        # }, {
+        #     "updateTime": "2025-06-09T11:09:31Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "ALL_DOORS"
+        # }]
+        #
+        # # F150
+        # obj3 = [{
+        #     "updateTime": "2025-06-13T00:05:54Z",
+        #     "oemCorrelationId": "xxx",
+        #     "tags": {
+        #         "DOOR_LATCH_TYPE": "MECHANICAL"
+        #     },
+        #     "value": "UNKNOWN",
+        #     "vehicleDoor": "UNSPECIFIED_REAR",
+        #     "vehicleOccupantRole": "PASSENGER",
+        #     "vehicleSide": "DRIVER"
+        # }, {
+        #     "updateTime": "2025-06-13T00:05:54Z",
+        #     "oemCorrelationId": "xxx",
+        #     "tags": {
+        #         "DOOR_LATCH_TYPE": "MECHANICAL"
+        #     },
+        #     "value": "UNKNOWN",
+        #     "vehicleDoor": "INNER_TAILGATE",
+        #     "vehicleOccupantRole": "UNKNOWN",
+        #     "vehicleSide": "UNKNOWN"
+        # }, {
+        #     "updateTime": "2025-06-13T00:05:54Z",
+        #     "oemCorrelationId": "xxx",
+        #     "tags": {
+        #         "DOOR_LATCH_TYPE": "MECHANICAL"
+        #     },
+        #     "value": "UNKNOWN",
+        #     "vehicleDoor": "TAILGATE",
+        #     "vehicleOccupantRole": "UNKNOWN",
+        #     "vehicleSide": "UNKNOWN"
+        # }, {
+        #     "updateTime": "2025-06-13T00:05:54Z",
+        #     "oemCorrelationId": "xxx",
+        #     "tags": {
+        #         "DOOR_LATCH_TYPE": "MECHANICAL"
+        #     },
+        #     "value": "UNKNOWN",
+        #     "vehicleDoor": "FRUNK",
+        #     "vehicleOccupantRole": "UNKNOWN",
+        #     "vehicleSide": "UNKNOWN"
+        # }, {
+        #     "updateTime": "2025-06-13T01:42:10Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "ALL_DOORS"
+        # }, {
+        #     "updateTime": "2025-06-13T01:42:10Z",
+        #     "oemCorrelationId": "xxx",
+        #     "value": "LOCKED",
+        #     "vehicleDoor": "UNSPECIFIED_FRONT",
+        #     "vehicleOccupantRole": "DRIVER",
+        #     "vehicleSide": "DRIVER"
+        # }]
+
         data_metrics = FordpassDataHandler.get_metrics(data)
-        key_list = ["ALL_DOORS", "UNSPECIFIED_FRONT", "DRIVER"]
-        for a_key in key_list:
-            for a_lock_state in data_metrics.get("doorLockStatus", []):
-                if a_lock_state.get("vehicleDoor", "").upper() == a_key:
-                    return a_lock_state.get("value", UNSUPPORTED)
 
-        # fallback implementation...
-        if "doorLockStatus" in data_metrics:
-            all_lock_states = data_metrics["doorLockStatus"]
-            if len(all_lock_states) > 0:
-                _LOGGER.warning(f"Unknown vehicleDoor - please create a issue https://github.com/marq24/ha-fordpass/issues and provide this warning message - TIA VehicleDoor is: '{all_lock_states[0].get('vehicleDoor', '@@@UNKNOWN@@@')}', all vehicleDoors are: '{all_lock_states}'")
-                return all_lock_states[0].get("value", UNSUPPORTED)
+        all_doors = data_metrics.get("doorLockStatus", [])
+        required_locked_doors = len(all_doors)
 
-        return UNSUPPORTED
+        if required_locked_doors == 0:
+            _LOGGER.debug("No doorLockStatus found in the data - returning UNSUPPORTED")
+            return UNSUPPORTED
+
+        locked_doors = 0
+        for a_lock_state in all_doors:
+            a_lock_value = a_lock_state.get("value", UNSUPPORTED).upper()
+            if a_lock_value == "LOCKED":
+                # if we have an ALL_DOORS lock state, we can ignore the other door lock states
+                if "vehicleDoor" in a_lock_state and a_lock_state["vehicleDoor"].upper() == "ALL_DOORS":
+                    required_locked_doors = 99
+                    locked_doors = 99
+                    break
+                else:
+                    locked_doors += 1
+
+            # we ignore unknown, or MECHANICAL door latch types...
+            elif a_lock_value == "UNKNOWN" or ("tags" in a_lock_state and "DOOR_LATCH_TYPE" in a_lock_state["tags"] and a_lock_state["tags"]["DOOR_LATCH_TYPE"] == "MECHANICAL"):
+                required_locked_doors -= 1
+
+        if locked_doors > 0:
+            if locked_doors == required_locked_doors:
+                return VEHICLE_LOCK_STATE_LOCKED
+            else:
+                return VEHICLE_LOCK_STATE_PARTLY
+        else:
+            return VEHICLE_LOCK_STATE_UNLOCKED
 
     # DOOR_STATUS state + attributes
     def get_door_status_state(data):
