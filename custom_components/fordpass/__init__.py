@@ -235,6 +235,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_REMOTE_START = None
         self._supports_ZONE_LIGHTING = None
         self._supports_ALARM = None
+        self._supports_GEARLEVERPOSITION = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -323,7 +324,12 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if a_tag in EV_ONLY_TAGS:
             return self.supportPureEvOrPluginEv is False
 
-        if a_tag in (Tag.REMOTE_START_STATUS, Tag.REMOTE_START, Tag.GUARD_MODE, Tag.ZONE_LIGHTING, Tag.ALARM):
+        if a_tag in (   Tag.REMOTE_START_STATUS,
+                        Tag.REMOTE_START,
+                        Tag.GUARD_MODE,
+                        Tag.ZONE_LIGHTING,
+                        Tag.ALARM,
+                        Tag.GEARLEVERPOSITION):
             # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
             # share the same 'support_ATTR_NAME'...
             if a_tag == Tag.REMOTE_START_STATUS:
@@ -371,6 +377,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             if "numberOfLightingZones" in a_vehicle_profile:
                                 self._number_of_lighting_zones = int(a_vehicle_profile["numberOfLightingZones"])
 
+                            if "transmissionIndicator" in a_vehicle_profile:
+                                self._supports_GEARLEVERPOSITION = a_vehicle_profile["transmissionIndicator"] == "A"
                             break
                 else:
                     _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data["vehicles"]}")
