@@ -60,6 +60,7 @@ LOG_DATA: Final = False
 # GUARD_URL: Final = "https://api.mps.ford.com/api"
 
 AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
+AUTONOMIC_BETA_URL: Final = "https://api.autonomic.ai/v1beta"
 AUTONOMIC_WS_URL: Final = "wss://api.autonomic.ai/v1beta"
 AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 
@@ -858,10 +859,10 @@ class ConnectedFordPassVehicle:
             # Update only the specific keys (e.g. if only one state is present) that are in the new data
             if hasattr(data_obj[a_root_key], "items"):
                 for a_key_name, a_key_value in data_obj[a_root_key].items():
-                    # for 'ROOT_METRICS' we must merge 'customMetrics'
+                    # for 'ROOT_METRICS' we must merge 'customMetrics' & 'configurations'
                     # and for 'ROOT_EVENTS' we must merge 'customEvents'
-                    if (a_root_key == ROOT_METRICS and a_key_name == "customMetrics") or (
-                            a_root_key == ROOT_EVENTS and a_key_name == "customEvents"):
+                    if ((a_root_key == ROOT_METRICS and (a_key_name == "customMetrics" or a_key_name == "configurations")) or
+                        (a_root_key == ROOT_EVENTS and a_key_name == "customEvents")):
                         if a_key_name not in self._data_container[a_root_key]:
                             self._data_container[a_root_key][a_key_name] = {}
                         for a_sub_key_name, a_sub_key_value in a_key_value.items():
@@ -1350,12 +1351,21 @@ class ConnectedFordPassVehicle:
     # }
 
     # operations
+    async def auto_updates_on(self):
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
+                                                               write_command="publishASUSettingsCommand",
+                                                               properties={"ASUState": "ON"})
+
+    async def auto_updates_off(self):
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
+                                                               write_command="publishASUSettingsCommand",
+                                                               properties={"ASUState": "OFF"})
 
     async def remote_start(self):
-        return await self.__request_and_poll_command_autonomic(command="remoteStart")
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="remoteStart")
 
     async def cancel_remote_start(self):
-        return await self.__request_and_poll_command_autonomic(command="cancelRemoteStart")
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="cancelRemoteStart")
 
     async def start_charge(self):
         # VALUE_CHARGE, CHARGE_NOW, CHARGE_DT, CHARGE_DT_COND, CHARGE_SOLD, HOME_CHARGE_NOW, HOME_STORE_CHARGE, HOME_CHARGE_DISCHARGE
@@ -1405,11 +1415,11 @@ class ConnectedFordPassVehicle:
 
     async def lock(self):
         """Issue a lock command to the doors"""
-        return await self.__request_and_poll_command_autonomic(command="lock")
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="lock")
 
     async def unlock(self):
         """Issue an unlock command to the doors"""
-        return await self.__request_and_poll_command_autonomic(command="unlock")
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="unlock")
 
     def request_update(self, vin=None):
         """Send request to vehicle for update"""
@@ -1418,7 +1428,7 @@ class ConnectedFordPassVehicle:
         else:
             vin_to_request = vin
 
-        status = self.__request_and_poll_command_autonomic(command="statusRefresh", vin=vin_to_request)
+        status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh", vin=vin_to_request)
         return status
 
     # def x_request_and_poll_command(self, command, properties={}, vin=None):
@@ -1514,7 +1524,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_autonomic(self, command, properties={}, vin=None):
+    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}, vin=None):
         """Send command to the new Command endpoint"""
         try:
             await self.__ensure_valid_tokens()
@@ -1536,20 +1546,28 @@ class ConnectedFordPassVehicle:
             data = {
                 "properties": properties,
                 "tags": {},
-                "type": command,
+                "type": write_command,
+                "version": "1.0.0",
                 "wakeUp": True
             }
-            post_req = await self.session.post(f"{AUTONOMIC_URL}/command/vehicles/{vin}/commands",
+
+            # currently only the beta autonomic endpoint supports/needs the version tag
+            if baseurl != AUTONOMIC_BETA_URL:
+                del data["version"]
+
+            post_req = await self.session.post(f"{baseurl}/command/vehicles/{vin}/commands",
                                     data=json.dumps(data),
                                     headers=headers,
                                     timeout=self.timeout
                                     )
 
-            return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected, properties=properties)
+            return await self.__check_command_status(request_obj=post_req,
+                                                     state_command_str=write_command,
+                                                     use_websocket=self.ws_connected)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{command}' props:'{properties}' -> {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic' for vehicle '{self.vin}' command: '{write_command}' props:'{properties}' -> {type(e)} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}RuntimeError while '__request_and_poll_command_autonomic' - Session was closed occurred - but a new Session could be generated")
 
@@ -1598,7 +1616,9 @@ class ConnectedFordPassVehicle:
                                                headers=headers,
                                                timeout=self.timeout)
 
-            return await self.__check_command_status(req=post_req, req_command=command, use_websocket=self.ws_connected)
+            return await self.__check_command_status(request_obj=post_req,
+                                                     state_command_str=command,
+                                                     use_websocket=self.ws_connected)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -1633,7 +1653,7 @@ class ConnectedFordPassVehicle:
                 headers=headers,
                 timeout=self.timeout
             )
-            return await self.__check_command_status(req=r, req_command=url_command, use_websocket=self.ws_connected)
+            return await self.__check_command_status(request_obj=r, state_command_str=url_command, use_websocket=self.ws_connected)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -1644,19 +1664,19 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __check_command_status(self, req, req_command, use_websocket, properties={}):
-        _LOGGER.debug(f"{self.vli}__check_command_status: Testing command status: {req.status} (check by {'WebSocket' if use_websocket else 'polling'})")
+    async def __check_command_status(self, request_obj, state_command_str, use_websocket):
+        _LOGGER.debug(f"{self.vli}__check_command_status: Testing command status: {request_obj.status} (check by {'WebSocket' if use_websocket else 'polling'})")
 
-        if not (200 <= req.status <= 205):
-            if req.status in (401, 402, 403, 404, 405):
-                _LOGGER.info(f"{self.vli}__check_command_status(): '{req_command}' props:'{properties}' returned '{req.status}' status code - wtf!")
+        if not (200 <= request_obj.status <= 205):
+            if request_obj.status in (401, 402, 403, 404, 405):
+                _LOGGER.info(f"{self.vli}__check_command_status(): '{state_command_str}' returned '{request_obj.status}' status code - wtf!")
             else:
-                _LOGGER.warning(f"{self.vli}__check_command_status(): '{req_command}' props:'{properties}' returned unknown status code: {req.status}!")
+                _LOGGER.warning(f"{self.vli}__check_command_status(): '{state_command_str}' returned unknown status code: {request_obj.status}!")
             return False
 
         # Extract command ID from response
         command_id = None
-        response = await req.json()
+        response = await request_obj.json()
         if self._LOCAL_LOGGING:
             await self._local_logging("command+poll", response)
 
@@ -1680,7 +1700,7 @@ class ConnectedFordPassVehicle:
             i = 0
             while i < 15:
                 if i > 0:
-                    _LOGGER.debug(f"{self.vli}__check_command_status(): retry again [count: {i}] waiting for '{req_command}' - COMM ERRORS: {self._HAS_COM_ERROR}")
+                    _LOGGER.debug(f"{self.vli}__check_command_status(): retry again [count: {i}] waiting for '{state_command_str}' - COMM ERRORS: {self._HAS_COM_ERROR}")
 
                 # Get data based on method
                 if use_websocket:
@@ -1703,7 +1723,7 @@ class ConnectedFordPassVehicle:
                         del states["commands"]
 
                     # ok now we can check if our command is in the (updated) states dict
-                    command_key = f"{req_command}Command"
+                    command_key = state_command_str if state_command_str.endswith("Command") else f"{state_command_str}Command"
                     if command_key in states:
                         resp_command_obj = states[command_key]
                         #_LOGGER.debug(f"{self.vli}__check_command_status(): Found command object")
@@ -1715,7 +1735,7 @@ class ConnectedFordPassVehicle:
                             if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
                                 to_state = resp_command_obj["value"]["toState"].upper()
 
-                                if to_state == "SUCCESS":
+                                if to_state == "SUCCESS" or to_state == "COMMAND_SUCCEEDED_ON_DEVICE":
                                     _LOGGER.debug(f"{self.vli}__check_command_status(): EXCELLENT! Command succeeded")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
@@ -1746,7 +1766,7 @@ class ConnectedFordPassVehicle:
                 await asyncio.sleep(a_delay)
 
             # end of while loop reached...
-            _LOGGER.info(f"{self.vli}__check_command_status(): CHECK for '{req_command}' unsuccessful after 15 attempts")
+            _LOGGER.info(f"{self.vli}__check_command_status(): CHECK for '{state_command_str}' unsuccessful after 15 attempts")
 
         except BaseException as exc:
             if not await self.__check_for_closed_session(exc):

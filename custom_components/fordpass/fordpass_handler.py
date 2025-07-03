@@ -541,6 +541,20 @@ class FordpassDataHandler:
         return attrs
 
 
+    # AUTO_UPDATE state + on/off
+    def get_auto_updates_state(data):
+        return (data.get(ROOT_METRICS, {})
+                .get("configurations", {})
+                .get("automaticSoftwareUpdateOptInSetting",{})
+                .get("value", UNSUPPORTED))
+
+    async def auto_updates_on_off(vehicle, turn_on:bool) -> bool:
+        if turn_on:
+            return await vehicle.auto_updates_on()
+        else:
+            return await vehicle.auto_updates_off()
+
+
     # ELVEH_CHARGING attributes
     def get_elveh_switch_state(data):
         # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
@@ -556,7 +570,7 @@ class FordpassDataHandler:
                     return "ON"
         return "OFF"
 
-    async def get_elveh_on_off(vehicle, turn_on:bool) -> bool:
+    async def elveh_on_off(vehicle, turn_on:bool) -> bool:
             if turn_on:
                 return await vehicle.start_charge()
             else:

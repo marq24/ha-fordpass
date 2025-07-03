@@ -35,7 +35,8 @@ from custom_components.fordpass.const import (
 )
 from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
-from custom_components.fordpass.fordpass_handler import ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, FordpassDataHandler
+from custom_components.fordpass.fordpass_handler import UNSUPPORTED, ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, \
+    FordpassDataHandler
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -236,6 +237,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_ZONE_LIGHTING = None
         self._supports_ALARM = None
         self._supports_GEARLEVERPOSITION = None
+        self._supports_AUTO_UPDATES = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -329,7 +331,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                         Tag.GUARD_MODE,
                         Tag.ZONE_LIGHTING,
                         Tag.ALARM,
-                        Tag.GEARLEVERPOSITION):
+                        Tag.GEARLEVERPOSITION,
+                        Tag.AUTO_UPDATES):
             # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
             # share the same 'support_ATTR_NAME'...
             if a_tag == Tag.REMOTE_START_STATUS:
@@ -401,6 +404,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
             else:
                 _LOGGER.warning(f"{self.vli}No vehicles data found in coordinator data - no engineType available! {self.data}")
+
+            # other self._supports_* attribues will be checked in 'metrics' data...
+            if ROOT_METRICS in self.data:
+                self._supports_AUTO_UPDATES = Tag.AUTO_UPDATES.get_state(self.data) != UNSUPPORTED
+
         else:
             _LOGGER.warning(f"{self.vli}DATA is NONE!!! - {self.data}")
 

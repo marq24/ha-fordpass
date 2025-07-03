@@ -141,7 +141,8 @@
         "switch": {
             "ignition":                 {"name": "Fernstart (❄|☀)"},
             "elvehcharge":              {"name": "EV Laden"},
-            "guardmode":                {"name": "Alarmanlage"}
+            "guardmode":                {"name": "Alarmanlage"},
+            "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"}
         },
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},

@@ -154,7 +154,8 @@
         "switch": {
             "ignition":                 {"name": "Remote Start (❄|☀)"},
             "elvehcharge":              {"name": "EV Charging"},
-            "guardmode":                {"name": "Guard Mode"}
+            "guardmode":                {"name": "Guard Mode"},
+            "autosoftwareupdates":      {"name": "Automatic Software Updates"}
         },
         "sensor": {
             "odometer":                 {"name": "Odometer"},

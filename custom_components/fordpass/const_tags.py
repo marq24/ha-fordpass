@@ -101,7 +101,11 @@ class Tag(ApiKey, Enum):
 
     ELVEH_CHARGE        = ApiKey(key="elVehCharge",
                                  state_fn=FordpassDataHandler.get_elveh_switch_state,
-                                 on_off_fn=FordpassDataHandler.get_elveh_on_off)
+                                 on_off_fn=FordpassDataHandler.elveh_on_off)
+
+    AUTO_UPDATES        = ApiKey(key="autoSoftwareUpdates",
+                                 state_fn=FordpassDataHandler.get_auto_updates_state,
+                                 on_off_fn=FordpassDataHandler.auto_updates_on_off)
 
     # SENSORS
     ##################################################
@@ -538,6 +542,7 @@ SWITCHES = {
     Tag.REMOTE_START: {"icon": "mdi:air-conditioner"},
     Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
+    Tag.AUTO_UPDATES: {"icon": "mdi:cloud-arrow-down-outline"},
 }
 
 BUTTONS = [

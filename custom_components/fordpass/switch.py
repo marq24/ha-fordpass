@@ -50,7 +50,8 @@ class FordPassSwitch(FordPassEntity, SwitchEntity):
     def is_on(self):
         """Check the status of switch"""
         state = self._tag.get_state(self.coordinator.data)
-        if state is not UNSUPPORTED:
+        #_LOGGER.error(f"{self.coordinator.vli} SWITCH '{self._tag}' - state: {state}")
+        if state is not None and state is not UNSUPPORTED:
             return state.upper() == "ON"
         else:
             return None
