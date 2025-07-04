@@ -202,18 +202,29 @@ This service will contact the modem in the vehicle and request to sync data betw
 | State of Charge (SOC)              |               | ?      | X                 |
 | EVCC status code ('A', 'B' or 'C') |               | ?      | X                 |
 
+
 ## Buttons / Switches / Other
 
-| Type          | Sensor Name                          | Petrol/Diesel | (P)HEV/BEV |
-|---------------|--------------------------------------|---------------|------------|
-| Button        | Remote Sync (Car with Ford backend)  | X             | X          |
-| Button        | Local Sync (Ford backend with HA)    | X             | X          |
-| Lock          | Lock/Unlock Vehicle                  | X             | X          |
-| Switch        | Remote Start (❄/☀)                   | X             | X          |
-| Switch        | ~~Guard Mode (Only supported cars)~~ |               |            |
-| Switch        | PAUSE/UNPAUSE charging               |               | X          |
-| DeviceTracker | Vehicle Tracker                      | X             | X          |
-| Select        | Zone Lighting (experimental)         | X             | X          |
+| Type          | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
+|---------------|----------------------------------------------------|---------------|------------|
+| Button        | Remote Sync (Car with Ford backend)                | X             | X          |
+| Button        | Local Sync (Ford backend with HA)                  | X             | X          |
+| Lock          | Lock/Unlock Vehicle[^1]                            | X             | X          |
+| Switch        | ~~Guard Mode (Only supported cars)~~               |               |            |
+| Switch        | PAUSE/UNPAUSE charging                             |               | X          |
+| Switch        | Auto SoftwareUpdates[^1]                           | X             | X          |
+| DeviceTracker | Vehicle Tracker[^1]                                | X             | X          |
+| Select        | Zone Lighting (experimental)[^1]                   | X             | X          |
+| Switch        | RC: Start (❄/☀)[^1][^2]                            | X             | X          |
+| Number        | RC: Climate Temperature (❄/☀)[^1][^2]              | X             | X          |
+| Switch        | RC: Steering Wheel Hearting[^1][^2]                | X             | X          |
+| Select        | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | X             | X          |
+| Switch        | RC: Rear Defrost[^1][^2]                           | X             | X          |
+| Switch        | RC: Windshield Hearting[^1][^2]                    | X             | X          |
+
+[^1]: Must be supported by the vehicle. If not supported, the entity will not be available in the UI.
+[^2]: _RC_ stands for 'Remote Control'.
+[^3]: There are four controls — one for each seat. Depending on your vehicle configuration you can select 'Heating Level I-III' and 'Cooling Level I-III' for each seat individually. Please note that not all vehicles support the full set of featured (e.g., only heating) and/or that there might be only the front seats available.
 
 ## Want to report an issue?
 

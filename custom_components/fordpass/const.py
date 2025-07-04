@@ -173,8 +173,8 @@ REMOTE_START_STATE_INACTIVE: Final    = "Inactive"
 RCC_SEAT_MODE_HEAT_AND_COOL: Final = "HEAT_AND_COOL"
 RCC_SEAT_MODE_HEAT_ONLY: Final = "HEAT_ONLY"
 RCC_SEAT_MODE_NONE: Final = "NONE"
-RCC_SEAT_OPTIONS_FULL: Final = ["Off", "Heated1", "Heated2", "Heated3", "Cooled1", "Cooled2", "Cooled3"]
-RCC_SEAT_OPTIONS_HEAT_ONLY: Final = ["Off", "Heated1", "Heated2", "Heated3"]
+RCC_SEAT_OPTIONS_FULL: Final = ["off", "heated1", "heated2", "heated3", "cooled1", "cooled2", "cooled3"]
+RCC_SEAT_OPTIONS_HEAT_ONLY: Final = ["off", "heated1", "heated2", "heated3"]
 
 VEHICLE_LOCK_STATE_LOCKED:      Final = "LOCKED"
 VEHICLE_LOCK_STATE_PARTLY:      Final = "PARTLY_LOCKED"

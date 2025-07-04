@@ -139,15 +139,15 @@
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {
-            "ignition":                 {"name": "Fernstart (❄|☀)"},
+            "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
             "elvehcharge":              {"name": "EV Laden"},
             "guardmode":                {"name": "Alarmanlage"},
             "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"},
-            "rccdefrostrear":           {"name": "RCC: Heckscheibe"},
-            "rccdefrostfront":          {"name": "RCC: Frontscheibe"},
-            "rccsteeringwheel":         {"name": "RCC: Lenkrad"}
+            "rccdefrostrear":           {"name": "RC: Heckscheibenheizung [RemoteControl]"},
+            "rccdefrostfront":          {"name": "RC: Frontscheibenheizung [RemoteControl]"},
+            "rccsteeringwheel":         {"name": "RC: Lenkradheizung [RemoteControl]"}
         },
-        "number": {"rcctemperature":    {"name": "RCC: Temperatur"}},
+        "number": {"rcctemperature":    {"name": "RC: Temperatur [RemoteControl]"}},
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},
             "fuel":                     {"name": "Tankanzeige"},
@@ -199,20 +199,20 @@
                 }
             },
             "rccseatrearleft": {
-                "name": "RCC: Sitz(❄|☀) Hinten-links",
-                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+                "name": "RC: Sitz(❄|☀) hinten links [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rccseatrearright": {
-                "name": "RCC: Sitz(❄|☀) Hinten-rechts",
-                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+                "name": "RC: Sitz(❄|☀) hinten rechts [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rccseatfrontleft": {
-                "name": "RCC: Sitz(❄|☀) Vorne-links",
-                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+                "name": "RC: Sitz(❄|☀) vorne links [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rccseatfrontright": {
-                "name": "RCC: Sitz(❄|☀) Vorne-rechts",
-                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+                "name": "RC: Sitz(❄|☀) vorne rechts [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             }
         }
     }

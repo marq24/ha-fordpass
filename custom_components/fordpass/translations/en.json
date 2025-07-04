@@ -152,15 +152,15 @@
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
-            "ignition":                 {"name": "Remote Start (❄|☀)"},
+            "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
             "elvehcharge":              {"name": "EV Charging"},
             "guardmode":                {"name": "Guard Mode"},
             "autosoftwareupdates":      {"name": "Automatic Software Updates"},
-            "rccdefrostrear":           {"name": "RCC: Rear Defrost"},
-            "rccdefrostfront":          {"name": "RCC: Heated Windshield"},
-            "rccsteeringwheel":         {"name": "RCC: Steering Wheel Heating"}
+            "rccdefrostrear":           {"name": "RC: Rear Defrost [RemoteControl]"},
+            "rccdefrostfront":          {"name": "RC: Heated Windshield [RemoteControl]"},
+            "rccsteeringwheel":         {"name": "RC: Steering Wheel Heating [RemoteControl]"}
         },
-        "number": {"rcctemperature":    {"name": "RCC: Temperature"}},
+        "number": {"rcctemperature":    {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"}},
         "sensor": {
             "odometer":                 {"name": "Odometer"},
             "fuel":                     {"name": "Fuel"},
@@ -212,20 +212,20 @@
                 }
             },
             "rccseatrearleft": {
-                "name": "RCC: Seat(❄|☀) Rear left",
-                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+                "name": "RC: Seat(❄|☀) rear left [RemoteControl]",
+                "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "rccseatrearright": {
-                "name": "RCC: Seat(❄|☀) Rear right",
-                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+                "name": "RC: Seat(❄|☀) rear right [RemoteControl]",
+                "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "rccseatfrontleft": {
-                "name": "RCC: Seat(❄|☀) Front left",
-                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+                "name": "RC: Seat(❄|☀) front left [RemoteControl]",
+                "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "rccseatfrontright": {
-                "name": "RCC: Seat(❄|☀) Front right",
-                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+                "name": "RC: Seat(❄|☀) front right [RemoteControl]",
+                "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             }
         }
     }
