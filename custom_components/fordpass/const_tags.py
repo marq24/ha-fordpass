@@ -5,13 +5,14 @@ from enum import Enum
 from typing import Final, NamedTuple, Callable, Any
 
 from homeassistant.components.button import ButtonEntityDescription
+from homeassistant.components.number import NumberEntityDescription, NumberMode
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS
+from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS, RCC_SEAT_OPTIONS_FULL
 from custom_components.fordpass.fordpass_handler import FordpassDataHandler
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ class ApiKey(NamedTuple):
     state_fn: Callable[[dict], Any] = None
     attrs_fn: Callable[[dict, UnitSystem], Any] = None
     # asynchronous functions
-    on_off_fn: Callable[[Any, bool], Any] = None
-    select_fn: Callable[[Any, str, str], Any] = None
+    on_off_fn: Callable[[dict, Any, bool], Any] = None
+    select_fn: Callable[[dict, Any, str, str], Any] = None
     press_fn: Callable[[DataUpdateCoordinator, Any], Any] = None
 
 class Tag(ApiKey, Enum):
@@ -43,16 +44,21 @@ class Tag(ApiKey, Enum):
             return self.attrs_fn(data, units)
         return None
 
-    async def turn_on_off(self, vehicle, turn_on:bool) -> bool:
+    async def turn_on_off(self, data, vehicle, turn_on:bool) -> bool:
         if self.on_off_fn:
-            return await self.on_off_fn(vehicle, turn_on)
+            return await self.on_off_fn(data, vehicle, turn_on)
         else:
             _LOGGER.warning(f"Tag {self.key} does not support turning ON.")
             return False
 
     async def async_select_option(self, data, vehicle, new_value: Any) -> bool:
         if self.select_fn:
-            return await self.select_fn(vehicle, new_value, self.get_state(data))
+            return await self.select_fn(data, vehicle, new_value, self.get_state(data))
+        return None
+
+    async def async_set_value(self, data, vehicle, new_value: str) -> bool:
+        if self.select_fn:
+            return await self.select_fn(data, vehicle, new_value, self.get_state(data))
         return None
 
     async def async_push(self, coordinator, vehicle) -> bool:
@@ -83,12 +89,6 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_door_lock_state(data),
                                  press_fn=FordpassDataHandler.lock_vehicle)
 
-    # NUMBERS/SELECTS
-    ZONE_LIGHTING       = ApiKey(key="zoneLighting",
-                                 state_fn=FordpassDataHandler.get_zone_lighting_state,
-                                 attrs_fn=FordpassDataHandler.get_zone_lighting_attrs,
-                                 select_fn=FordpassDataHandler.set_zone_lighting)
-
     # SWITCHES
     ##################################################
     # for historic reasons the key is "ignition" (even if it's the remote_start switch)
@@ -106,6 +106,41 @@ class Tag(ApiKey, Enum):
     AUTO_UPDATES        = ApiKey(key="autoSoftwareUpdates",
                                  state_fn=FordpassDataHandler.get_auto_updates_state,
                                  on_off_fn=FordpassDataHandler.on_off_auto_updates)
+
+    RCC_DEFROST_REAR    = ApiKey(key="rccDefrostRear",
+                                state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRearDefrost_Rq"),
+                                on_off_fn=FordpassDataHandler.on_off_rcc_RccRearDefrost_Rq)
+    RCC_DEFROST_FRONT   = ApiKey(key="rccDefrostFront",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedWindshield_Rq"),
+                                 on_off_fn=FordpassDataHandler.on_off_rcc_RccHeatedWindshield_Rq)
+    RCC_STEERING_WHEEL  = ApiKey(key="rccSteeringWheel",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedSteeringWheel_Rq"),
+                                 on_off_fn=FordpassDataHandler.on_off_rcc_RccHeatedSteeringWheel_Rq)
+
+
+    # SELECTS
+    ZONE_LIGHTING       = ApiKey(key="zoneLighting",
+                                 state_fn=FordpassDataHandler.get_zone_lighting_state,
+                                 attrs_fn=FordpassDataHandler.get_zone_lighting_attrs,
+                                 select_fn=FordpassDataHandler.set_zone_lighting)
+
+    RCC_SEAT_REAR_LEFT  = ApiKey(key="rccSeatRearLeft",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccLeftRearClimateSeat_Rq"),
+                                 select_fn=FordpassDataHandler.set_rcc_RccLeftRearClimateSeat_Rq)
+    RCC_SEAT_REAR_RIGHT = ApiKey(key="rccSeatRearRight",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightRearClimateSeat_Rq"),
+                                 select_fn=FordpassDataHandler.set_rcc_RccRightRearClimateSeat_Rq)
+    RCC_SEAT_FRONT_LEFT = ApiKey(key="rccSeatFrontLeft",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccLeftFrontClimateSeat_Rq"),
+                                 select_fn=FordpassDataHandler.set_rcc_RccLeftFrontClimateSeat_Rq)
+    RCC_SEAT_FRONT_RIGHT= ApiKey(key="rccSeatFrontRight",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightFrontClimateSeat_Rq"),
+                                 select_fn=FordpassDataHandler.set_rcc_RccRightFrontClimateSeat_Rq)
+
+    # NUMBERS
+    RCC_TEMPERATURE     = ApiKey(key="rccTemperature",
+                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
+                                 select_fn=FordpassDataHandler.set_rcc_SetPointTemp_Rq)
 
     # SENSORS
     ##################################################
@@ -228,6 +263,16 @@ EV_ONLY_TAGS: Final = [
     Tag.ELVEH_CHARGE
 ]
 
+RCC_TAGS: Final = [
+    Tag.RCC_DEFROST_REAR,
+    Tag.RCC_DEFROST_FRONT,
+    Tag.RCC_STEERING_WHEEL,
+    Tag.RCC_SEAT_REAR_LEFT,
+    Tag.RCC_SEAT_REAR_RIGHT,
+    Tag.RCC_SEAT_FRONT_LEFT,
+    Tag.RCC_SEAT_FRONT_RIGHT,
+    Tag.RCC_TEMPERATURE,
+]
 
 @dataclass(frozen=True)
 class ExtButtonEntityDescription(ButtonEntityDescription):
@@ -242,6 +287,9 @@ class ExtSensorEntityDescription(SensorEntityDescription):
 class ExtSelectEntityDescription(SelectEntityDescription):
     tag: Tag | None = None
 
+@dataclass(frozen=True)
+class ExtNumberEntityDescription(NumberEntityDescription):
+    tag: Tag | None = None
 
 
 SENSORS = [
@@ -543,6 +591,10 @@ SWITCHES = {
     Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
     Tag.AUTO_UPDATES: {"icon": "mdi:cloud-arrow-down-outline"},
+
+    Tag.RCC_STEERING_WHEEL: {"icon": "mdi:steering"},
+    Tag.RCC_DEFROST_FRONT: {"icon": "mdi:car-defrost-front"},
+    Tag.RCC_DEFROST_REAR: {"icon": "mdi:car-defrost-rear"},
 }
 
 BUTTONS = [
@@ -582,4 +634,45 @@ SELECTS = [
         options=ZONE_LIGHTS_OPTIONS,
         has_entity_name=True,
     ),
+    ExtSelectEntityDescription(
+        tag=Tag.RCC_SEAT_FRONT_LEFT,
+        key=Tag.RCC_SEAT_FRONT_LEFT.key,
+        icon="mdi:car-seat", # mdi:car-seat-cooler | mdi:car-seat-heater
+        options=RCC_SEAT_OPTIONS_FULL,
+        has_entity_name=True,
+    ),
+    ExtSelectEntityDescription(
+        tag=Tag.RCC_SEAT_FRONT_RIGHT,
+        key=Tag.RCC_SEAT_FRONT_RIGHT.key,
+        icon="mdi:car-seat", # mdi:car-seat-cooler | mdi:car-seat-heater
+        options=RCC_SEAT_OPTIONS_FULL,
+        has_entity_name=True,
+    ),
+    ExtSelectEntityDescription(
+        tag=Tag.RCC_SEAT_REAR_LEFT,
+        key=Tag.RCC_SEAT_REAR_LEFT.key,
+        icon="mdi:car-seat", # mdi:car-seat-cooler | mdi:car-seat-heater
+        options=RCC_SEAT_OPTIONS_FULL,
+        has_entity_name=True,
+    ),
+    ExtSelectEntityDescription(
+        tag=Tag.RCC_SEAT_REAR_RIGHT,
+        key=Tag.RCC_SEAT_REAR_RIGHT.key,
+        icon="mdi:car-seat", # mdi:car-seat-cooler | mdi:car-seat-heater
+        options=RCC_SEAT_OPTIONS_FULL,
+        has_entity_name=True,
+    ),
+]
+NUMBERS = [
+    ExtNumberEntityDescription(
+        tag=Tag.RCC_TEMPERATURE,
+        key=Tag.RCC_TEMPERATURE.key,
+        icon="mdi:thermometer",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        native_min_value=16.0,
+        native_max_value=30.0,
+        native_step=0.5,
+        mode=NumberMode.BOX,
+        has_entity_name=True,
+    )
 ]

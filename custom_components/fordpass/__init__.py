@@ -31,9 +31,10 @@ from custom_components.fordpass.const import (
     UPDATE_INTERVAL_DEFAULT,
     COORDINATOR_KEY,
     PRESSURE_UNITS,
-    LEGACY_REGION_KEYS
+    LEGACY_REGION_KEYS,
+    RCC_SEAT_MODE_NONE, RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_MODE_HEAT_AND_COOL
 )
-from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS
+from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED, ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, \
     FordpassDataHandler
@@ -41,7 +42,7 @@ from custom_components.fordpass.fordpass_handler import UNSUPPORTED, ROOT_METRIC
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-PLATFORMS = ["button", "lock", "sensor", "switch", "select", "device_tracker"]
+PLATFORMS = ["button", "lock", "number", "sensor", "switch", "select", "device_tracker"]
 WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
 
@@ -238,6 +239,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_ALARM = None
         self._supports_GEARLEVERPOSITION = None
         self._supports_AUTO_UPDATES = None
+        self._supports_REMOTE_CLIMATE_CONTROL = None
+        self._supports_HEATED_STEERING_WHEEL = None
+        self._supports_HEATED_HEATED_SEAT_MODE = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -326,13 +330,27 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if a_tag in EV_ONLY_TAGS:
             return self.supportPureEvOrPluginEv is False
 
-        if a_tag in (   Tag.REMOTE_START_STATUS,
+        # handling of the remote climate control tags...
+        if a_tag in RCC_TAGS:
+            ret_val = self._supports_REMOTE_CLIMATE_CONTROL
+            if ret_val:
+                # not all vehicles do support some of the remote climate control tags, so we need to check
+                if a_tag == Tag.RCC_STEERING_WHEEL:
+                    ret_val = self._supports_HEATED_STEERING_WHEEL
+                elif a_tag in [Tag.RCC_SEAT_FRONT_LEFT, Tag.RCC_SEAT_FRONT_RIGHT, Tag.RCC_SEAT_REAR_LEFT, Tag.RCC_SEAT_REAR_RIGHT]:
+                    ret_val = self._supports_HEATED_HEATED_SEAT_MODE != RCC_SEAT_MODE_NONE
+
+            #_LOGGER.error(f"{self.vli}Remote Climate Control support: {ret_val} - {a_tag.name}")
+            return ret_val is False
+
+        # other vehicle dependant tags...
+        if a_tag in [   Tag.REMOTE_START_STATUS,
                         Tag.REMOTE_START,
                         Tag.GUARD_MODE,
                         Tag.ZONE_LIGHTING,
                         Tag.ALARM,
                         Tag.GEARLEVERPOSITION,
-                        Tag.AUTO_UPDATES):
+                        Tag.AUTO_UPDATES]:
             # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
             # share the same 'support_ATTR_NAME'...
             if a_tag == Tag.REMOTE_START_STATUS:
@@ -379,9 +397,30 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
                             if "numberOfLightingZones" in a_vehicle_profile:
                                 self._number_of_lighting_zones = int(a_vehicle_profile["numberOfLightingZones"])
+                                _LOGGER.debug(f"{self.vli}NumberOfLightingZones is: {self._number_of_lighting_zones}")
 
                             if "transmissionIndicator" in a_vehicle_profile:
                                 self._supports_GEARLEVERPOSITION = a_vehicle_profile["transmissionIndicator"] == "A"
+                                _LOGGER.debug(f"{self.vli}GearLeverPosition support: {self._supports_GEARLEVERPOSITION}")
+
+                            # remote climate control stuff...
+                            if "remoteClimateControl" in a_vehicle_profile:
+                                self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
+                                _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
+
+                            if "heatedSteeringWheel" in a_vehicle_profile:
+                                self._supports_HEATED_STEERING_WHEEL = a_vehicle_profile["heatedSteeringWheel"]
+                                _LOGGER.debug(f"{self.vli}HeatedSteeringWheel support: {self._supports_HEATED_STEERING_WHEEL}")
+
+                            self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_NONE
+                            if "driverHeatedSeat" in a_vehicle_profile:
+                                # possible values: 'None', 'Heat Only', 'Heat with Vent'
+                                heated_seat = a_vehicle_profile["driverHeatedSeat"].upper()
+                                if heated_seat == "HEAT WITH VENT":
+                                    self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_AND_COOL
+                                elif "HEAT" in heated_seat:
+                                    self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
+                            _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
                             break
                 else:
                     _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data["vehicles"]}")
@@ -408,6 +447,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             # other self._supports_* attribues will be checked in 'metrics' data...
             if ROOT_METRICS in self.data:
                 self._supports_AUTO_UPDATES = Tag.AUTO_UPDATES.get_state(self.data) != UNSUPPORTED
+                _LOGGER.debug(f"{self.vli}AutoUpdates supported: {self._supports_AUTO_UPDATES}")
 
         else:
             _LOGGER.warning(f"{self.vli}DATA is NONE!!! - {self.data}")

@@ -155,8 +155,12 @@
             "ignition":                 {"name": "Remote Start (❄|☀)"},
             "elvehcharge":              {"name": "EV Charging"},
             "guardmode":                {"name": "Guard Mode"},
-            "autosoftwareupdates":      {"name": "Automatic Software Updates"}
+            "autosoftwareupdates":      {"name": "Automatic Software Updates"},
+            "rccdefrostrear":           {"name": "RCC: Rear Defrost"},
+            "rccdefrostfront":          {"name": "RCC: Heated Windshield"},
+            "rccsteeringwheel":         {"name": "RCC: Steering Wheel Heating"}
         },
+        "number": {"rcctemperature":    {"name": "RCC: Temperature"}},
         "sensor": {
             "odometer":                 {"name": "Odometer"},
             "fuel":                     {"name": "Fuel"},
@@ -206,6 +210,22 @@
                     "4": "Passenger",
                     "off": "OFF"
                 }
+            },
+            "rccseatrearleft": {
+                "name": "RCC: Seat(❄|☀) Rear left",
+                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+            },
+            "rccseatrearright": {
+                "name": "RCC: Seat(❄|☀) Rear right",
+                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+            },
+            "rccseatfrontleft": {
+                "name": "RCC: Seat(❄|☀) Front left",
+                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
+            },
+            "rccseatfrontright": {
+                "name": "RCC: Seat(❄|☀) Front right",
+                "state": { "Off": "Off", "Cooled1": "Cooling I", "Cooled2": "Cooling II", "Cooled3": "Cooling III", "Heated1": "Heating I", "Heated2": "Heating II", "Heated3": "Heating III"}
             }
         }
     }

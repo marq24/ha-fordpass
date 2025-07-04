@@ -23,6 +23,7 @@ from custom_components.fordpass.fordpass_handler import (
     ROOT_METRICS,
     ROOT_MESSAGES,
     ROOT_VEHICLES,
+    ROOT_REMOTE_CLIMATE_CONTROL,
     ROOT_UPDTIME
 )
 
@@ -180,6 +181,8 @@ class ConnectedFordPassVehicle:
         # our main data container that holds all data that have been fetched from the vehicle
         self._data_container = {}
         self._cached_vehicles_data = {}
+        self._cached_rcc_data = {}
+        self._remote_climate_control_supported = None
         self.coordinator = coordinator
 
         # websocket connection related variables
@@ -210,6 +213,7 @@ class ConnectedFordPassVehicle:
 
     def clear_data(self):
         self._cached_vehicles_data = {}
+        self._cached_rcc_data = {}
         self._data_container = {}
 
     async def __check_for_closed_session(self, e:BaseException):
@@ -1046,16 +1050,42 @@ class ConnectedFordPassVehicle:
 
             # only update vehicle data if not present yet
             if self._cached_vehicles_data is None or len(self._cached_vehicles_data) == 0:
-                _LOGGER.debug(f"{self.vli}update_all: request vehicle data...")
+                _LOGGER.debug(f"{self.vli}update_all(): request vehicle data...")
                 self._cached_vehicles_data = await self.vehicles()
 
             if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
                 data[ROOT_VEHICLES] = self._cached_vehicles_data
 
+                # we must check if the vehicle supports 'remote climate control'...
+                if self._remote_climate_control_supported is None and "vehicleProfile" in self._cached_vehicles_data:
+                    for a_vehicle_profile in self._cached_vehicles_data["vehicleProfile"]:
+                        if a_vehicle_profile["VIN"] == self.vin:
+                            if "remoteClimateControl" in a_vehicle_profile:
+                                self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
+                            break
+
+            # only update remote climate data if not present yet
+            if self._remote_climate_control_supported:
+                if self._cached_rcc_data is None or len(self._cached_rcc_data) == 0:
+                    _LOGGER.debug(f"{self.vli}update_all(): request 'remote climate control' data...")
+                    self._cached_rcc_data = await self.remote_climate()
+
+                if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
+                    data[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
+
             # ok finally store the data in our main data container...
             self._data_container = data
 
         return data
+
+    async def update_remote_climate_int(self):
+        # only update remote climate data if not present yet
+        if self._remote_climate_control_supported:
+            _LOGGER.debug(f"{self.vli}update_remote_climate_int(): request 'remote climate control' data...")
+            self._cached_rcc_data = await self.remote_climate()
+
+            if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
+                self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
 
     async def status(self):
         """Get Vehicle status from API"""
@@ -1254,6 +1284,64 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return None
 
+    async def remote_climate(self):
+        """Get the vehicle list from the ford account"""
+        global _FOUR_NULL_ONE_COUNTER
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"{self.vli}remote_climate() - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"{self.vli}remote_climate() - access_token exist? {self.access_token is not None}")
+
+            headers_veh = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id
+            }
+            data_veh = {
+                "vin": self.vin
+            }
+            response_rcc = await self.session.post(
+                f"{FORD_VEHICLE_API}/rcc/profile/status",
+                headers=headers_veh,
+                data=json.dumps(data_veh),
+                timeout=self.timeout
+            )
+            if response_rcc.status == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
+
+                result_rcc = await response_rcc.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("rcc", result_rcc)
+
+                return result_rcc
+
+            elif response_rcc.status == 401:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.error(f"{self.vli}remote_climate: status_code: 401 - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}remote_climate: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
+
+                return None
+            else:
+                _LOGGER.info(f"{self.vli}remote_climate: status_code: {response_rcc.status} - {response_rcc.real_url} - Received response: {await response_rcc.text()}")
+                self._HAS_COM_ERROR = True
+                return None
+
+        except BaseException as e:
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}remote_climate(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}remote_climate(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+            self._HAS_COM_ERROR = True
+            return None
+
     # ***********************************************************
     # ***********************************************************
     # ***********************************************************
@@ -1362,6 +1450,7 @@ class ConnectedFordPassVehicle:
                                                                properties={"ASUState": "OFF"})
 
     async def remote_start(self):
+        await self.update_remote_climate_int()
         return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="remoteStart")
 
     async def cancel_remote_start(self):
@@ -1405,6 +1494,23 @@ class ConnectedFordPassVehicle:
                 _LOGGER.debug(f"{self.vli}set_zone_lighting() - target option '{target_option}' but lights are not on, so we cannot set the option")
 
         return False
+
+    async def set_rcc(self, remote_climate_control:dict, result_list:dict):
+        result = await self.__request_command(command="setRemoteClimateControl", post_data=remote_climate_control)
+        if result:
+            _LOGGER.debug(f"{self.vli}set_rcc() - remote_climate_control set successfully")
+            if self._cached_rcc_data is not None:
+                # we will also update the cached remote climate control data
+                self._cached_rcc_data["rccUserProfiles"] = result_list
+                if ROOT_REMOTE_CLIMATE_CONTROL not in self._data_container:
+                    self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = {}
+
+                self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
+        else:
+            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {remote_climate_control}")
+
+        return result
+
 
     # NOT USED YET
     # def start_engine(self):
@@ -1469,6 +1575,12 @@ class ConnectedFordPassVehicle:
                 request_type = "PUT"
                 command_url = f"https://api.mps.ford.com/vehicles/vpfi/{target_zone}/zonelightingzone"
                 post_data = {"vin": vin}
+
+            # remote climate control stuff...
+            elif command == "setRemoteClimateControl":
+                command_url = f"{FORD_VEHICLE_API}/rcc/profile/update"
+                request_type = "PUT"
+
 
             if command_url is None:
                 _LOGGER.warning(f"{self.vli}__request_command() - command '{command}' is not supported by the integration")

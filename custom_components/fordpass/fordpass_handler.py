@@ -30,6 +30,7 @@ ROOT_EVENTS: Final = "events"
 ROOT_METRICS: Final = "metrics"
 ROOT_VEHICLES: Final = "vehicles"
 ROOT_MESSAGES: Final = "messages"
+ROOT_REMOTE_CLIMATE_CONTROL: Final = "rcc"
 ROOT_UPDTIME: Final = "updateTime"
 
 UNSUPPORTED: Final = str("Unsupported")
@@ -549,7 +550,7 @@ class FordpassDataHandler:
                 .get("automaticSoftwareUpdateOptInSetting",{})
                 .get("value", UNSUPPORTED))
 
-    async def on_off_auto_updates(vehicle, turn_on:bool) -> bool:
+    async def on_off_auto_updates(data, vehicle, turn_on:bool) -> bool:
         if turn_on:
             return await vehicle.auto_updates_on()
         else:
@@ -571,7 +572,7 @@ class FordpassDataHandler:
                     return "ON"
         return "OFF"
 
-    async def on_off_elveh(vehicle, turn_on:bool) -> bool:
+    async def on_off_elveh(data, vehicle, turn_on:bool) -> bool:
             if turn_on:
                 return await vehicle.start_charge()
             else:
@@ -718,7 +719,7 @@ class FordpassDataHandler:
                         attrs[FordpassDataHandler.to_camel(key)] = value
             return attrs
 
-    async def set_zone_lighting(vehicle, target_value: str, current_value:str) -> bool:
+    async def set_zone_lighting(data, vehicle, target_value: str, current_value:str) -> bool:
         return await vehicle.set_zone_lighting(target_value, current_value)
 
 
@@ -728,7 +729,7 @@ class FordpassDataHandler:
         return "ON" if val > 0 else "OFF"
 
     # this was 'IGNITION' switch - we keep the key name for compatibility...
-    async def on_off_remote_start(vehicle, turn_on:bool) -> bool:
+    async def on_off_remote_start(data, vehicle, turn_on:bool) -> bool:
         if turn_on:
             return await vehicle.remote_start()
         else:
@@ -839,6 +840,65 @@ class FordpassDataHandler:
             return {"ambientTemp": FordpassDataHandler.localize_temperature(ambient_temp, units)}
         return None
 
+
+    # RCC (remote climate control) state
+    def get_rcc_state(data, rcc_key):
+        value_list = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
+        for a_list_entry in value_list:
+            if a_list_entry.get("preferenceType", "") == rcc_key:
+                value = a_list_entry.get("preferenceValue", UNSUPPORTED)
+                if value != UNSUPPORTED and rcc_key == "SetPointTemp_Rq":
+                    value = float(value.replace("_", "."))
+                return value
+        return UNSUPPORTED
+
+    # number(s) for the RCC
+    async def set_rcc_SetPointTemp_Rq(data, vehicle, target_value: str, current_value:str):
+        if not (target_value.endswith("0") or target_value.endswith("5")):
+            _LOGGER.info(f"RCC SetPointTemp_Rq: target_value {target_value} is not a valid value, must end with 0 or 5")
+            return False
+        return await FordpassDataHandler.set_rcc_int("SetPointTemp_Rq", data, vehicle, target_value.replace('.', '_'))
+
+    # switches for the RCC
+    async def on_off_rcc_RccRearDefrost_Rq(data, vehicle, turn_on:bool):
+        return await FordpassDataHandler.set_rcc_int("RccRearDefrost_Rq", data, vehicle, "On" if turn_on else "Off")
+    async def on_off_rcc_RccHeatedWindshield_Rq(data, vehicle, turn_on:bool):
+        return await FordpassDataHandler.set_rcc_int("RccHeatedWindshield_Rq", data, vehicle, "On" if turn_on else "Off")
+    async def on_off_rcc_RccHeatedSteeringWheel_Rq(data, vehicle, turn_on:bool):
+        return await FordpassDataHandler.set_rcc_int("RccHeatedSteeringWheel_Rq", data, vehicle, "On" if turn_on else "Off")
+
+    # selects for the RCC
+    async def set_rcc_RccLeftRearClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
+        return await FordpassDataHandler.set_rcc_int("RccLeftRearClimateSeat_Rq", data, vehicle, target_value)
+    async def set_rcc_RccLeftFrontClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
+        return await FordpassDataHandler.set_rcc_int("RccLeftFrontClimateSeat_Rq", data, vehicle, target_value)
+    async def set_rcc_RccRightRearClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
+        return await FordpassDataHandler.set_rcc_int("RccRightRearClimateSeat_Rq", data, vehicle, target_value)
+    async def set_rcc_RccRightFrontClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
+        return await FordpassDataHandler.set_rcc_int("RccRightFrontClimateSeat_Rq", data, vehicle, target_value)
+
+    async def set_rcc_int(rcc_key:str, data:dict, vehicle, new_value: str) -> bool:
+        list_data = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
+        if len(list_data) == 0:
+            return False
+
+        for a_list_entry in list_data:
+            if a_list_entry.get("preferenceType", "") == rcc_key:
+                a_list_entry["preferenceValue"] = new_value
+                break
+
+        rcc_dict = {
+            "crccStateFlag": "On",
+            "userPreferences": list_data,
+            "vin": vehicle.vin
+        }
+
+        # ok we hardcode the new set values in our data object of our bridge...
+        # grrr this does not work - we don't have access to the data conatiner object...
+        #data[ROOT_REMOTE_CLIMATE_CONTROL]["rccUserProfiles"] = list_data
+
+        return await vehicle.set_rcc(rcc_dict, list_data)
+
     #####################################
     ## CURRENTLY UNSUPPORTED CALLABLES ##
     #####################################
@@ -873,7 +933,7 @@ class FordpassDataHandler:
             return UNSUPPORTED
         return UNSUPPORTED
 
-    async def on_off_guard_mode(vehicle, turn_on:bool) -> bool:
+    async def on_off_guard_mode(data, vehicle, turn_on:bool) -> bool:
         if turn_on:
             return await vehicle.enable_guard()
         else:

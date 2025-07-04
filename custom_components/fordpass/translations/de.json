@@ -142,8 +142,12 @@
             "ignition":                 {"name": "Fernstart (❄|☀)"},
             "elvehcharge":              {"name": "EV Laden"},
             "guardmode":                {"name": "Alarmanlage"},
-            "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"}
+            "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"},
+            "rccdefrostrear":           {"name": "RCC: Heckscheibe"},
+            "rccdefrostfront":          {"name": "RCC: Frontscheibe"},
+            "rccsteeringwheel":         {"name": "RCC: Lenkrad"}
         },
+        "number": {"rcctemperature":    {"name": "RCC: Temperatur"}},
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},
             "fuel":                     {"name": "Tankanzeige"},
@@ -193,6 +197,22 @@
                     "4": "Beifahrerseite",
                     "off": "AUS"
                 }
+            },
+            "rccseatrearleft": {
+                "name": "RCC: Sitz(❄|☀) Hinten-links",
+                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+            },
+            "rccseatrearright": {
+                "name": "RCC: Sitz(❄|☀) Hinten-rechts",
+                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+            },
+            "rccseatfrontleft": {
+                "name": "RCC: Sitz(❄|☀) Vorne-links",
+                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
+            },
+            "rccseatfrontright": {
+                "name": "RCC: Sitz(❄|☀) Vorne-rechts",
+                "state": { "Off": "aus", "Cooled1": "Kühlen Stufe I", "Cooled2": "Kühlen Stufe II", "Cooled3": "Kühlen Stufe III", "Heated1": "Heizen Stufe I", "Heated2": "Heizen Stufe II", "Heated3": "Heizen Stufe III"}
             }
         }
     }
