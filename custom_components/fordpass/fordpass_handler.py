@@ -847,8 +847,11 @@ class FordpassDataHandler:
         for a_list_entry in value_list:
             if a_list_entry.get("preferenceType", "") == rcc_key:
                 value = a_list_entry.get("preferenceValue", UNSUPPORTED)
-                if value != UNSUPPORTED and rcc_key == "SetPointTemp_Rq":
-                    value = float(value.replace("_", "."))
+                if value != UNSUPPORTED:
+                    if rcc_key == "SetPointTemp_Rq":
+                        value = float(value.replace("_", "."))
+                    elif rcc_key in ["RccLeftRearClimateSeat_Rq", "RccLeftFrontClimateSeat_Rq", "RccRightRearClimateSeat_Rq", "RccRightFrontClimateSeat_Rq"]:
+                        value = value.lower()
                 return value
         return UNSUPPORTED
 
@@ -868,14 +871,17 @@ class FordpassDataHandler:
         return await FordpassDataHandler.set_rcc_int("RccHeatedSteeringWheel_Rq", data, vehicle, "On" if turn_on else "Off")
 
     # selects for the RCC
+    # to support HA translations for select-entities, all options must be lowercase!
+    # but the Ford API using strings like 'Heated2' or 'Cooled2' - so we need to convert the
+    # first letter of the 'target_value' (a select entity option) to uppercase.
     async def set_rcc_RccLeftRearClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
-        return await FordpassDataHandler.set_rcc_int("RccLeftRearClimateSeat_Rq", data, vehicle, target_value)
+        return await FordpassDataHandler.set_rcc_int("RccLeftRearClimateSeat_Rq", data, vehicle, target_value[0].upper() + target_value[1:])
     async def set_rcc_RccLeftFrontClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
-        return await FordpassDataHandler.set_rcc_int("RccLeftFrontClimateSeat_Rq", data, vehicle, target_value)
+        return await FordpassDataHandler.set_rcc_int("RccLeftFrontClimateSeat_Rq", data, vehicle, target_value[0].upper() + target_value[1:])
     async def set_rcc_RccRightRearClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
-        return await FordpassDataHandler.set_rcc_int("RccRightRearClimateSeat_Rq", data, vehicle, target_value)
+        return await FordpassDataHandler.set_rcc_int("RccRightRearClimateSeat_Rq", data, vehicle, target_value[0].upper() + target_value[1:])
     async def set_rcc_RccRightFrontClimateSeat_Rq(data, vehicle, target_value: str, current_value:str):
-        return await FordpassDataHandler.set_rcc_int("RccRightFrontClimateSeat_Rq", data, vehicle, target_value)
+        return await FordpassDataHandler.set_rcc_int("RccRightFrontClimateSeat_Rq", data, vehicle, target_value[0].upper() + target_value[1:])
 
     async def set_rcc_int(rcc_key:str, data:dict, vehicle, new_value: str) -> bool:
         list_data = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
