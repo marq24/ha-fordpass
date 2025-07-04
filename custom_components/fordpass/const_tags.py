@@ -94,18 +94,18 @@ class Tag(ApiKey, Enum):
     # for historic reasons the key is "ignition" (even if it's the remote_start switch)
     REMOTE_START        = ApiKey(key="ignition",
                                  state_fn=FordpassDataHandler.get_remote_start_state,
-                                 on_off_fn=FordpassDataHandler.remote_start_on_off)
+                                 on_off_fn=FordpassDataHandler.on_off_remote_start)
     GUARD_MODE          = ApiKey(key="guardmode",
                                  state_fn=FordpassDataHandler.get_guard_mode_state,
-                                 on_off_fn=FordpassDataHandler.guardmode_on_off)
+                                 on_off_fn=FordpassDataHandler.on_off_guard_mode)
 
     ELVEH_CHARGE        = ApiKey(key="elVehCharge",
                                  state_fn=FordpassDataHandler.get_elveh_switch_state,
-                                 on_off_fn=FordpassDataHandler.elveh_on_off)
+                                 on_off_fn=FordpassDataHandler.on_off_elveh)
 
     AUTO_UPDATES        = ApiKey(key="autoSoftwareUpdates",
                                  state_fn=FordpassDataHandler.get_auto_updates_state,
-                                 on_off_fn=FordpassDataHandler.auto_updates_on_off)
+                                 on_off_fn=FordpassDataHandler.on_off_auto_updates)
 
     # SENSORS
     ##################################################

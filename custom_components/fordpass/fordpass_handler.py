@@ -548,7 +548,7 @@ class FordpassDataHandler:
                 .get("automaticSoftwareUpdateOptInSetting",{})
                 .get("value", UNSUPPORTED))
 
-    async def auto_updates_on_off(vehicle, turn_on:bool) -> bool:
+    async def on_off_auto_updates(vehicle, turn_on:bool) -> bool:
         if turn_on:
             return await vehicle.auto_updates_on()
         else:
@@ -570,7 +570,7 @@ class FordpassDataHandler:
                     return "ON"
         return "OFF"
 
-    async def elveh_on_off(vehicle, turn_on:bool) -> bool:
+    async def on_off_elveh(vehicle, turn_on:bool) -> bool:
             if turn_on:
                 return await vehicle.start_charge()
             else:
@@ -727,7 +727,7 @@ class FordpassDataHandler:
         return "ON" if val > 0 else "OFF"
 
     # this was 'IGNITION' switch - we keep the key name for compatibility...
-    async def remote_start_on_off(vehicle, turn_on:bool) -> bool:
+    async def on_off_remote_start(vehicle, turn_on:bool) -> bool:
         if turn_on:
             return await vehicle.remote_start()
         else:
@@ -872,7 +872,7 @@ class FordpassDataHandler:
             return UNSUPPORTED
         return UNSUPPORTED
 
-    async def guardmode_on_off(vehicle, turn_on:bool) -> bool:
+    async def on_off_guard_mode(vehicle, turn_on:bool) -> bool:
         if turn_on:
             return await vehicle.enable_guard()
         else:
