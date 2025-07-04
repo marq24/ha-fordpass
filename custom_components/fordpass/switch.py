@@ -4,7 +4,7 @@ import logging
 from homeassistant.components.switch import SwitchEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
 from custom_components.fordpass.const_tags import SWITCHES, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
@@ -60,3 +60,13 @@ class FordPassSwitch(FordPassEntity, SwitchEntity):
     def icon(self):
         """Return icon for switch"""
         return SWITCHES[self._tag]["icon"]
+
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        state = super().available
+        if self._tag == Tag.ELVEH_CHARGING:
+            return state and Tag.EVCC_STATUS.get_state(self.coordinator.data) in ["B", "C"]
+        elif self._tag in []:
+            return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
+        return state

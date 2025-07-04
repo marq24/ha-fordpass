@@ -19,7 +19,8 @@ from custom_components.fordpass.const import (
     XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC,
     XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
     XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
-    VEHICLE_LOCK_STATE_LOCKED, VEHICLE_LOCK_STATE_PARTLY, VEHICLE_LOCK_STATE_UNLOCKED
+    VEHICLE_LOCK_STATE_LOCKED, VEHICLE_LOCK_STATE_PARTLY, VEHICLE_LOCK_STATE_UNLOCKED,
+    REMOTE_START_STATE_ACTIVE, REMOTE_START_STATE_INACTIVE
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -640,10 +641,10 @@ class FordpassDataHandler:
         attrs = {}
 
         if "xevChargeStationCommunicationStatus" in data_metrics:
-            attrs["ChargeStationCommunicationStatus"] = data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", UNSUPPORTED)
+            attrs["ChargingStationStatus"] = data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", UNSUPPORTED)
 
         if "xevChargeStationPowerType" in data_metrics:
-            attrs["chargeStationPowerType"] = data_metrics.get("xevChargeStationPowerType", {}).get("value", UNSUPPORTED)
+            attrs["ChargingType"] = data_metrics.get("xevChargeStationPowerType", {}).get("value", UNSUPPORTED)
 
         return attrs
 
@@ -736,7 +737,7 @@ class FordpassDataHandler:
     # REMOTE_START_STATUS state + attributes
     def get_remote_start_status_state(data):
         val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
-        return "Active" if val > 0 else "Inactive"
+        return REMOTE_START_STATE_ACTIVE if val > 0 else REMOTE_START_STATE_INACTIVE
 
     def get_remote_start_status_attrs(data, units:UnitSystem):
         return {"countdown": FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)}
