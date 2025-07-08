@@ -91,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     else:
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, coordinator.start_watchdog)
 
-    fordpass_options_listener = config_entry.add_update_listener(options_update_listener)
+    fordpass_options_listener = config_entry.add_update_listener(entry_update_listener)
 
     if not config_entry.options:
         await async_update_options(hass, config_entry)
@@ -135,6 +135,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     hass.services.async_register(DOMAIN, "poll_api", poll_api_service)
     hass.services.async_register(DOMAIN, "reload", handle_reload_service)
 
+    config_entry.async_on_unload(config_entry.add_update_listener(entry_update_listener))
     return True
 
 
@@ -150,12 +151,6 @@ async def async_update_options(hass, config_entry):
         CONF_PRESSURE_UNIT: config_entry.data.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),
     }
     hass.config_entries.async_update_entry(config_entry, options=options)
-
-
-async def options_update_listener(hass: HomeAssistant, entry: ConfigEntry):
-    """Options listener to refresh config entries on option change"""
-    _LOGGER.debug(f"OPTIONS CHANGE")
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 def service_refresh_status(hass, service, coordinator):
@@ -177,6 +172,7 @@ def service_clear_tokens(hass, service, coordinator):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    _LOGGER.debug(f"async_unload_entry() called for entry: {config_entry.entry_id}")
     unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
     if unload_ok:
@@ -192,6 +188,12 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         hass.services.async_remove(DOMAIN, "reload")
 
     return unload_ok
+
+
+async def entry_update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    _LOGGER.debug(f"entry_update_listener() called for entry: {config_entry.entry_id}")
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
 
 #_session_cache = {}
 #_sync_lock = threading.Lock()
