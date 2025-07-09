@@ -73,21 +73,18 @@ ERROR: Final = "ERROR"
 START_CHARGE_KEY:Final = "START_CHARGE"
 CANCEL_CHARGE_KEY:Final = "CANCEL_CHARGE"
 PAUSE_CHARGE_KEY:Final = "PAUSE_CHARGE"
-STOP_CHARGE_KEY:Final = "STOP_CHARGE"
 
 FORD_COMMAND_URL_TEMPLATES: Final = {
     # Templates with {vin} placeholder
     START_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/START",
     CANCEL_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/CANCEL",
     PAUSE_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/PAUSE",
-    STOP_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/STOP",
 }
 FORD_COMMAND_MAP: Final ={
     # the code will always add 'Command' at the end!
     START_CHARGE_KEY: "startGlobalCharge",
     CANCEL_CHARGE_KEY: "cancelGlobalCharge",
     PAUSE_CHARGE_KEY: "pauseGlobalCharge",
-    STOP_CHARGE_KEY: "stopGlobalCharge",
 }
 #session = None #requests.Session()
 
@@ -1458,10 +1455,6 @@ class ConnectedFordPassVehicle:
         # START_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command_key=START_CHARGE_KEY)
 
-    async def stop_charge(self):
-        # STOP_GLOBAL_CHARGE
-        return await self.__request_and_poll_command_ford(command_key=STOP_CHARGE_KEY)
-
     async def cancel_charge(self):
         # CANCEL_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command_key=CANCEL_CHARGE_KEY)
@@ -1469,8 +1462,6 @@ class ConnectedFordPassVehicle:
     async def pause_charge(self):
         # PAUSE_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command_key=PAUSE_CHARGE_KEY)
-
-
 
     async def set_zone_lighting(self, target_option:str, current_option=None):
         if target_option is None or str(target_option) == ZONE_LIGHTS_VALUE_OFF:

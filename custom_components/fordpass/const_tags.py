@@ -84,8 +84,6 @@ class Tag(ApiKey, Enum):
                                  press_fn=FordpassDataHandler.unlock_vehicle)
     EV_START            = ApiKey(key="evstart",
                                  press_fn=FordpassDataHandler.start_charge_vehicle)
-    EV_STOP             = ApiKey(key="evstop",
-                                 press_fn=FordpassDataHandler.stop_charge_vehicle)
     EV_CANCEL           = ApiKey(key="evcancel",
                                  press_fn=FordpassDataHandler.cancel_charge_vehicle)
     EV_PAUSE            = ApiKey(key="evpause",
@@ -106,10 +104,6 @@ class Tag(ApiKey, Enum):
     GUARD_MODE          = ApiKey(key="guardmode",
                                  state_fn=FordpassDataHandler.get_guard_mode_state,
                                  on_off_fn=FordpassDataHandler.on_off_guard_mode)
-
-    ELVEH_CHARGE_START  = ApiKey(key="elVehChargeStart",
-                                 state_fn=FordpassDataHandler.get_start_stop_charge_switch_state,
-                                 on_off_fn=FordpassDataHandler.on_off_start_stop_charge)
 
     ELVEH_CHARGE        = ApiKey(key="elVehCharge",
                                  state_fn=FordpassDataHandler.get_cancel_pause_charge_switch_state,
@@ -276,9 +270,7 @@ EV_ONLY_TAGS: Final = [
     Tag.ELVEH_PLUG,
     Tag.ELVEH_CHARGING,
     Tag.ELVEH_CHARGE,
-    Tag.ELVEH_CHARGE_START,
     Tag.EV_START,
-    Tag.EV_STOP,
     Tag.EV_CANCEL,
     Tag.EV_PAUSE
 ]
@@ -616,7 +608,6 @@ SENSORSX = {
 SWITCHES = {
     Tag.REMOTE_START: {"icon": "mdi:air-conditioner"},
     Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
-    Tag.ELVEH_CHARGE_START: {"icon": "mdi:ev-station"},
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
     Tag.AUTO_UPDATES: {"icon": "mdi:cloud-arrow-down-outline"},
 
@@ -652,20 +643,11 @@ BUTTONS = [
         has_entity_name=True,
         entity_registry_enabled_default=False
     ),
-
     ExtButtonEntityDescription(
         tag=Tag.EV_START,
         key=Tag.EV_START.key,
         icon="mdi:play-circle",
-        has_entity_name=True,
-        entity_registry_enabled_default=False
-    ),
-    ExtButtonEntityDescription(
-        tag=Tag.EV_STOP,
-        key=Tag.EV_STOP.key,
-        icon="mdi:stop-circle",
-        has_entity_name=True,
-        entity_registry_enabled_default=False
+        has_entity_name=True
     ),
     ExtButtonEntityDescription(
         tag=Tag.EV_CANCEL,

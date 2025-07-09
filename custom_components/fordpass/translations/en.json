@@ -149,16 +149,14 @@
             "doorlock":         {"name": "Lock"},
             "doorunlock":       {"name": "Unlock"},
             "evstart":          {"name": "EV start"},
-            "evstop":           {"name": "EV stop"},
-            "evcancel":         {"name": "EV cancel"},
+            "evcancel":         {"name": "EV resume"},
             "evpause":          {"name": "EV pause"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
             "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
-            "elvehcharge":              {"name": "EV Charging [cancel/pause]"},
-            "elvehchargestart":         {"name": "EV Charging [start/stop]"},
+            "elvehcharge":              {"name": "EV Charging [Pause]"},
             "guardmode":                {"name": "Guard Mode"},
             "autosoftwareupdates":      {"name": "Automatic Software Updates"},
             "rccdefrostrear":           {"name": "RC: Rear Defrost [RemoteControl]"},

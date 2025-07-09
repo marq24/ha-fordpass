@@ -136,16 +136,14 @@
             "doorlock":         {"name": "Verriegeln"},
             "doorunlock":       {"name": "Entriegeln"},
             "evstart":          {"name": "EV starten"},
-            "evstop":           {"name": "EV stoppen"},
-            "evcancel":         {"name": "EV abbrechen"},
+            "evcancel":         {"name": "EV fortfahren"},
             "evpause":          {"name": "EV pausieren"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {
             "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
-            "elvehcharge":              {"name": "EV Laden (abbr./pause)"},
-            "elvehchargestart":         {"name": "EV Laden (start/stop)"},
+            "elvehcharge":              {"name": "EV Laden (Pause)"},
             "guardmode":                {"name": "Alarmanlage"},
             "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"},
             "rccdefrostrear":           {"name": "RC: Heckscheibenheizung [RemoteControl]"},

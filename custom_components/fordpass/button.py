@@ -44,4 +44,7 @@ class FordpassButton(FordPassEntity, ButtonEntity):
             return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED"
         elif self._tag == Tag.DOOR_UNLOCK:
             return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "DISARMED"
+        elif self._tag in [Tag.EV_START, Tag.EV_CANCEL, Tag.EV_PAUSE]:
+            return state and Tag.EVCC_STATUS.get_state(self.coordinator.data) in ["B", "C"]
+
         return state

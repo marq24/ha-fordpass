@@ -232,13 +232,14 @@ class FordpassDataHandler:
             return float(val)
         return None
 
-
     # ALARM attributes
     def get_alarm_attr(data, units:UnitSystem):
         attrs = FordpassDataHandler.get_metrics_dict(data, "alarmStatus")
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "panicAlarmStatus" in data_metrics:
-            attrs["panicAlarmStatus"] = data_metrics.get("panicAlarmStatus", {}).get("value", UNSUPPORTED)
+            val = data_metrics.get("panicAlarmStatus", {}).get("value", UNSUPPORTED)
+            if val != UNSUPPORTED:
+                attrs["panicAlarmStatus"] = val
         return attrs or None
 
     # DOOR_LOCK state
@@ -558,25 +559,25 @@ class FordpassDataHandler:
 
 
     # ELVEH_CHARGING start/stop cancel/pause
-    def get_start_stop_charge_switch_state(data):
-        # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
-        data_metrics = FordpassDataHandler.get_metrics(data)
-        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
-        if val != UNSUPPORTED:
-            val = val.upper()
-            if val == XEVPLUGCHARGER_STATE_CHARGING or val == XEVPLUGCHARGER_STATE_CHARGINGAC:
-                return "ON"
-            elif val == XEVPLUGCHARGER_STATE_CONNECTED and "xevBatteryChargeDisplayStatus" in data_metrics:
-                secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
-                if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
-                    return "ON"
-        return "OFF"
-
-    async def on_off_start_stop_charge(data, vehicle, turn_on:bool) -> bool:
-        if turn_on:
-            return await vehicle.start_charge()
-        else:
-            return await vehicle.stop_charge()
+    # def get_start_stop_charge_switch_state(data):
+    #     # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
+    #     data_metrics = FordpassDataHandler.get_metrics(data)
+    #     val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
+    #     if val != UNSUPPORTED:
+    #         val = val.upper()
+    #         if val == XEVPLUGCHARGER_STATE_CHARGING or val == XEVPLUGCHARGER_STATE_CHARGINGAC:
+    #             return "ON"
+    #         elif val == XEVPLUGCHARGER_STATE_CONNECTED and "xevBatteryChargeDisplayStatus" in data_metrics:
+    #             secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
+    #             if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
+    #                 return "ON"
+    #     return "OFF"
+    #
+    # async def on_off_start_stop_charge(data, vehicle, turn_on:bool) -> bool:
+    #     if turn_on:
+    #         return await vehicle.start_charge()
+    #     else:
+    #         return await vehicle.stop_charge()
 
     def get_cancel_pause_charge_switch_state(data):
         # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
