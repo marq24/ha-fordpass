@@ -353,22 +353,22 @@ class FordpassDataHandler:
 
         locked_doors = 0
         for a_lock_state in all_doors:
-            a_lock_value = a_lock_state.get("value", UNSUPPORTED).upper()
-            if a_lock_value == "LOCKED":
+            a_upper_case_lock_value = a_lock_state.get("value", UNSUPPORTED).upper()
+            if a_upper_case_lock_value == "LOCKED":
                 # if we have an ALL_DOORS lock state, we can ignore the other door lock states
                 if "vehicleDoor" in a_lock_state and a_lock_state["vehicleDoor"].upper() == "ALL_DOORS":
-                    required_locked_doors = 99
-                    locked_doors = 99
-                    break
+                    # we instantly return the 'VEHICLE_LOCK_STATE_LOCKED' and skip the complete
+                    # loop [and don't bother with any additional stuff]
+                    return VEHICLE_LOCK_STATE_LOCKED
                 else:
                     locked_doors += 1
 
             # we ignore unknown, or MECHANICAL door latch types...
-            elif a_lock_value == "UNKNOWN" or ("tags" in a_lock_state and "DOOR_LATCH_TYPE" in a_lock_state["tags"] and a_lock_state["tags"]["DOOR_LATCH_TYPE"] == "MECHANICAL"):
+            elif a_upper_case_lock_value == "UNKNOWN" or ("tags" in a_lock_state and "DOOR_LATCH_TYPE" in a_lock_state["tags"] and a_lock_state["tags"]["DOOR_LATCH_TYPE"] == "MECHANICAL"):
                 required_locked_doors -= 1
 
         if locked_doors > 0:
-            if locked_doors == required_locked_doors:
+            if locked_doors >= required_locked_doors:
                 return VEHICLE_LOCK_STATE_LOCKED
             else:
                 return VEHICLE_LOCK_STATE_PARTLY
