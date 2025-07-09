@@ -147,13 +147,18 @@
             "update_data":      {"name": "Local Sync"},
             "request_refresh":  {"name": "Remote Sync"},
             "doorlock":         {"name": "Lock"},
-            "doorunlock":       {"name": "Unlock"}
+            "doorunlock":       {"name": "Unlock"},
+            "evstart":          {"name": "EV start"},
+            "evstop":           {"name": "EV stop"},
+            "evcancel":         {"name": "EV cancel"},
+            "evpause":          {"name": "EV pause"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
             "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
-            "elvehcharge":              {"name": "EV Charging"},
+            "elvehcharge":              {"name": "EV Charging [cancel/pause]"},
+            "elvehchargestart":         {"name": "EV Charging [start/stop]"},
             "guardmode":                {"name": "Guard Mode"},
             "autosoftwareupdates":      {"name": "Automatic Software Updates"},
             "rccdefrostrear":           {"name": "RC: Rear Defrost [RemoteControl]"},
@@ -197,7 +202,8 @@
 
             "soc":                      {"name": "State of Charge"},
             "evccstatus":               {"name": "EVCC status code"},
-            "seatbelt":                 {"name": "Belt Status"}
+            "seatbelt":                 {"name": "Belt Status"},
+            "deviceconnectivity":       {"name": "Connectivity"}
         },
         "select": {
             "zonelighting": {

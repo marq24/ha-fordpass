@@ -71,17 +71,23 @@ FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
 
 START_CHARGE_KEY:Final = "START_CHARGE"
+CANCEL_CHARGE_KEY:Final = "CANCEL_CHARGE"
+PAUSE_CHARGE_KEY:Final = "PAUSE_CHARGE"
 STOP_CHARGE_KEY:Final = "STOP_CHARGE"
 
 FORD_COMMAND_URL_TEMPLATES: Final = {
     # Templates with {vin} placeholder
-    START_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/CANCEL",
-    STOP_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/PAUSE",
+    START_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/START",
+    CANCEL_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/CANCEL",
+    PAUSE_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/PAUSE",
+    STOP_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/STOP",
 }
 FORD_COMMAND_MAP: Final ={
     # the code will always add 'Command' at the end!
-    START_CHARGE_KEY: "cancelGlobalCharge",
-    STOP_CHARGE_KEY: "pauseGlobalCharge",
+    START_CHARGE_KEY: "startGlobalCharge",
+    CANCEL_CHARGE_KEY: "cancelGlobalCharge",
+    PAUSE_CHARGE_KEY: "pauseGlobalCharge",
+    STOP_CHARGE_KEY: "stopGlobalCharge",
 }
 #session = None #requests.Session()
 
@@ -1043,7 +1049,7 @@ class ConnectedFordPassVehicle:
         data = await self.status()
         if data is not None:
             # Temporarily removed due to Ford backend API changes
-            # data["guardstatus"] = await self.hass.async_add_executor_job(self.vehicle.guardStatus)
+            # data["guardstatus"] = await self.hass.async_add_executor_job(self.guard_status)
             msg_data = await self.messages()
             if msg_data is not None:
                 data[ROOT_MESSAGES] = msg_data
@@ -1453,8 +1459,18 @@ class ConnectedFordPassVehicle:
         return await self.__request_and_poll_command_ford(command_key=START_CHARGE_KEY)
 
     async def stop_charge(self):
-        # CANCEL_GLOBAL_CHARGE
+        # STOP_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command_key=STOP_CHARGE_KEY)
+
+    async def cancel_charge(self):
+        # CANCEL_GLOBAL_CHARGE
+        return await self.__request_and_poll_command_ford(command_key=CANCEL_CHARGE_KEY)
+
+    async def pause_charge(self):
+        # PAUSE_GLOBAL_CHARGE
+        return await self.__request_and_poll_command_ford(command_key=PAUSE_CHARGE_KEY)
+
+
 
     async def set_zone_lighting(self, target_option:str, current_option=None):
         if target_option is None or str(target_option) == ZONE_LIGHTS_VALUE_OFF:
@@ -1544,6 +1560,7 @@ class ConnectedFordPassVehicle:
 
         status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh", vin=vin_to_request)
         return status
+
 
     async def __request_command(self, command:str, post_data=None, vin=None):
         try:

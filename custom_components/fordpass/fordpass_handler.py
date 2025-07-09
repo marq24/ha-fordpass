@@ -557,8 +557,8 @@ class FordpassDataHandler:
             return await vehicle.auto_updates_off()
 
 
-    # ELVEH_CHARGING attributes
-    def get_elveh_switch_state(data):
+    # ELVEH_CHARGING start/stop cancel/pause
+    def get_start_stop_charge_switch_state(data):
         # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
         data_metrics = FordpassDataHandler.get_metrics(data)
         val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
@@ -572,11 +572,32 @@ class FordpassDataHandler:
                     return "ON"
         return "OFF"
 
-    async def on_off_elveh(data, vehicle, turn_on:bool) -> bool:
+    async def on_off_start_stop_charge(data, vehicle, turn_on:bool) -> bool:
+        if turn_on:
+            return await vehicle.start_charge()
+        else:
+            return await vehicle.stop_charge()
+
+    def get_cancel_pause_charge_switch_state(data):
+        # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
+        data_metrics = FordpassDataHandler.get_metrics(data)
+        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
+        if val != UNSUPPORTED:
+            val = val.upper()
+            if val == XEVPLUGCHARGER_STATE_CHARGING or val == XEVPLUGCHARGER_STATE_CHARGINGAC:
+                return "ON"
+            elif val == XEVPLUGCHARGER_STATE_CONNECTED and "xevBatteryChargeDisplayStatus" in data_metrics:
+                secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
+                if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
+                    return "ON"
+        return "OFF"
+
+    async def on_off_cancel_pause_charge(data, vehicle, turn_on:bool) -> bool:
             if turn_on:
-                return await vehicle.start_charge()
+                return await vehicle.cancel_charge()
             else:
-                return await vehicle.stop_charge()
+                return await vehicle.pause_charge()
+
 
     def get_elveh_charging_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
@@ -905,6 +926,16 @@ class FordpassDataHandler:
 
         return await vehicle.set_rcc(rcc_dict, list_data)
 
+    # DEVICE_CONNECTIVITY state
+    def get_device_connectivity_state(data):
+        state = FordpassDataHandler.get_states(data).get("deviceConnectivity", {}).get("value", {}).get("toState", UNSUPPORTED)
+        if state.upper() == "CONNECTED":
+            return "CONNECTED"
+        elif state.upper() == "DISCONNECTED":
+            return "DISCONNECTED"
+        else:
+            return state
+
     #####################################
     ## CURRENTLY UNSUPPORTED CALLABLES ##
     #####################################
@@ -960,3 +991,13 @@ class FordpassDataHandler:
 
     async def unlock_vehicle(coordinator, vehicle):
         await vehicle.unlock()
+
+    # just for development purposes...
+    async def start_charge_vehicle(coordinator, vehicle):
+        await vehicle.start_charge()
+    async def stop_charge_vehicle(coordinator, vehicle):
+        await vehicle.stop_charge()
+    async def cancel_charge_vehicle(coordinator, vehicle):
+        await vehicle.cancel_charge()
+    async def pause_charge_vehicle(coordinator, vehicle):
+        await vehicle.pause_charge()

@@ -82,6 +82,14 @@ class Tag(ApiKey, Enum):
                                  press_fn=FordpassDataHandler.request_update_and_reload)
     DOOR_UNLOCK         = ApiKey(key="doorunlock",
                                  press_fn=FordpassDataHandler.unlock_vehicle)
+    EV_START            = ApiKey(key="evstart",
+                                 press_fn=FordpassDataHandler.start_charge_vehicle)
+    EV_STOP             = ApiKey(key="evstop",
+                                 press_fn=FordpassDataHandler.stop_charge_vehicle)
+    EV_CANCEL           = ApiKey(key="evcancel",
+                                 press_fn=FordpassDataHandler.cancel_charge_vehicle)
+    EV_PAUSE            = ApiKey(key="evpause",
+                                 press_fn=FordpassDataHandler.pause_charge_vehicle)
 
     # LOCKS
     ##################################################
@@ -99,9 +107,13 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_guard_mode_state,
                                  on_off_fn=FordpassDataHandler.on_off_guard_mode)
 
+    ELVEH_CHARGE_START  = ApiKey(key="elVehChargeStart",
+                                 state_fn=FordpassDataHandler.get_start_stop_charge_switch_state,
+                                 on_off_fn=FordpassDataHandler.on_off_start_stop_charge)
+
     ELVEH_CHARGE        = ApiKey(key="elVehCharge",
-                                 state_fn=FordpassDataHandler.get_elveh_switch_state,
-                                 on_off_fn=FordpassDataHandler.on_off_elveh)
+                                 state_fn=FordpassDataHandler.get_cancel_pause_charge_switch_state,
+                                 on_off_fn=FordpassDataHandler.on_off_cancel_pause_charge)
 
     AUTO_UPDATES        = ApiKey(key="autoSoftwareUpdates",
                                  state_fn=FordpassDataHandler.get_auto_updates_state,
@@ -225,6 +237,9 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_soc_state,
                                  attrs_fn=FordpassDataHandler.get_soc_attrs)
 
+    DEVICECONNECTIVITY  =  ApiKey(key="deviceConnectivity",
+                                  state_fn=FordpassDataHandler.get_device_connectivity_state)
+
     DEEPSLEEP_IN_PROGRESS   = ApiKey(key="deepSleepInProgress",
                                      state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
     FIRMWAREUPG_IN_PROGRESS = ApiKey(key="firmwareUpgInProgress",
@@ -260,7 +275,12 @@ EV_ONLY_TAGS: Final = [
     Tag.ELVEH,
     Tag.ELVEH_PLUG,
     Tag.ELVEH_CHARGING,
-    Tag.ELVEH_CHARGE
+    Tag.ELVEH_CHARGE,
+    Tag.ELVEH_CHARGE_START,
+    Tag.EV_START,
+    Tag.EV_STOP,
+    Tag.EV_CANCEL,
+    Tag.EV_PAUSE
 ]
 
 RCC_TAGS: Final = [
@@ -530,6 +550,13 @@ SENSORS = [
         icon="mdi:seatbelt",
         has_entity_name=True,
     ),
+    ExtSensorEntityDescription(
+        tag=Tag.DEVICECONNECTIVITY,
+        key=Tag.DEVICECONNECTIVITY.key,
+        icon="mdi:connection",
+        has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 
     # Debug sensors (disabled by default)
     # Tag.EVENTS: {"icon": "mdi:calendar", "api_key": "events", "skip_existence_check": True, "debug": True},
@@ -589,6 +616,7 @@ SENSORSX = {
 SWITCHES = {
     Tag.REMOTE_START: {"icon": "mdi:air-conditioner"},
     Tag.ELVEH_CHARGE: {"icon": "mdi:ev-station"},
+    Tag.ELVEH_CHARGE_START: {"icon": "mdi:ev-station"},
     #Tag.GUARDMODE: {"icon": "mdi:shield-key"}
     Tag.AUTO_UPDATES: {"icon": "mdi:cloud-arrow-down-outline"},
 
@@ -621,6 +649,35 @@ BUTTONS = [
         tag=Tag.DOOR_UNLOCK,
         key=Tag.DOOR_UNLOCK.key,
         icon="mdi:car-door-lock-open",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
+
+    ExtButtonEntityDescription(
+        tag=Tag.EV_START,
+        key=Tag.EV_START.key,
+        icon="mdi:play-circle",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.EV_STOP,
+        key=Tag.EV_STOP.key,
+        icon="mdi:stop-circle",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.EV_CANCEL,
+        key=Tag.EV_CANCEL.key,
+        icon="mdi:eject-circle",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.EV_PAUSE,
+        key=Tag.EV_PAUSE.key,
+        icon="mdi:pause-circle",
         has_entity_name=True,
         entity_registry_enabled_default=False
     )
