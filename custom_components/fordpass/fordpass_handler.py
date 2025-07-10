@@ -355,7 +355,7 @@ class FordpassDataHandler:
         locked_doors = 0
         for a_lock_state in all_doors:
             a_upper_case_lock_value = a_lock_state.get("value", UNSUPPORTED).upper()
-            if a_upper_case_lock_value == "LOCKED":
+            if a_upper_case_lock_value in ["LOCKED", "DOUBLE_LOCKED"]:
                 # if we have an ALL_DOORS lock state, we can ignore the other door lock states
                 if "vehicleDoor" in a_lock_state and a_lock_state["vehicleDoor"].upper() == "ALL_DOORS":
                     # we instantly return the 'VEHICLE_LOCK_STATE_LOCKED' and skip the complete
