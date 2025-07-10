@@ -135,9 +135,9 @@
             "request_refresh":  {"name": "Remote Sync"},
             "doorlock":         {"name": "Verriegeln"},
             "doorunlock":       {"name": "Entriegeln"},
-            "evstart":          {"name": "EV starten"},
-            "evcancel":         {"name": "EV fortfahren"},
-            "evpause":          {"name": "EV pausieren"}
+            "evstart":          {"name": "EV Laden starten"},
+            "evcancel":         {"name": "EV Laden fortfahren"},
+            "evpause":          {"name": "EV Laden pausieren"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},

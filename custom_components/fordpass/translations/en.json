@@ -148,15 +148,15 @@
             "request_refresh":  {"name": "Remote Sync"},
             "doorlock":         {"name": "Lock"},
             "doorunlock":       {"name": "Unlock"},
-            "evstart":          {"name": "EV start"},
-            "evcancel":         {"name": "EV resume"},
-            "evpause":          {"name": "EV pause"}
+            "evstart":          {"name": "EV Charging start"},
+            "evcancel":         {"name": "EV Charging resume"},
+            "evpause":          {"name": "EV Charging pause"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
             "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
-            "elvehcharge":              {"name": "EV Charging [Pause]"},
+            "elvehcharge":              {"name": "EV Charging (Pause)"},
             "guardmode":                {"name": "Guard Mode"},
             "autosoftwareupdates":      {"name": "Automatic Software Updates"},
             "rccdefrostrear":           {"name": "RC: Rear Defrost [RemoteControl]"},

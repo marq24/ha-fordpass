@@ -211,7 +211,8 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Button        | Local Sync (Ford backend with HA)                  | X             | X          |
 | Lock          | Lock/Unlock Vehicle[^1]                            | X             | X          |
 | Switch        | ~~Guard Mode (Only supported cars)~~               |               |            |
-| Switch        | PAUSE/UNPAUSE charging                             |               | X          |
+| Button        | Start charging[^4]                                 |               | X          |
+| Switch        | PAUSE/UNPAUSE charging[^5]                         |               | X          |
 | Switch        | Auto SoftwareUpdates[^1]                           | X             | X          |
 | DeviceTracker | Vehicle Tracker[^1]                                | X             | X          |
 | Select        | Zone Lighting (experimental)[^1]                   | X             | X          |
@@ -225,6 +226,8 @@ This service will contact the modem in the vehicle and request to sync data betw
 [^1]: Must be supported by the vehicle. If not supported, the entity will not be available in the UI.
 [^2]: _RC_ stands for 'Remote Control'.
 [^3]: There are four controls — one for each seat. Depending on your vehicle configuration you can select 'Heating Level I-III' and 'Cooling Level I-III' for each seat individually. Please note that not all vehicles support the full set of featured (e.g., only heating) and/or that there might be only the front seats available.
+[^4]: The 'Start charging' button will only work with supporting charging stations (wallboxes) - e.g., Ford Charge Station Pro (FCSP), and only if the vehicle is plugged in. If the vehicle is not plugged in, the button will be disabled.
+[^5]: Once the charging process has been started, the switch allows you to pause and unpause the charging process. It's not possible to actually start a charging session via this switch — you must use the _EV Start_-button for this! The switch will be toggled to `ON` when the vehicle is plugged in and the wallbox has started to charge the car. When you toggle the switch `OFF`, the charging process will be paused, and when you toggle it `ON` again, the charging process will resume.
 
 ## Want to report an issue?
 

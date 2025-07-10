@@ -850,7 +850,8 @@ class ConnectedFordPassVehicle:
                         a_value_obj = a_state_obj["value"]
                         if "toState" in a_value_obj:
                             _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
-                            if a_value_obj["toState"].lower() == "success":
+                            to_state_value = a_value_obj["toState"].upper()
+                            if to_state_value in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                 if ROOT_METRICS in a_value_obj:
                                     self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
                                     _LOGGER.debug(f"{self.vli}ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
@@ -1873,19 +1874,19 @@ class ConnectedFordPassVehicle:
                             if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
                                 to_state = resp_command_obj["value"]["toState"].upper()
 
-                                if to_state == "SUCCESS" or to_state == "COMMAND_SUCCEEDED_ON_DEVICE":
+                                if to_state in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): EXCELLENT! Command succeeded")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
                                     return True
 
-                                elif to_state == "EXPIRED":
+                                elif "EXPIRED" == to_state:
                                     _LOGGER.info(f"{self.vli}__wait_for_state(): Command EXPIRED - wait is OVER")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
                                     return False
 
-                                elif to_state == "REQUEST_QUEUED" or "IN_PROGRESS" in to_state:
+                                elif "REQUEST_QUEUED" == to_state or "IN_PROGRESS" in to_state:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): toState: '{to_state}'")
                                 else:
                                     _LOGGER.info(f"{self.vli}__wait_for_state(): UNKNOWN 'toState': {to_state}")
