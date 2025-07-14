@@ -1,17 +1,17 @@
-import asyncio
 import logging
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from . import FordPassEntity, FordPassDataUpdateCoordinator
+
 from custom_components.fordpass.const import (
     DOMAIN,
     COORDINATOR_KEY,
     RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_OPTIONS_HEAT_ONLY
 )
 from custom_components.fordpass.const_tags import SELECTS, ExtSelectEntityDescription, Tag, RCC_TAGS
+from . import FordPassEntity, FordPassDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,10 +69,10 @@ class FordPassSelect(FordPassEntity, SelectEntity):
                 value = str(value)
 
         except KeyError as kerr:
-            _LOGGER.debug(f"SELECT KeyError: '{self.tag}' {kerr}")
+            _LOGGER.debug(f"SELECT KeyError: '{self._tag}' - {kerr}")
             value = None
         except TypeError as terr:
-            _LOGGER.debug(f"SELECT TypeError: '{self.tag}' {terr}")
+            _LOGGER.debug(f"SELECT TypeError: '{self._tag}' - {terr}")
             value = None
         return value
 

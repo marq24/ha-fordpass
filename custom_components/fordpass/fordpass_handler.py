@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 from numbers import Number
 from re import sub
-from typing import Final
+from typing import Final, Iterable
 
 from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
 from homeassistant.util import dt
@@ -866,6 +866,9 @@ class FordpassDataHandler:
     # RCC (remote climate control) state
     def get_rcc_state(data, rcc_key):
         value_list = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
+        if value_list is None or isinstance(value_list, (str, bytes)) or not isinstance(value_list, Iterable):
+            return UNSUPPORTED
+
         for a_list_entry in value_list:
             if a_list_entry.get("preferenceType", "") == rcc_key:
                 value = a_list_entry.get("preferenceValue", UNSUPPORTED)
@@ -907,7 +910,7 @@ class FordpassDataHandler:
 
     async def set_rcc_int(rcc_key:str, data:dict, vehicle, new_value: str) -> bool:
         list_data = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
-        if len(list_data) == 0:
+        if list_data is None or not isinstance(list_data, Iterable) or len(list_data) == 0:
             return False
 
         for a_list_entry in list_data:
