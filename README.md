@@ -284,16 +284,18 @@ If you like this integration and want to support the development, please conside
 
 
 ## Credits
-- https://github.com/itchannel/fordpass-ha - Original fordpass integration by @itchannel and @SquidBytes
+- @crowedavid — David, who is great support here in the community and has provided a lot of feedback and ideas for improvements. Also, he has provided various ha automations and template sensors for this integration. Thanks a lot for your support David!
+- https://github.com/itchannel/fordpass-ha — Original fordpass integration by @itchannel and @SquidBytes
+
 
 ### Credits (of the original integration)
-- https://github.com/SquidBytes - EV updates and documentation
-- https://github.com/clarkd - Initial Home Assistant automation idea and Python code (Lock/Unlock)
-- https://github.com/pinballnewf - Figuring out the application ID issue
-- https://github.com/degrashopper - Fixing 401 error for certain installs
-- https://github.com/tonesto7 - Extra window statuses and sensors
-- https://github.com/JacobWasFramed - Updated unit conversions
-- https://github.com/heehoo59 - French Translation
+- https://github.com/SquidBytes — EV updates and documentation
+- https://github.com/clarkd — Initial Home Assistant automation idea and Python code (Lock/Unlock)
+- https://github.com/pinballnewf — Figuring out the application ID issue
+- https://github.com/degrashopper — Fixing 401 error for certain installs
+- https://github.com/tonesto7 — Extra window statuses and sensors
+- https://github.com/JacobWasFramed — Updated unit conversions
+- https://github.com/heehoo59 — French Translation
 
 
 [hacs]: https://hacs.xyz
