@@ -150,7 +150,10 @@
             "rccdefrostfront":          {"name": "RC: Frontscheibenheizung [RemoteControl]"},
             "rccsteeringwheel":         {"name": "RC: Lenkradheizung [RemoteControl]"}
         },
-        "number": {"rcctemperature":    {"name": "RC: Temperatur [RemoteControl]"}},
+        "number": {
+            "rcctemperature":    {"name": "RC: Temperatur [RemoteControl]"},
+            "elvehtargetcharge": {"name": "Ziel-Ladestand EV"}
+        },
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},
             "fuel":                     {"name": "Tankanzeige"},

@@ -163,7 +163,10 @@
             "rccdefrostfront":          {"name": "RC: Heated Windshield [RemoteControl]"},
             "rccsteeringwheel":         {"name": "RC: Steering Wheel Heating [RemoteControl]"}
         },
-        "number": {"rcctemperature":    {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"}},
+        "number": {
+            "rcctemperature":    {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"},
+            "elvehtargetcharge": {"name": "Target charge level"}
+        },
         "sensor": {
             "odometer":                 {"name": "Odometer"},
             "fuel":                     {"name": "Fuel"},

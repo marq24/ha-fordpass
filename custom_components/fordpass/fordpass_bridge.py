@@ -71,21 +71,24 @@ FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
 
-START_CHARGE_KEY:Final = "START_CHARGE"
-CANCEL_CHARGE_KEY:Final = "CANCEL_CHARGE"
-PAUSE_CHARGE_KEY:Final = "PAUSE_CHARGE"
+START_CHARGE_KEY:Final      = "START_CHARGE"
+CANCEL_CHARGE_KEY:Final     = "CANCEL_CHARGE"
+PAUSE_CHARGE_KEY:Final      = "PAUSE_CHARGE"
+SET_CHARGE_TARGET_KEY:Final = "SET_CHARGE_TARGET"
 
 FORD_COMMAND_URL_TEMPLATES: Final = {
     # Templates with {vin} placeholder
-    START_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/START",
-    CANCEL_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/CANCEL",
-    PAUSE_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/PAUSE",
+    START_CHARGE_KEY:       "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/START",
+    CANCEL_CHARGE_KEY:      "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/CANCEL",
+    PAUSE_CHARGE_KEY:       "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/PAUSE",
+    SET_CHARGE_TARGET_KEY:  "/electrification/experiences/v2/vehicles/preferred-charge-times/locations/{url_param}",
 }
 FORD_COMMAND_MAP: Final ={
     # the code will always add 'Command' at the end!
-    START_CHARGE_KEY: "startGlobalCharge",
-    CANCEL_CHARGE_KEY: "cancelGlobalCharge",
-    PAUSE_CHARGE_KEY: "pauseGlobalCharge",
+    START_CHARGE_KEY:       "startGlobalCharge",
+    CANCEL_CHARGE_KEY:      "cancelGlobalCharge",
+    PAUSE_CHARGE_KEY:       "pauseGlobalCharge",
+    SET_CHARGE_TARGET_KEY:  "updateChargeProfiles",
 }
 #session = None #requests.Session()
 
@@ -858,6 +861,13 @@ class ConnectedFordPassVehicle:
                                 if ROOT_METRICS in a_value_obj:
                                     self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
                                     _LOGGER.debug(f"{self.vli}ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+
+                                if "updateChargeProfilesCommand" == a_state_name:
+                                    # we have a special handling for the 'updateChargeProfilesCommand'
+                                    # -> when we receive a 'success' state, we will update our
+                                    # energy_transfer_object...
+                                    asyncio.create_task(self.update_energy_transfer_status_int())
+
                         else:
                             _LOGGER.debug(f"{self.vli}ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
                     else:
@@ -1528,10 +1538,10 @@ class ConnectedFordPassVehicle:
     # }
 
     @staticmethod
-    def _get_command_object_ford(command_key, vin):
+    def _get_command_object_ford(command_key, url_param_value):
         template = FORD_COMMAND_URL_TEMPLATES.get(command_key, None)
         if template:
-            return {"url":      template.format(a_vin=vin),
+            return {"url":      template.format(url_param=url_param_value),
                     "command":  FORD_COMMAND_MAP.get(command_key, None)}
         return None
 
@@ -1579,8 +1589,20 @@ class ConnectedFordPassVehicle:
 
         return False
 
-    async def set_rcc(self, remote_climate_control:dict, result_list:dict):
-        result = await self.__request_command(command="setRemoteClimateControl", post_data=remote_climate_control)
+    async def set_charge_target(self, data:dict):
+        result = await self.__request_and_poll_command_ford(command_key=SET_CHARGE_TARGET_KEY, post_data=data, include_vin_in_header=True)
+        if result:
+            _LOGGER.debug(f"{self.vli}set_charge_target() - target charge set successfully")
+            # WE WILL NOT trigger an update here, since we have a special handling when the websocket receive a
+            # SUCCESS (COMMAND_SUCCEEDED_ON_DEVICE) state update for the 'updateChargeProfilesCommand' there we will
+            # trigger an 'asyncio.create_task(self.update_energy_transfer_status_int())'
+            # await self.update_energy_transfer_status_int()
+        else:
+            _LOGGER.info(f"{self.vli}set_charge_target() - setting target charge failed: data that was sent: {data}")
+        return result
+
+    async def set_rcc(self, data:dict, result_list:dict):
+        result = await self.__request_command(command="setRemoteClimateControl", post_data=data)
         if result:
             _LOGGER.debug(f"{self.vli}set_rcc() - remote_climate_control set successfully")
 
@@ -1592,7 +1614,7 @@ class ConnectedFordPassVehicle:
 
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
         else:
-            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {remote_climate_control}")
+            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {data}")
 
         return result
 
@@ -1628,14 +1650,9 @@ class ConnectedFordPassVehicle:
         """Issue an unlock command to the doors"""
         return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="unlock")
 
-    def request_update(self, vin=None):
+    def request_update(self):
         """Send request to vehicle for update"""
-        if vin is None or len(vin) == 0:
-            vin_to_request = self.vin
-        else:
-            vin_to_request = vin
-
-        status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh", vin=vin_to_request)
+        status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
 
@@ -1749,7 +1766,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}, vin=None):
+    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}):
         """Send command to the new Command endpoint"""
         try:
             await self.__ensure_valid_tokens()
@@ -1764,9 +1781,6 @@ class ConnectedFordPassVehicle:
                 "authorization": f"Bearer {self.auto_access_token}",
                 "Application-Id": self.app_id # a bit unusual, that Application-id will be provided for an autonomic endpoint?!
             }
-            # do we want to overwrite the vin?!
-            if vin is None:
-                vin = self.vin
 
             data = {
                 "properties": properties,
@@ -1780,7 +1794,7 @@ class ConnectedFordPassVehicle:
             if baseurl != AUTONOMIC_BETA_URL:
                 del data["version"]
 
-            post_req = await self.session.post(f"{baseurl}/command/vehicles/{vin}/commands",
+            post_req = await self.session.post(f"{baseurl}/command/vehicles/{self.vin}/commands",
                                     data=json.dumps(data),
                                     headers=headers,
                                     timeout=self.timeout
@@ -1799,7 +1813,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, vin=None):
+    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, include_vin_in_header=False):
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -1813,13 +1827,18 @@ class ConnectedFordPassVehicle:
                 "auth-token": self.access_token,
                 "Application-Id": self.app_id,
             }
-            # do we want to overwrite the vin?!
-            if vin is None:
-                vin = self.vin
+            if include_vin_in_header:
+                headers["vin"] = self.vin
 
-            a_cmd_obj = self._get_command_object_ford(command_key, vin)
+            if command_key == SET_CHARGE_TARGET_KEY:
+                url_param_value = post_data["location"]["id"]
+            else:
+                url_param_value = self.vin
+
+            a_cmd_obj = self._get_command_object_ford(command_key, url_param_value)
             command_url_part = a_cmd_obj.get("url", None)
             command = a_cmd_obj.get("command", None)
+
             if command_url_part is None or command is None:
                 _LOGGER.warning(f"{self.vli}__request_and_poll_command_ford() - command_key '{command_key}' is not supported by the integration: '{a_cmd_obj}'")
                 return False

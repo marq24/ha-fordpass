@@ -156,12 +156,11 @@ async def async_update_options(hass, config_entry):
 def service_refresh_status(hass, service, coordinator):
     """Get the latest vehicle status from vehicle, actively polls the car"""
     _LOGGER.debug(f"Running Service 'refresh_status'")
-    vin = service.data.get("vin", None)
-    status = coordinator.bridge.request_update(vin)
+    status = coordinator.bridge.request_update()
     if status == 401:
-        _LOGGER.debug(f"[@{vin}] refresh_status: Invalid VIN?! (status 401)")
+        _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Invalid VIN?! (status 401)")
     elif status == 200:
-        _LOGGER.debug(f"[@{vin}] refresh_status: Refresh sent")
+        _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
 
 
 def service_clear_tokens(hass, service, coordinator):

@@ -68,6 +68,11 @@ class FordpassDataHandler:
         return data.get(ROOT_METRICS, {})
 
     @staticmethod
+    def get_energy_transfer_status(data):
+        """Get the metrics dictionary."""
+        return data.get(ROOT_ENERGY_TRANSFER_STATUS, {})
+
+    @staticmethod
     def get_value_for_metrics_key(data, metrics_key, default=UNSUPPORTED):
         """Get a value from metrics with default fallback."""
         return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", default)
@@ -691,6 +696,40 @@ class FordpassDataHandler:
             else:
                 return "UNKNOWN"
         return val
+
+    # ELVEH_TARGET_CHARGE set
+    def get_elev_target_charge_state(data):
+        return FordpassDataHandler.get_energy_transfer_status(data).get("chargeProfile", {}).get("targetSoc", UNSUPPORTED)
+
+    async def set_elev_target_charge(data, vehicle, target_value, current_value:str):
+        ets_data = FordpassDataHandler.get_energy_transfer_status(data)
+        if len(ets_data) > 0:
+            target_value = int(float(target_value))
+            if 20 <= target_value <= 100:
+
+                # the value we want to set from is the 'targetSoc'
+                # and it can go from 20 to 100 percent... lower makes
+                # little sense...
+                post_data = {
+                    "chargeProfile": {
+                        "chargeMode":ets_data["chargeProfile"]["chargeMode"],
+                        "schedules":ets_data["chargeProfile"]["schedules"],
+                        "targetSoc":target_value
+                    },
+                    "location": {
+                        "address":  ets_data["location"]["address"],
+                        "id":       ets_data["location"]["id"],
+                        "latitude": ets_data["location"]["latitude"],
+                        "longitude":ets_data["location"]["longitude"],
+                        "name":     ets_data["location"]["name"],
+                        "type":     ets_data["location"]["type"],
+                    },
+                    "vin": vehicle.vin
+                }
+                return await vehicle.set_charge_target(post_data)
+
+        _LOGGER.info(f"set_elev_target_charge(): target_value {target_value} is not in the valid range (20-100)")
+        return False
 
 
     # ZONE_LIGHTING state + attributes

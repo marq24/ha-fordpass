@@ -148,6 +148,10 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_SetPointTemp_Rq)
 
+    ELVEH_TARGET_CHARGE = ApiKey(key="elVehTargetCharge",
+                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data),
+                                 select_fn=FordpassDataHandler.set_elev_target_charge)
+
     # SENSORS
     ##################################################
     ODOMETER            = ApiKey(key="odometer",
@@ -712,6 +716,17 @@ NUMBERS = [
         native_max_value=30.0,
         native_step=0.5,
         mode=NumberMode.BOX,
+        has_entity_name=True,
+    ),
+    ExtNumberEntityDescription(
+        tag=Tag.ELVEH_TARGET_CHARGE,
+        key=Tag.ELVEH_TARGET_CHARGE.key,
+        icon="mdi:battery-charging-high",
+        native_unit_of_measurement=PERCENTAGE,
+        native_min_value=20,
+        native_max_value=100,
+        native_step=5,
+        mode=NumberMode.SLIDER,
         has_entity_name=True,
     )
 ]
