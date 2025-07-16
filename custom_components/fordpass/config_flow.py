@@ -120,7 +120,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if results:
             _LOGGER.debug(f"validate_token(): request Vehicles")
-            vehicles = await vehicle.vehicles()
+            vehicles = await vehicle.req_vehicles()
             _LOGGER.debug(f"validate_token(): got Vehicles -> {vehicles}")
             return vehicles
         else:
@@ -148,7 +148,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION], coordinator=None)
         _LOGGER.debug(f"get_vehicles_from_existing_account(): request Vehicles")
-        vehicles = await vehicle.vehicles()
+        vehicles = await vehicle.req_vehicles()
         _LOGGER.debug(f"get_vehicles_from_existing_account(): got Vehicles -> {vehicles}")
         if vehicles is not None:
             return vehicles

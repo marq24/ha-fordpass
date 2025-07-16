@@ -31,6 +31,7 @@ ROOT_METRICS: Final = "metrics"
 ROOT_VEHICLES: Final = "vehicles"
 ROOT_MESSAGES: Final = "messages"
 ROOT_REMOTE_CLIMATE_CONTROL: Final = "rcc"
+ROOT_ENERGY_TRANSFER_STATUS: Final = "ets"
 ROOT_UPDTIME: Final = "updateTime"
 
 UNSUPPORTED: Final = str("Unsupported")
