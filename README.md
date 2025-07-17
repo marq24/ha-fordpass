@@ -122,6 +122,7 @@ More details (how to deal with the browser developer tools) to get your token ca
 
 [All information, how to use this integration as provider for Ford EV data can be found in a separate section in this repository.](./doc/EVCC.md)
 
+
 ## Charge Control of your EV
 
 Currently, the integration supports to pause and unpause an EV charging session. This is done by a switch in the Home Assistant UI. The switch will be available for all PHEV and BEV vehicles.
@@ -152,6 +153,20 @@ Here is a short procedure how to create and connect a second account:
 7. Finally, you should now have connected your car to the new FordPass account.
 8. You can now log out again of the FordPass app with your second account and re-login with your original FordPass account.
 9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
+
+
+## Multi-Vehicle Support
+
+When you have __multiple__ vehicles registered in your FordPass account, then in the FordPass App you must first select the vehicle you want to use, before you can access any data or functionality of this vehicle. __The same limitation is also true__ for this Home Assistant integration.
+
+The main reason for this restriction is the fact, that the FordPass App and this integration makes use of a websocket connection to the Ford backend, which is some sort of bound to a single vehicle at a time.
+
+So you have three options to use multiple vehicles in Home Assistant with this integration:
+1. **Use multiple FordPass accounts**: You can create a separate FordPass account for each of your vehicles and then add each account as a separate integration in Home Assistant. This way you can use multiple vehicles in Home Assistant that does not have any influence on each other [my personal recommendation].
+
+2. **Use different Regions**: If you have multiple vehicles, you can create for each of the vehicles a separate Region (and create a new access token per Region).
+
+3. **Have _only one_ vehicle _active_ in Home Assistant**: If you have multiple vehicles in your FordPass account, you can activate only use one of the vehicles at a time in Home Assistant. This means that you must first deactivate the current active vehicle in HA (deactivate the device) and then activate the new vehicle you want to use. This approach is quite similar to the way how FordPass App deals with multiple vehicles in your FordPass account, but probably that's not what you want.
 
 
 ## Services

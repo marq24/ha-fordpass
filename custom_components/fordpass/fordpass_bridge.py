@@ -24,6 +24,7 @@ from custom_components.fordpass.fordpass_handler import (
     ROOT_MESSAGES,
     ROOT_VEHICLES,
     ROOT_REMOTE_CLIMATE_CONTROL,
+    ROOT_ENERGY_TRANSFER_STATUS,
     ROOT_UPDTIME
 )
 
@@ -70,21 +71,24 @@ FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
 
-START_CHARGE_KEY:Final = "START_CHARGE"
-CANCEL_CHARGE_KEY:Final = "CANCEL_CHARGE"
-PAUSE_CHARGE_KEY:Final = "PAUSE_CHARGE"
+START_CHARGE_KEY:Final      = "START_CHARGE"
+CANCEL_CHARGE_KEY:Final     = "CANCEL_CHARGE"
+PAUSE_CHARGE_KEY:Final      = "PAUSE_CHARGE"
+SET_CHARGE_TARGET_KEY:Final = "SET_CHARGE_TARGET"
 
 FORD_COMMAND_URL_TEMPLATES: Final = {
     # Templates with {vin} placeholder
-    START_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/START",
-    CANCEL_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/CANCEL",
-    PAUSE_CHARGE_KEY: "/electrification/experiences/v1/vehicles/{a_vin}/global-charge-command/PAUSE",
+    START_CHARGE_KEY:       "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/START",
+    CANCEL_CHARGE_KEY:      "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/CANCEL",
+    PAUSE_CHARGE_KEY:       "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/PAUSE",
+    SET_CHARGE_TARGET_KEY:  "/electrification/experiences/v2/vehicles/preferred-charge-times/locations/{url_param}",
 }
 FORD_COMMAND_MAP: Final ={
     # the code will always add 'Command' at the end!
-    START_CHARGE_KEY: "startGlobalCharge",
-    CANCEL_CHARGE_KEY: "cancelGlobalCharge",
-    PAUSE_CHARGE_KEY: "pauseGlobalCharge",
+    START_CHARGE_KEY:       "startGlobalCharge",
+    CANCEL_CHARGE_KEY:      "cancelGlobalCharge",
+    PAUSE_CHARGE_KEY:       "pauseGlobalCharge",
+    SET_CHARGE_TARGET_KEY:  "updateChargeProfiles",
 }
 #session = None #requests.Session()
 
@@ -184,8 +188,10 @@ class ConnectedFordPassVehicle:
         # our main data container that holds all data that have been fetched from the vehicle
         self._data_container = {}
         self._cached_vehicles_data = {}
-        self._cached_rcc_data = {}
         self._remote_climate_control_supported = None
+        self._cached_rcc_data = {}
+        self._energy_transfer_status_supported = None
+        self._cached_ets_data = {}
         self.coordinator = coordinator
 
         # websocket connection related variables
@@ -855,6 +861,13 @@ class ConnectedFordPassVehicle:
                                 if ROOT_METRICS in a_value_obj:
                                     self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
                                     _LOGGER.debug(f"{self.vli}ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
+
+                                if "updateChargeProfilesCommand" == a_state_name:
+                                    # we have a special handling for the 'updateChargeProfilesCommand'
+                                    # -> when we receive a 'success' state, we will update our
+                                    # energy_transfer_object...
+                                    asyncio.create_task(self.update_energy_transfer_status_int())
+
                         else:
                             _LOGGER.debug(f"{self.vli}ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
                     else:
@@ -973,7 +986,7 @@ class ConnectedFordPassVehicle:
         if to_wait_till < time.time():
             _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
             # we need to update the messages...
-            msg_data = await self.messages()
+            msg_data = await self.req_messages()
             if msg_data is not None:
                 self._data_container[ROOT_MESSAGES] = msg_data
                 self._ws_notify_for_new_data()
@@ -1044,18 +1057,18 @@ class ConnectedFordPassVehicle:
 
     # fetching the main data via classic requests...
     async def update_all(self):
-        data = await self.status()
+        data = await self.req_status()
         if data is not None:
             # Temporarily removed due to Ford backend API changes
             # data["guardstatus"] = await self.hass.async_add_executor_job(self.guard_status)
-            msg_data = await self.messages()
+            msg_data = await self.req_messages()
             if msg_data is not None:
                 data[ROOT_MESSAGES] = msg_data
 
             # only update vehicle data if not present yet
             if self._cached_vehicles_data is None or len(self._cached_vehicles_data) == 0:
                 _LOGGER.debug(f"{self.vli}update_all(): request vehicle data...")
-                self._cached_vehicles_data = await self.vehicles()
+                self._cached_vehicles_data = await self.req_vehicles()
 
             if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
                 data[ROOT_VEHICLES] = self._cached_vehicles_data
@@ -1066,32 +1079,58 @@ class ConnectedFordPassVehicle:
                         if a_vehicle_profile["VIN"] == self.vin:
                             if "remoteClimateControl" in a_vehicle_profile:
                                 self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
+
+                            if "showEVBatteryLevel" in a_vehicle_profile:
+                                self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
+
                             break
 
             # only update remote climate data if not present yet
             if self._remote_climate_control_supported:
                 if self._cached_rcc_data is None or len(self._cached_rcc_data) == 0:
                     _LOGGER.debug(f"{self.vli}update_all(): request 'remote climate control' data...")
-                    self._cached_rcc_data = await self.remote_climate()
+                    self._cached_rcc_data = await self.req_remote_climate()
 
                 if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
                     data[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
+
+            # only update energy-status if not present yet
+            if self._energy_transfer_status_supported:
+                if self._cached_ets_data is None or len(self._cached_ets_data) == 0:
+                    _LOGGER.debug(f"{self.vli}update_all(): request 'energy transfer status' data...")
+                    self._cached_ets_data = await self.req_energy_transfer_status()
+
+                if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
+                    data[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
+
 
             # ok finally store the data in our main data container...
             self._data_container = data
 
         return data
 
+
     async def update_remote_climate_int(self):
         # only update remote climate data if not present yet
         if self._remote_climate_control_supported:
             _LOGGER.debug(f"{self.vli}update_remote_climate_int(): request 'remote climate control' data...")
-            self._cached_rcc_data = await self.remote_climate()
+            self._cached_rcc_data = await self.req_remote_climate()
 
             if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
 
-    async def status(self):
+
+    async def update_energy_transfer_status_int(self):
+        # only update remote climate data if not present yet
+        if self._energy_transfer_status_supported:
+            _LOGGER.debug(f"{self.vli}update_energy_transfer_status_int(): request 'energy transfer status' data...")
+            self._cached_ets_data = await self.req_energy_transfer_status()
+
+            if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
+                self._data_container[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
+
+
+    async def req_status(self):
         """Get Vehicle status from API"""
         global _AUTO_FOUR_NULL_ONE_COUNTER
         try:
@@ -1101,10 +1140,10 @@ class ConnectedFordPassVehicle:
 
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}status() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_status(): - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}status() - auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_status(): - auto_access_token exist? {self.auto_access_token is not None}")
 
             headers_state = {
                 **apiHeaders,
@@ -1132,10 +1171,10 @@ class ConnectedFordPassVehicle:
             elif response_state.status == 401:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
                 if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"{self.vli}status: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}req_status(): status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}status: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_status(): status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
                 return None
             elif response_state.status == 403:
@@ -1148,28 +1187,28 @@ class ConnectedFordPassVehicle:
 
                     # if the message is not the 'NOT AUTHORIZED', then we at least must also return the
                     # default error
-                    _LOGGER.debug(f"{self.vli}status():  status_code: 403 - response: '{msg}'")
+                    _LOGGER.debug(f"{self.vli}req_status():  status_code: 403 - response: '{msg}'")
                     self._HAS_COM_ERROR = True
                     return None
                 except BaseException as e:
-                    _LOGGER.debug(f"{self.vli}status():  status_code: 403 - Error while handle 'response' - {type(e)} - {e}")
+                    _LOGGER.debug(f"{self.vli}req_status():  status_code: 403 - Error while handle 'response' - {type(e)} - {e}")
                     self._HAS_COM_ERROR = True
                     return None
                 pass
             else:
-                _LOGGER.info(f"{self.vli}status: status_code : {response_state.status} - {response_state.real_url} - Received response: {await response_state.text()}")
+                _LOGGER.info(f"{self.vli}req_status(): status_code : {response_state.status} - {response_state.real_url} - Received response: {await response_state.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}status(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_status(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
             else:
-                _LOGGER.info(f"{self.vli}status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+                _LOGGER.info(f"{self.vli}req_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
-    async def messages(self):
+    async def req_messages(self):
         """Get Vehicle messages from API"""
         global _FOUR_NULL_ONE_COUNTER
         try:
@@ -1199,35 +1238,35 @@ class ConnectedFordPassVehicle:
             elif response_msg.status == 401:
                 _FOUR_NULL_ONE_COUNTER[self.vin] += 1
                 if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"{self.vli}messages: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}req_messages(): status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}messages: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_messages(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
                 return None
             else:
-                _LOGGER.info(f"{self.vli}messages: status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
+                _LOGGER.info(f"{self.vli}req_messages(): status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}messages(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_messages(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
             else:
-                _LOGGER.info(f"{self.vli}messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+                _LOGGER.info(f"{self.vli}req_messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
-    async def vehicles(self):
+    async def req_vehicles(self):
         """Get the vehicle list from the ford account"""
         global _FOUR_NULL_ONE_COUNTER
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}vehicles() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_vehicles(): - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}vehicles() - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_vehicles(): - access_token exist? {self.access_token is not None}")
 
             headers_veh = {
                 **apiHeaders,
@@ -1268,36 +1307,35 @@ class ConnectedFordPassVehicle:
             elif response_veh.status == 401:
                 _FOUR_NULL_ONE_COUNTER[self.vin] += 1
                 if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"{self.vli}vehicles: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}req_vehicles(): status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}vehicles: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_vehicles(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
             else:
-                _LOGGER.info(f"{self.vli}vehicles: status_code: {response_veh.status} - {response_veh.real_url} - Received response: {await response_veh.text()}")
+                _LOGGER.info(f"{self.vli}req_vehicles: status_code: {response_veh.status} - {response_veh.real_url} - Received response: {await response_veh.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}vehicles(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_vehicles(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
             else:
-                _LOGGER.info(f"{self.vli}vehicles(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+                _LOGGER.info(f"{self.vli}req_vehicles(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
-    async def remote_climate(self):
-        """Get the vehicle list from the ford account"""
+    async def req_remote_climate(self):
         global _FOUR_NULL_ONE_COUNTER
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}remote_climate() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_remote_climate(): - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}remote_climate() - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_remote_climate(): - access_token exist? {self.access_token is not None}")
 
             headers_veh = {
                 **apiHeaders,
@@ -1326,25 +1364,82 @@ class ConnectedFordPassVehicle:
             elif response_rcc.status == 401:
                 _FOUR_NULL_ONE_COUNTER[self.vin] += 1
                 if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"{self.vli}remote_climate: status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}req_remote_climate(): status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}remote_climate: status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_remote_climate(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
 
                 return None
             else:
-                _LOGGER.info(f"{self.vli}remote_climate: status_code: {response_rcc.status} - {response_rcc.real_url} - Received response: {await response_rcc.text()}")
+                _LOGGER.info(f"{self.vli}req_remote_climate(): status_code: {response_rcc.status} - {response_rcc.real_url} - Received response: {await response_rcc.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}remote_climate(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_remote_climate(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
             else:
-                _LOGGER.info(f"{self.vli}remote_climate(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+                _LOGGER.info(f"{self.vli}req_remote_climate(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
+
+    async def req_energy_transfer_status(self):
+        global _FOUR_NULL_ONE_COUNTER
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): - access_token exist? {self.access_token is not None}")
+
+            # quite funny the energy-transfer-status request will get a 'deviceId' in the header
+            # which is actually our VIN...
+            headers_veh = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+                "deviceId": self.vin
+            }
+            response_ets = await self.session.get(
+                f"{FORD_VEHICLE_API}/electrification/experiences/v2/devices/energy-transfer-status",
+                headers=headers_veh,
+                timeout=self.timeout
+            )
+            if response_ets.status == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
+
+                result_ets = await response_ets.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("ets", result_ets)
+
+                return result_ets
+
+            elif response_ets.status == 401:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.error(f"{self.vli}req_energy_transfer_status(): status_code: 401 - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_energy_transfer_status(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
+
+                return None
+            else:
+                _LOGGER.info(f"{self.vli}req_energy_transfer_status(): status_code: {response_ets.status} - {response_ets.real_url} - Received response: {await response_ets.text()}")
+                self._HAS_COM_ERROR = True
+                return None
+
+        except BaseException as e:
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}req_energy_transfer_status(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}req_energy_transfer_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+            self._HAS_COM_ERROR = True
+            return None
+
 
     # ***********************************************************
     # ***********************************************************
@@ -1443,10 +1538,10 @@ class ConnectedFordPassVehicle:
     # }
 
     @staticmethod
-    def _get_command_object_ford(command_key, vin):
+    def _get_command_object_ford(command_key, url_param_value):
         template = FORD_COMMAND_URL_TEMPLATES.get(command_key, None)
         if template:
-            return {"url":      template.format(a_vin=vin),
+            return {"url":      template.format(url_param=url_param_value),
                     "command":  FORD_COMMAND_MAP.get(command_key, None)}
         return None
 
@@ -1494,8 +1589,20 @@ class ConnectedFordPassVehicle:
 
         return False
 
-    async def set_rcc(self, remote_climate_control:dict, result_list:dict):
-        result = await self.__request_command(command="setRemoteClimateControl", post_data=remote_climate_control)
+    async def set_charge_target(self, data:dict):
+        result = await self.__request_and_poll_command_ford(command_key=SET_CHARGE_TARGET_KEY, post_data=data, include_vin_in_header=True)
+        if result:
+            _LOGGER.debug(f"{self.vli}set_charge_target() - target charge set successfully")
+            # WE WILL NOT trigger an update here, since we have a special handling when the websocket receive a
+            # SUCCESS (COMMAND_SUCCEEDED_ON_DEVICE) state update for the 'updateChargeProfilesCommand' there we will
+            # trigger an 'asyncio.create_task(self.update_energy_transfer_status_int())'
+            # await self.update_energy_transfer_status_int()
+        else:
+            _LOGGER.info(f"{self.vli}set_charge_target() - setting target charge failed: data that was sent: {data}")
+        return result
+
+    async def set_rcc(self, data:dict, result_list:dict):
+        result = await self.__request_command(command="setRemoteClimateControl", post_data=data)
         if result:
             _LOGGER.debug(f"{self.vli}set_rcc() - remote_climate_control set successfully")
 
@@ -1507,7 +1614,7 @@ class ConnectedFordPassVehicle:
 
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
         else:
-            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {remote_climate_control}")
+            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {data}")
 
         return result
 
@@ -1543,14 +1650,9 @@ class ConnectedFordPassVehicle:
         """Issue an unlock command to the doors"""
         return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="unlock")
 
-    def request_update(self, vin=None):
+    def request_update(self):
         """Send request to vehicle for update"""
-        if vin is None or len(vin) == 0:
-            vin_to_request = self.vin
-        else:
-            vin_to_request = vin
-
-        status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh", vin=vin_to_request)
+        status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
 
@@ -1664,7 +1766,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}, vin=None):
+    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}):
         """Send command to the new Command endpoint"""
         try:
             await self.__ensure_valid_tokens()
@@ -1679,9 +1781,6 @@ class ConnectedFordPassVehicle:
                 "authorization": f"Bearer {self.auto_access_token}",
                 "Application-Id": self.app_id # a bit unusual, that Application-id will be provided for an autonomic endpoint?!
             }
-            # do we want to overwrite the vin?!
-            if vin is None:
-                vin = self.vin
 
             data = {
                 "properties": properties,
@@ -1695,7 +1794,7 @@ class ConnectedFordPassVehicle:
             if baseurl != AUTONOMIC_BETA_URL:
                 del data["version"]
 
-            post_req = await self.session.post(f"{baseurl}/command/vehicles/{vin}/commands",
+            post_req = await self.session.post(f"{baseurl}/command/vehicles/{self.vin}/commands",
                                     data=json.dumps(data),
                                     headers=headers,
                                     timeout=self.timeout
@@ -1714,7 +1813,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, vin=None):
+    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, include_vin_in_header=False):
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -1728,13 +1827,18 @@ class ConnectedFordPassVehicle:
                 "auth-token": self.access_token,
                 "Application-Id": self.app_id,
             }
-            # do we want to overwrite the vin?!
-            if vin is None:
-                vin = self.vin
+            if include_vin_in_header:
+                headers["vin"] = self.vin
 
-            a_cmd_obj = self._get_command_object_ford(command_key, vin)
+            if command_key == SET_CHARGE_TARGET_KEY:
+                url_param_value = post_data["location"]["id"]
+            else:
+                url_param_value = self.vin
+
+            a_cmd_obj = self._get_command_object_ford(command_key, url_param_value)
             command_url_part = a_cmd_obj.get("url", None)
             command = a_cmd_obj.get("command", None)
+
             if command_url_part is None or command is None:
                 _LOGGER.warning(f"{self.vli}__request_and_poll_command_ford() - command_key '{command_key}' is not supported by the integration: '{a_cmd_obj}'")
                 return False
@@ -1845,7 +1949,7 @@ class ConnectedFordPassVehicle:
                 if use_websocket:
                     updated_data = self._data_container
                 else:
-                    updated_data = await self.status()
+                    updated_data = await self.req_status()
 
                 # Check states for command status
                 if updated_data is not None and ROOT_STATES in updated_data:
