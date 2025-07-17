@@ -220,6 +220,18 @@
             "rccseatfrontright": {
                 "name": "RC: Sitz(❄|☀) vorne rechts [RemoteControl]",
                 "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
+            },
+            "elvehtargetcharge": {
+                "name": "Ziel-Ladestand EV",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt1": {
+                "name": "Ziel-Ladestand EV [alternativer Ort 1]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt2": {
+                "name": "Ziel-Ladestand EV [alternativer Ort 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
             }
         }
     }

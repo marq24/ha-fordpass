@@ -24,7 +24,7 @@ from custom_components.fordpass.fordpass_handler import (
     ROOT_MESSAGES,
     ROOT_VEHICLES,
     ROOT_REMOTE_CLIMATE_CONTROL,
-    ROOT_ENERGY_TRANSFER_STATUS,
+    ROOT_PREFERRED_CHARGE_TIMES,
     ROOT_UPDTIME
 )
 
@@ -130,7 +130,7 @@ class ConnectedFordPassVehicle:
     _LAST_MESSAGES_UPDATE: float = 0.0
     _last_ignition_state: str | None = None
     _ws_debounced_full_refresh_task: asyncio.Task | None = None
-
+    _ws_debounced_preferred_charge_times_refresh_task: asyncio.Task | None = None
     # when you have multiple vehicles, you need to set the vehicle log id
     # (v)ehicle (l)og (i)d
     vli: str = ""
@@ -190,13 +190,14 @@ class ConnectedFordPassVehicle:
         self._cached_vehicles_data = {}
         self._remote_climate_control_supported = None
         self._cached_rcc_data = {}
-        self._energy_transfer_status_supported = None
-        self._cached_ets_data = {}
+        self._preferred_charge_times_supported = None
+        self._cached_pct_data = {}
         self.coordinator = coordinator
 
         # websocket connection related variables
         self._ws_debounced_update_task = None
         self._ws_debounced_full_refresh_task = None
+        self._ws_debounced_preferred_charge_times_refresh_task = None
         self._ws_in_use_access_token = None
         self.ws_connected = False
         self._ws_LAST_UPDATE = 0
@@ -866,7 +867,10 @@ class ConnectedFordPassVehicle:
                                     # we have a special handling for the 'updateChargeProfilesCommand'
                                     # -> when we receive a 'success' state, we will update our
                                     # energy_transfer_object...
-                                    asyncio.create_task(self.update_energy_transfer_status_int())
+                                    if self._ws_debounced_preferred_charge_times_refresh_task is not None and not self._ws_debounced_preferred_charge_times_refresh_task.done():
+                                        self._ws_debounced_preferred_charge_times_refresh_task.cancel()
+                                    _LOGGER.debug(f"{self.vli}ws(): updateChargeProfilesCommand -> triggering 'preferred_charge_times' data update (will be started in 30sec)")
+                                    self._ws_debounced_preferred_charge_times_refresh_task = asyncio.create_task(self._ws_debounce_update_preferred_charge_times())
 
                         else:
                             _LOGGER.debug(f"{self.vli}ws(): new state (without toState) '{a_state_name}' arrived: {a_value_obj}")
@@ -1081,7 +1085,7 @@ class ConnectedFordPassVehicle:
                                 self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
 
                             if "showEVBatteryLevel" in a_vehicle_profile:
-                                self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
+                                self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
 
                             break
 
@@ -1095,13 +1099,13 @@ class ConnectedFordPassVehicle:
                     data[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
 
             # only update energy-status if not present yet
-            if self._energy_transfer_status_supported:
-                if self._cached_ets_data is None or len(self._cached_ets_data) == 0:
-                    _LOGGER.debug(f"{self.vli}update_all(): request 'energy transfer status' data...")
-                    self._cached_ets_data = await self.req_energy_transfer_status()
+            if self._preferred_charge_times_supported:
+                if self._cached_pct_data is None or len(self._cached_pct_data) == 0:
+                    _LOGGER.debug(f"{self.vli}update_all(): request 'preferred_charge_times' data...")
+                    self._cached_pct_data = await self.req_preferred_charge_times()
 
-                if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
-                    data[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
+                if self._cached_pct_data is not None and len(self._cached_pct_data) > 0:
+                    data[ROOT_PREFERRED_CHARGE_TIMES] = self._cached_pct_data
 
 
             # ok finally store the data in our main data container...
@@ -1120,14 +1124,32 @@ class ConnectedFordPassVehicle:
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
 
 
-    async def update_energy_transfer_status_int(self):
+    async def update_preferred_charge_times_int(self):
         # only update remote climate data if not present yet
-        if self._energy_transfer_status_supported:
-            _LOGGER.debug(f"{self.vli}update_energy_transfer_status_int(): request 'energy transfer status' data...")
-            self._cached_ets_data = await self.req_energy_transfer_status()
+        if self._preferred_charge_times_supported:
+            _LOGGER.debug(f"{self.vli}update_preferred_charge_times_int(): request 'energy transfer status' data...")
+            self._cached_pct_data = await self.req_preferred_charge_times()
 
-            if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
-                self._data_container[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
+            if self._cached_pct_data is not None and len(self._cached_pct_data) > 0:
+                self._data_container[ROOT_PREFERRED_CHARGE_TIMES] = self._cached_pct_data
+                return True
+
+        return False
+
+    async def _ws_debounce_update_preferred_charge_times(self):
+        if self._preferred_charge_times_supported:
+            try:
+                _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): started")
+                await asyncio.sleep(30)
+                _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): starting the 'update_preferred_charge_times_int()' update now")
+                success = await self.update_preferred_charge_times_int()
+                if success and self.coordinator is not None:
+                    self.coordinator.async_set_updated_data(self._data_container)
+
+            except CancelledError:
+                _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): was canceled - all good")
+            except BaseException as ex:
+                _LOGGER.warning(f"{self.vli}_ws_debounce_update_preferred_charge_times(): Error during 'preferred_charge_times' data refresh - {type(ex)} - {ex}")
 
 
     async def req_status(self):
@@ -1384,7 +1406,79 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return None
 
+    async def req_preferred_charge_times(self):
+        global _FOUR_NULL_ONE_COUNTER
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): - access_token exist? {self.access_token is not None}")
+
+            # and the 'preferred-charge-times' request will get a 'vin' in the header
+            headers_veh = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+                "vin": self.vin
+            }
+            response_pct = await self.session.get(
+                f"{FORD_VEHICLE_API}/electrification/experiences/v2/vehicles/preferred-charge-times",
+                headers=headers_veh,
+                timeout=self.timeout
+            )
+            if response_pct.status == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
+
+                result_pct = await response_pct.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("pct", result_pct)
+
+                # we are going to transform our result! - we create a dict with the 'location.id' as a key
+                if isinstance(result_pct, list):
+                    modified_result = {}
+                    for a_entry in result_pct:
+                        if "vin" in a_entry:
+                            if a_entry["vin"].upper() == self.vin.upper():
+                                modified_result[a_entry["location"]["id"]] = a_entry
+                    result_pct = modified_result
+                else:
+                    _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): received unexpected data format: {type(result_pct)} - expected a list of entries")
+
+                #_LOGGER.error(f"--------------------------")
+                #_LOGGER.error(f"--------------------------")
+                #_LOGGER.error(f"{self.vli}req_preferred_charge_times(): received data: {result_pct}")
+                #_LOGGER.error(f"--------------------------")
+                #_LOGGER.error(f"--------------------------")
+                return result_pct
+
+            elif response_pct.status == 401:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.error(f"{self.vli}req_preferred_charge_times(): status_code: 401 - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_preferred_charge_times(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
+
+                return None
+            else:
+                _LOGGER.info(f"{self.vli}req_preferred_charge_times(): status_code: {response_pct.status} - {response_pct.real_url} - Received response: {await response_pct.text()}")
+                self._HAS_COM_ERROR = True
+                return None
+
+        except BaseException as e:
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}req_preferred_charge_times(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+            self._HAS_COM_ERROR = True
+            return None
+
     async def req_energy_transfer_status(self):
+        # this function will only return a valid object if the vehicle is located at a KNOWN charging location
         global _FOUR_NULL_ONE_COUNTER
         try:
             await self.__ensure_valid_tokens()
@@ -1439,7 +1533,6 @@ class ConnectedFordPassVehicle:
                 _LOGGER.info(f"{self.vli}req_energy_transfer_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
-
 
     # ***********************************************************
     # ***********************************************************

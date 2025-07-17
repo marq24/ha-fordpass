@@ -3,7 +3,7 @@ import asyncio
 import logging
 # import threading
 from datetime import timedelta
-from typing import Final
+from typing import Final, Any
 
 import aiohttp
 import async_timeout
@@ -15,7 +15,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.typing import UNDEFINED
+from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.util.unit_system import UnitSystem
 
@@ -545,6 +545,7 @@ class FordPassEntity(CoordinatorEntity):
     """Defines a base FordPass entity."""
     _attr_should_poll = False
     _attr_has_entity_name = True
+    _attr_name_addon = None
 
     def __init__(self, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator, description: EntityDescription | None = None):
         """Initialize the entity."""
@@ -558,10 +559,19 @@ class FordPassEntity(CoordinatorEntity):
             if hasattr(description, "translation_key") and description.translation_key is not None:
                 self._attr_translation_key = description.translation_key.lower()
 
+        if hasattr(description, "name_addon"):
+            self._attr_name_addon = description.name_addon
+
         self.coordinator: FordPassDataUpdateCoordinator = coordinator
         self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}"
         self._tag = a_tag
 
+    def _name_internal(self, device_class_name: str | None, platform_translations: dict[str, Any], ) -> str | UndefinedType | None:
+        tmp = super()._name_internal(device_class_name, platform_translations)
+        if self._attr_name_addon is not None:
+            return f"{self._attr_name_addon} {tmp}"
+        else:
+            return tmp
 
     @property
     def device_id(self):

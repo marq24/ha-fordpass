@@ -44,7 +44,15 @@ class FordPassNumber(FordPassEntity, NumberEntity):
     @property
     def native_value(self):
         """Return Native Value"""
-        return self._tag.get_state(self.coordinator.data)
+        try:
+            value = self._tag.get_state(self.coordinator.data)
+            if value is not None and str(value) != UNSUPPORTED:
+                return value
+
+        except ValueError:
+            _LOGGER.debug(f"{self.coordinator.vli}NUMBER '{self._tag}' get_state failed with ValueError")
+
+        return None
 
     async def async_set_native_value(self, value) -> None:
         try:

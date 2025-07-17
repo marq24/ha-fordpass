@@ -233,6 +233,18 @@
             "rccseatfrontright": {
                 "name": "RC: Seat(❄|☀) front right [RemoteControl]",
                 "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
+            },
+            "elvehtargetcharge": {
+                "name": "Target charge level",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt1": {
+                "name": "Target charge level [alt location 1]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt2": {
+                "name": "Target charge level [alt location 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
             }
         }
     }

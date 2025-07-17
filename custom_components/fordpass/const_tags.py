@@ -12,8 +12,8 @@ from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PE
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS, RCC_SEAT_OPTIONS_FULL
-from custom_components.fordpass.fordpass_handler import FordpassDataHandler
+from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS, RCC_SEAT_OPTIONS_FULL, ELVEH_TARGET_CHARGE_OPTIONS
+from custom_components.fordpass.fordpass_handler import FordpassDataHandler, UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,12 +53,16 @@ class Tag(ApiKey, Enum):
 
     async def async_select_option(self, data, vehicle, new_value: Any) -> bool:
         if self.select_fn:
-            return await self.select_fn(data, vehicle, new_value, self.get_state(data))
+            current_value = self.get_state(data)
+            if current_value is not UNSUPPORTED:
+                return await self.select_fn(data, vehicle, new_value, current_value)
         return None
 
     async def async_set_value(self, data, vehicle, new_value: str) -> bool:
         if self.select_fn:
-            return await self.select_fn(data, vehicle, new_value, self.get_state(data))
+            current_value = self.get_state(data)
+            if current_value is not UNSUPPORTED:
+                return await self.select_fn(data, vehicle, new_value, current_value)
         return None
 
     async def async_push(self, coordinator, vehicle) -> bool:
@@ -143,14 +147,21 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightFrontClimateSeat_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_RccRightFrontClimateSeat_Rq)
 
+
+    ELVEH_TARGET_CHARGE = ApiKey(key="elVehTargetCharge",
+                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 0),
+                                 select_fn=FordpassDataHandler.set_elev_target_charge)
+    ELVEH_TARGET_CHARGE_ALT1 = ApiKey(key="elVehTargetChargeAlt1",
+                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 1),
+                                 select_fn=FordpassDataHandler.set_elev_target_charge_alt1)
+    ELVEH_TARGET_CHARGE_ALT2 = ApiKey(key="elVehTargetChargeAlt2",
+                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 2),
+                                 select_fn=FordpassDataHandler.set_elev_target_charge_alt2)
+
     # NUMBERS
     RCC_TEMPERATURE     = ApiKey(key="rccTemperature",
                                  state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_SetPointTemp_Rq)
-
-    ELVEH_TARGET_CHARGE = ApiKey(key="elVehTargetCharge",
-                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data),
-                                 select_fn=FordpassDataHandler.set_elev_target_charge)
 
     # SENSORS
     ##################################################
@@ -161,7 +172,7 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_fuel_state,
                                  attrs_fn=FordpassDataHandler.get_fuel_attrs)
     BATTERY             = ApiKey(key="battery",
-                                 state_fn=lambda data: round(FordpassDataHandler.get_value_for_metrics_key(data, "batteryStateOfCharge", -1)),
+                                 state_fn=FordpassDataHandler.get_battery_state,
                                  attrs_fn=FordpassDataHandler.get_battery_attrs)
     OIL                 = ApiKey(key="oil",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "oilLifeRemaining", None),
@@ -293,19 +304,23 @@ RCC_TAGS: Final = [
 @dataclass(frozen=True)
 class ExtButtonEntityDescription(ButtonEntityDescription):
     tag: Tag | None = None
+    name_addon: str | None = None
 
 @dataclass(frozen=True)
 class ExtSensorEntityDescription(SensorEntityDescription):
     tag: Tag | None = None
     skip_existence_check: bool | None = None
+    name_addon: str | None = None
 
 @dataclass(frozen=True)
 class ExtSelectEntityDescription(SelectEntityDescription):
     tag: Tag | None = None
+    name_addon: str | None = None
 
 @dataclass(frozen=True)
 class ExtNumberEntityDescription(NumberEntityDescription):
     tag: Tag | None = None
+    name_addon: str | None = None
 
 
 SENSORS = [
@@ -705,6 +720,30 @@ SELECTS = [
         options=RCC_SEAT_OPTIONS_FULL,
         has_entity_name=True,
     ),
+    ExtSelectEntityDescription(
+        tag=Tag.ELVEH_TARGET_CHARGE,
+        key=Tag.ELVEH_TARGET_CHARGE.key,
+        icon="mdi:battery-charging-high",
+        options=ELVEH_TARGET_CHARGE_OPTIONS,
+        has_entity_name=True,
+    ),
+    ExtSelectEntityDescription(
+        tag=Tag.ELVEH_TARGET_CHARGE_ALT1,
+        key=Tag.ELVEH_TARGET_CHARGE_ALT1.key,
+        icon="mdi:battery-charging-high",
+        options=ELVEH_TARGET_CHARGE_OPTIONS,
+        has_entity_name=True,
+        entity_registry_enabled_default=False,
+    ),
+    ExtSelectEntityDescription(
+        tag=Tag.ELVEH_TARGET_CHARGE_ALT2,
+        key=Tag.ELVEH_TARGET_CHARGE_ALT2.key,
+        icon="mdi:battery-charging-high",
+        options=ELVEH_TARGET_CHARGE_OPTIONS,
+        has_entity_name=True,
+        entity_registry_enabled_default=False,
+    ),
+
 ]
 NUMBERS = [
     ExtNumberEntityDescription(
@@ -716,17 +755,6 @@ NUMBERS = [
         native_max_value=30.0,
         native_step=0.5,
         mode=NumberMode.BOX,
-        has_entity_name=True,
-    ),
-    ExtNumberEntityDescription(
-        tag=Tag.ELVEH_TARGET_CHARGE,
-        key=Tag.ELVEH_TARGET_CHARGE.key,
-        icon="mdi:battery-charging-high",
-        native_unit_of_measurement=PERCENTAGE,
-        native_min_value=20,
-        native_max_value=100,
-        native_step=5,
-        mode=NumberMode.SLIDER,
         has_entity_name=True,
     )
 ]

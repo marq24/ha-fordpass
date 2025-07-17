@@ -176,6 +176,8 @@ RCC_SEAT_MODE_NONE: Final = "NONE"
 RCC_SEAT_OPTIONS_FULL: Final = ["off", "heated1", "heated2", "heated3", "cooled1", "cooled2", "cooled3"]
 RCC_SEAT_OPTIONS_HEAT_ONLY: Final = ["off", "heated1", "heated2", "heated3"]
 
+ELVEH_TARGET_CHARGE_OPTIONS: Final = ["50", "60", "70", "80", "85", "90", "95", "100"]
+
 VEHICLE_LOCK_STATE_LOCKED:      Final = "LOCKED"
 VEHICLE_LOCK_STATE_PARTLY:      Final = "PARTLY_LOCKED"
 VEHICLE_LOCK_STATE_UNLOCKED:    Final = "UNLOCKED"
