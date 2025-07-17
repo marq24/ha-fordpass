@@ -237,12 +237,17 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Select        | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | X             | X          |
 | Switch        | RC: Rear Defrost[^1][^2]                           | X             | X          |
 | Switch        | RC: Windshield Heating[^1][^2]                     | X             | X          |
+| Select        | Target charge level(s)[^6]                         |               | X          |
 
 [^1]: Must be supported by the vehicle. If not supported, the entity will not be available in the UI.
 [^2]: _RC_ stands for 'Remote Control'.
 [^3]: There are four controls — one for each seat. Depending on your vehicle configuration you can select 'Heating Level I-III' and 'Cooling Level I-III' for each seat individually. Please note that not all vehicles support the full set of featured (e.g., only heating) and/or that there might be only the front seats available.
 [^4]: The 'Start charging' button will only work with supporting charging stations (wallboxes) - e.g., Ford Charge Station Pro (FCSP), and only if the vehicle is plugged in. If the vehicle is not plugged in, the button will be disabled.
 [^5]: Once the charging process has been started, the switch allows you to pause and unpause the charging process. It's not possible to actually start a charging session via this switch — you must use the _EV Start_-button for this! The switch will be toggled to `ON` when the vehicle is plugged in and the wallbox has started to charge the car. When you toggle the switch `OFF`, the charging process will be paused, and when you toggle it `ON` again, the charging process will resume.
+[^6]: In FordPass App you can create _Target Charge Locations_ — Based on the previous DC charging locations (this functionality was also new for me).<br/>
+   This integration will create up to three select entities — one for the first three of these locations. You can select the target charge level for each of these locations [some sort of strange option list: 50%, 60%, 70%, 80%, 85%, 90%, 95% & 100%]. The target charge level will be used when you start a charging session via the _EV Start_-button. If you don't have any target charge locations configured in FordPass, then this switch will not be available in Home Assistant.<br/>
+   The second and third select entities are disabled by default, but you can enable them in the integration.
+
 
 ## Want to report an issue?
 
@@ -257,6 +262,18 @@ logger:
   logs:
     custom_components.fordpass: debug
 ```
+
+### Additional considerations before reporting an issue
+
+If you miss entities or functionality, please check if there is any data available in the FordPass App. If there is no data available in the FordPass App, then there might be good reasons, why there is no data available for this integration either. Please be aware that not all vehicles support all features, so it's possible that some entities are not available for your vehicle.
+
+You can enable the __Log API responses to local HA filesystem__ in the integration configuration. This will log all API responses to the local HA filesystem, which can be helpful for any data debugging purposes. The log files will be stored in the `.storage/fordpass/data_dumps` directory of your Home Assistant installation.
+
+![image](./images/011.png)
+
+When you create an issue, please consider:
+- the data can contain sensitive information  do not post any of the files in the issue.
+- you can email me the files directly (please include a link to the GitHub issue).
 
 
 ## I need You!
