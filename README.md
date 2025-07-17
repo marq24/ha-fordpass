@@ -245,8 +245,9 @@ This service will contact the modem in the vehicle and request to sync data betw
 [^4]: The 'Start charging' button will only work with supporting charging stations (wallboxes) - e.g., Ford Charge Station Pro (FCSP), and only if the vehicle is plugged in. If the vehicle is not plugged in, the button will be disabled.
 [^5]: Once the charging process has been started, the switch allows you to pause and unpause the charging process. It's not possible to actually start a charging session via this switch — you must use the _EV Start_-button for this! The switch will be toggled to `ON` when the vehicle is plugged in and the wallbox has started to charge the car. When you toggle the switch `OFF`, the charging process will be paused, and when you toggle it `ON` again, the charging process will resume.
 [^6]: In FordPass App you can create _Target Charge Locations_ — Based on the previous DC charging locations (this functionality was also new for me).<br/>
-   This integration will create up to three select entities — one for the first three of these locations. You can select the target charge level for each of these locations [some sort of strange option list: 50%, 60%, 70%, 80%, 85%, 90%, 95% & 100%]. The target charge level will be used when you start a charging session via the _EV Start_-button. If you don't have any target charge locations configured in FordPass, then this switch will not be available in Home Assistant.<br/>
-   The second and third select entities are disabled by default, but you can enable them in the integration.
+   This integration will create up to three select entities — one for the first three of these locations. You can select the target charge level for each of these locations [some sort of strange option list: 50%, 60%, 70%, 80%, 85%, 90%, 95% & 100%]. The target charge level will be used when you start a charging session, e.g., via the _EV Start_-button.
+   If you don't have any target charge locations configured in FordPass, then this entity will not be available in Home Assistant.<br/>
+   The entities for the second and third 'charge locations select'-entities are disabled by default, but you can enable them in the integration.
 
 
 ## Want to report an issue?
