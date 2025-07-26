@@ -1,4 +1,5 @@
 """Config flow for FordPass integration."""
+import asyncio
 import hashlib
 import logging
 import random
@@ -272,22 +273,26 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_REGION] = DEFAULT_REGION
             user_input[CONF_USERNAME] = ""
 
-        return self.async_show_form(
-            step_id="new_account",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME, default=""): str,
-                    vol.Required(CONF_REGION, default=DEFAULT_REGION):
-                        selector.SelectSelector(
-                            selector.SelectSelectorConfig(
-                                options=REGION_OPTIONS,
-                                mode=selector.SelectSelectorMode.DROPDOWN,
-                                translation_key=CONF_REGION,
+        has_fs_write_access = await asyncio.get_running_loop().run_in_executor(None, ConnectedFordPassVehicle.check_general_fs_access)
+        if not has_fs_write_access:
+            return self.async_abort(reason="no_filesystem_access")
+        else:
+            return self.async_show_form(
+                step_id="new_account",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(CONF_USERNAME, default=""): str,
+                        vol.Required(CONF_REGION, default=DEFAULT_REGION):
+                            selector.SelectSelector(
+                                selector.SelectSelectorConfig(
+                                    options=REGION_OPTIONS,
+                                    mode=selector.SelectSelectorMode.DROPDOWN,
+                                    translation_key=CONF_REGION,
+                                )
                             )
-                        )
-                }
-            ), errors=errors
-        )
+                    }
+                ), errors=errors
+            )
 
     async def async_step_token(self, user_input=None):
         errors = {}

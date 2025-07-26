@@ -31,7 +31,8 @@
             "already_configured": "Konto ist bereits konfiguriert",
             "no_vehicles": "Keine Fahrzeuge im Konto oder alle sind bereits konfiguriert",
             "reauth_successful": "Re-Autorisierung erfolgreich",
-            "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut"
+            "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut",
+            "no_filesystem_access": "Diese Integration benötigt Zugriff auf das lokale Dateisystem Deiner HomeAssistant Installation, um einen Schlüssel für Deinen FordPass Account speichern zu können.\n\nHierzu wird im in dem Ordner '.storage/' einen Unterordner anlegen. Dies ist jedoch derzeit nicht möglich. Ein interner Test ist fehlgeschlagen. Details hierzu findest Du im LOG Deiner Home Assistant Instanz.\n\nBitte stelle sicher, dass Du die Home Assistant Installation mit dem richtigen Benutzer ausführst, der Schreibzugriff auf das lokale Dateisystem hat.\n\nWenn Du Home Assistant in einem Docker-Container ausführst, stelle sicher, dass Du den Container mit dem richtigen Benutzer ausführst und dass der Container Zugriff auf das lokale Dateisystem hat.\n\nBitte prüfe Deine installation und starte die Einrichtung dieser Integration neu, sobald der Zugriff auf das lokale Dateisystem möglich ist."
         },
         "error": {
             "cannot_connect": "Verbindungsfehler",

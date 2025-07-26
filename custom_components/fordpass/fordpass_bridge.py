@@ -578,6 +578,34 @@ class ConnectedFordPassVehicle:
                 self._HAS_COM_ERROR = True
                 return ERROR
 
+    """Check if we can write to the file system - should be called from the setup UI"""
+    @staticmethod
+    def check_general_fs_access():
+        _LOGGER.debug(f"check_general_fs_access()")
+        can_create_file = False
+        testfile = f".storage/fordpass/write_test@file.txt"
+        # Check if the parent directory exists
+        directory = os.path.dirname(testfile)
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory)
+            except OSError as exc:
+                _LOGGER.warning(f"check_general_fs_access(): could not create directory '{directory}': {type(exc)} - {exc}")
+
+        if os.path.exists(directory):
+            try:
+                with open(testfile, "w", encoding="utf-8") as outfile:
+                    json.dump({"test": "file"}, outfile)
+            except OSError as exc:
+                _LOGGER.warning(f"check_general_fs_access(): could not create test file '{testfile}': {type(exc)} - {exc}")
+
+            if os.path.exists(testfile):
+                can_create_file = False
+                _LOGGER.debug(f"check_general_fs_access(): successfully created test file: '{testfile}'")
+                os.remove(testfile)
+
+        return can_create_file
+
     async def _write_token_to_storage(self, token):
         """Save token to file for reuse"""
         _LOGGER.debug(f"{self.vli}_write_token_to_storage()")
@@ -589,18 +617,23 @@ class ConnectedFordPassVehicle:
                 await asyncio.get_running_loop().run_in_executor(None, lambda: os.makedirs(directory))
             except OSError as exc:
                 # Handle exception as before
-                pass
+                _LOGGER.error(f"{self.vli}_write_token_to_storage(): Failed to create directory '{directory}': {exc}")
 
-        # Write the file in executor
-        await asyncio.get_running_loop().run_in_executor(None, lambda: self.__write_token_int(token))
-
+        if os.path.exists(directory):
+            # Write the file in executor
+            await asyncio.get_running_loop().run_in_executor(None, lambda: self.__write_token_int(token))
+        else:
+            _LOGGER.wrning(f"{self.vli}_write_token_to_storage(): Directory '{directory}' does not exist, cannot write token file.")
         # Make sure that we will read the token data next time
         self.use_token_data_from_memory = False
 
     def __write_token_int(self, token):
         """Synchronous method to write token file, called from executor."""
-        with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
-            json.dump(token, outfile)
+        try:
+            with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
+                json.dump(token, outfile)
+        except OSError as exc:
+            _LOGGER.error(f"{self.vli}_write_token_to_storage(): Failed to create directory '{self.stored_tokens_location}': {type(exc)} - {exc}")
 
     async def _read_token_from_storage(self):
         """Read saved token from a file"""
