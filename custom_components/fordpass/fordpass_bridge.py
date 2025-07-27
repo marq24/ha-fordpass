@@ -600,7 +600,7 @@ class ConnectedFordPassVehicle:
                 _LOGGER.warning(f"check_general_fs_access(): could not create test file '{testfile}': {type(exc)} - {exc}")
 
             if os.path.exists(testfile):
-                can_create_file = False
+                can_create_file = True
                 _LOGGER.debug(f"check_general_fs_access(): successfully created test file: '{testfile}'")
                 os.remove(testfile)
 
