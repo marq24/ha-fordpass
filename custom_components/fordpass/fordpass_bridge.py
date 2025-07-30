@@ -10,10 +10,13 @@ import traceback
 from asyncio import CancelledError
 from datetime import datetime, timezone
 from numbers import Number
+from pathlib import Path
 from typing import Final
 
 import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
+
+from custom_components.fordpass import DOMAIN
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.fordpass.const import REGIONS, ZONE_LIGHTS_VALUE_OFF
@@ -141,7 +144,7 @@ class ConnectedFordPassVehicle:
     _LOCAL_LOGGING: Final[bool]
 
     def __init__(self, web_session, username, vin, region_key, coordinator: DataUpdateCoordinator=None,
-                 tokens_location=None, local_logging:bool=False):
+                 storage_path:Path=None, tokens_location=None, local_logging:bool=False):
         self.session = web_session
         self.timeout = aiohttp.ClientTimeout(
             total=45,      # Total request timeout
@@ -177,8 +180,15 @@ class ConnectedFordPassVehicle:
         # by default, we try to read the token from the file system
         self.use_token_data_from_memory = False
 
+        if storage_path is not None and isinstance(storage_path, Path):
+            self._storage_path = storage_path
+        else:
+            self._storage_path = Path(".storage")
         if tokens_location is None:
-            self.stored_tokens_location = f".storage/fordpass/{username}_access_token@{region_key}.txt"
+            if storage_path is not None:
+                self.stored_tokens_location = str(storage_path.joinpath(DOMAIN, f"{username}_access_token@{region_key}.txt"))
+            else:
+                self.stored_tokens_location = f".storage/{DOMAIN}/{username}_access_token@{region_key}.txt"
         else:
             self.stored_tokens_location = tokens_location
 
@@ -211,15 +221,20 @@ class ConnectedFordPassVehicle:
 
     def __dump_data(self, type:str, data:dict):
         a_datetime = datetime.now(timezone.utc)
-        path = f".storage/fordpass/data_dumps/{self.username}/{self.region_key}/{self.vin}/{a_datetime.year}/{a_datetime.month:02d}/{a_datetime.day:02d}/{a_datetime.hour:02d}"
-        filename = f"{path}/{a_datetime.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]}_{type}.json"
-        directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        filename = str(self._storage_path.joinpath(DOMAIN, "data_dumps", self.username, self.region_key, self.vin,
+                                                   f"{a_datetime.year}", f"{a_datetime.month:02d}",
+                                                   f"{a_datetime.day:02d}", f"{a_datetime.hour:02d}",
+                                                   f"{a_datetime.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]}_{type}.json"))
+        try:
+            directory = os.path.dirname(filename)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
 
-        #file_path = os.path.join(os.getcwd(), filename)
-        with open(filename, "w", encoding="utf-8") as outfile:
-            json.dump(data, outfile, indent=4)
+            #file_path = os.path.join(os.getcwd(), filename)
+            with open(filename, "w", encoding="utf-8") as outfile:
+                json.dump(data, outfile, indent=4)
+        except BaseException as e:
+            _LOGGER.info(f"{self.vli}__dump_data(): Error while writing data to file '{filename}' - {type(e)} - {e}")
 
     def clear_data(self):
         self._cached_vehicles_data = {}
@@ -580,15 +595,18 @@ class ConnectedFordPassVehicle:
 
     """Check if we can write to the file system - should be called from the setup UI"""
     @staticmethod
-    def check_general_fs_access():
-        _LOGGER.debug(f"check_general_fs_access()")
+    def check_general_fs_access(a_storage_path:Path):
+        _LOGGER.debug(f"check_general_fs_access(): storage_path is: '{a_storage_path}'")
         can_create_file = False
-        testfile = f".storage/fordpass/write_test@file.txt"
+        if a_storage_path is not None:
+            testfile = str(a_storage_path.joinpath(DOMAIN, "write_test@file.txt"))
+        else:
+            testfile = f".storage/{DOMAIN}/write_test@file.txt"
         # Check if the parent directory exists
         directory = os.path.dirname(testfile)
         if not os.path.exists(directory):
             try:
-                os.makedirs(directory)
+                os.makedirs(directory, exist_ok=True)
             except OSError as exc:
                 _LOGGER.warning(f"check_general_fs_access(): could not create directory '{directory}': {type(exc)} - {exc}")
 
@@ -614,7 +632,7 @@ class ConnectedFordPassVehicle:
         directory = os.path.dirname(self.stored_tokens_location)
         if not os.path.exists(directory):
             try:
-                await asyncio.get_running_loop().run_in_executor(None, lambda: os.makedirs(directory))
+                await asyncio.get_running_loop().run_in_executor(None, lambda: os.makedirs(directory, exist_ok=True))
             except OSError as exc:
                 # Handle exception as before
                 _LOGGER.error(f"{self.vli}_write_token_to_storage(): Failed to create directory '{directory}': {exc}")

@@ -3,6 +3,7 @@ import asyncio
 import logging
 # import threading
 from datetime import timedelta
+from pathlib import Path
 from typing import Final, Any
 
 import aiohttp
@@ -15,6 +16,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.util.unit_system import UnitSystem
@@ -226,8 +228,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         self.vli = f"[@{self._vin}] "
+
         self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, user, region_key, self.vli), user,
-                                               vin, region_key, coordinator=self,
+                                               vin, region_key, coordinator=self, storage_path=Path(hass.config.config_dir).joinpath(STORAGE_DIR),
                                                local_logging=config_entry.options.get(CONF_LOG_TO_FILESYSTEM, False))
 
         self._available = True
