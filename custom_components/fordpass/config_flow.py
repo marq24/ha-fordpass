@@ -18,8 +18,8 @@ from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
-from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.storage import STORAGE_DIR
 
 from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_PRESSURE_UNIT,
@@ -35,7 +35,6 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     UPDATE_INTERVAL_DEFAULT
 )
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -121,7 +120,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
-                                           storage_dir=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
+                                           storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
         results = await vehicle.generate_tokens(token, code_verifier)
 
         if results:
@@ -140,7 +139,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
-                                           storage_dir=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
+                                           storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
         results = await vehicle.generate_tokens(token, code_verifier)
 
         if not results:
@@ -157,7 +156,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME],
                                            "", data[CONF_REGION],
                                            coordinator=None,
-                                           storage_dir=Path(hass.config.config_dir).joinpath(STORAGE_DIR))
+                                           storage_path=Path(hass.config.config_dir).joinpath(STORAGE_DIR))
         _LOGGER.debug(f"get_vehicles_from_existing_account(): request Vehicles")
         vehicles = await vehicle.req_vehicles()
         _LOGGER.debug(f"get_vehicles_from_existing_account(): got Vehicles -> {vehicles}")
@@ -173,7 +172,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION],
                                            coordinator=None,
-                                           storage_dir=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
+                                           storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
         test = await vehicle.get_status()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
         if test and test.status_code == 200:
