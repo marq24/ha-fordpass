@@ -122,7 +122,7 @@ More details (how to deal with the browser developer tools) to get your token ca
 
 [All information, how to use this integration as provider for Ford EV data can be found in a separate section in this repository.](./doc/EVCC.md)
 
-
+<!--
 ## Charge Control of your EV
 
 Currently, the integration supports to pause and unpause an EV charging session. This is done by a switch in the Home Assistant UI. The switch will be available for all PHEV and BEV vehicles.
@@ -135,6 +135,14 @@ Currently, the integration supports to pause and unpause an EV charging session.
 > But what works at least for me is, then when the vehicle is plugged in and the wallbox has started to charge my car that the new switch is toggled to it's `ON` state. When I then use the switch, the charging process is paused and the switch is toggled to `OFF`. When I toggle the switch `ON` again, the charging process resumes — so it seems to work somehow. 
 > 
 > Unfortunately (at least for me) the switch (and the API commands underneath) __can't__ start a charging session. This seems to be some sort of consequent, since I can't do this via the FodPass App either.
+-->
+
+
+## Charge Control of your EV
+
+Charge control of your EV is experimental. The Integration can (try to) start a charging session via the Ford backend, but this will only work with supporting charging stations (wallboxes) - e.g., Ford Charge Station Pro (FCSP), and only if the vehicle is plugged in. If the vehicle is not plugged in, the button will be disabled.
+
+So do not expect that the charging control will work with all charging stations. Personally, I use [evcc.io to control the charging](https://evcc.io/) of my Ford Mustang Mach-E.
 
 
 ## Use of a separate FordPass account is recommended
@@ -179,6 +187,11 @@ This service allows you to sync the data of the integration (read via the websoc
 
 ### Request Update (remote refresh) — also available as button in the UI
 This service will contact the modem in the vehicle and request to sync data between the vehicle and the ford backends. **Please note that this will have an impact on the battery of your vehicle.**
+
+
+> [!Note]
+> ### Not every Ford is the same 
+> Sounds a bit strange — but the EV Explorer or EV Capri (European models) are based on a platform from Volkswagen. As a consequence, not every sensor will be available for these vehicles, since the Ford backend does not provide the corresponding data for these vehicles [e.g. 12V battery, RC seats, or the target charge level].
 
 
 ## Sensors
