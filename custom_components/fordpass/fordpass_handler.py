@@ -194,15 +194,33 @@ class FordpassDataHandler:
         elif units.pressure_unit == UnitOfPressure.BAR:
             digits = 2
 
-        for a_tire in data_metrics["tirePressure"]:
-            a_val = a_tire.get("value", UNSUPPORTED)
-            if a_val is not None and a_val != UNSUPPORTED and isinstance(a_val, Number):
-                attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
+        if "tirePressure" in data_metrics:
+            for a_tire in data_metrics["tirePressure"]:
+                a_val = a_tire.get("value", UNSUPPORTED)
+                if a_val is not None and a_val != UNSUPPORTED and isinstance(a_val, Number):
+                    if "vehicleWheel" in a_tire:
+                        attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
 
-        for a_tire in data_metrics["tirePressureStatus"]:
-            a_val = a_tire.get("value", UNSUPPORTED)
-            if a_val is not None and a_val != UNSUPPORTED:
-                attrs[f"{FordpassDataHandler.to_camel(a_tire["vehicleWheel"])}_state"] = a_val
+        if "tirePressureStatus" in data_metrics:
+            for a_tire in data_metrics["tirePressureStatus"]:
+                a_val = a_tire.get("value", UNSUPPORTED)
+                if a_val is not None and a_val != UNSUPPORTED:
+                    if "vehicleWheel" in a_tire:
+                        attrs[f"{FordpassDataHandler.to_camel(a_tire["vehicleWheel"])}_state"] = a_val
+
+        if "tirePressureSystemStatus" in data_metrics:
+            count = 0
+            for a_system_state in data_metrics["tirePressureSystemStatus"]:
+                a_val = a_system_state.get("value", UNSUPPORTED)
+                if a_val is not None and a_val != UNSUPPORTED:
+                    if "vehicleWheel" in a_system_state:
+                        attrs[f"{FordpassDataHandler.to_camel(a_system_state["vehicleWheel"])}_system_state"] = a_val
+                    else:
+                        if count == 0:
+                            attrs[f"systemState"] = a_val
+                        else:
+                            attrs[f"systemState{count}"] = a_val
+                        count += 1
 
         return attrs
 
