@@ -15,10 +15,9 @@ from typing import Final
 
 import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
-
-from custom_components.fordpass import DOMAIN
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from custom_components.fordpass import DOMAIN
 from custom_components.fordpass.const import REGIONS, ZONE_LIGHTS_VALUE_OFF
 from custom_components.fordpass.fordpass_handler import (
     ROOT_STATES,
@@ -164,6 +163,7 @@ class ConnectedFordPassVehicle:
         # fetch the vehicle name later and use it as vli
         self.vli = f"[@{self.vin}] "
 
+        self.login_fail_reason = None
         self._HAS_COM_ERROR = False
         global _FOUR_NULL_ONE_COUNTER
         _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -281,6 +281,9 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
             return await self.generate_tokens_part2(token_data)
         else:
+            if "message" in token_data:
+                self.login_fail_reason = token_data["message"]
+
             _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
             return False
 
@@ -296,18 +299,23 @@ class ConnectedFordPassVehicle:
 
         # do not check the status code here - since it's not always return http 200!
         final_access_token = await response.json()
-        if "expires_in" in final_access_token:
-            final_access_token["expiry_date"] = time.time() + final_access_token["expires_in"]
-            del final_access_token["expires_in"]
+        if "access_token" in final_access_token:
+            if "expires_in" in final_access_token:
+                final_access_token["expiry_date"] = time.time() + final_access_token["expires_in"]
+                del final_access_token["expires_in"]
+            if "refresh_expires_in" in final_access_token:
+                final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
+                del final_access_token["refresh_expires_in"]
 
-        if "refresh_expires_in" in final_access_token:
-            final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
-            del final_access_token["refresh_expires_in"]
+            _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
+            await self._write_token_to_storage(final_access_token)
+            return True
+        else:
+            if "message" in final_access_token:
+                self.login_fail_reason = final_access_token["message"]
 
-        _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
-        await self._write_token_to_storage(final_access_token)
-
-        return True
+            _LOGGER.warning(f"{self.vli}generate_tokens_part2 'FAILED' - http status: {response.status} for '...cat-with-b2c-access-token' request - JSON: {final_access_token}")
+            return False
 
     @property
     def require_reauth(self) -> bool:
@@ -1429,6 +1437,22 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_rcc = await response_rcc.json()
+
+                # check if there is a 'profile' in the result... and if not, we will create a default one!
+                # profiles_obj = result_rcc.get("rccUserProfiles", [])
+                # if len(profiles_obj) == 0:
+                #     _LOGGER.info(f"{self.vli}req_remote_climate(): creating a default 'remote climate control' profile for vehicle")
+                #     result_rcc["rccUserProfiles"] = [
+                #         {"preferenceType": "RccHeatedWindshield_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "RccRearDefrost_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "RccHeatedSteeringWheel_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "RccLeftFrontClimateSeat_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "RccLeftRearClimateSeat_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "RccRightFrontClimateSeat_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "RccRightRearClimateSeat_Rq", "preferenceValue": "Off"},
+                #         {"preferenceType": "SetPointTemp_Rq", "preferenceValue": "24_0"}
+                #     ]
+
                 if self._LOCAL_LOGGING:
                     await self._local_logging("rcc", result_rcc)
 

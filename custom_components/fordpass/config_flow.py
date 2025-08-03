@@ -83,6 +83,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     _accounts = None
     _vehicles = None
     _vehicle_name = None
+    _can_not_connect_reason = None
     _session: aiohttp.ClientSession | None = None
 
 
@@ -118,18 +119,19 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
+        bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
-        results = await vehicle.generate_tokens(token, code_verifier)
+        results = await bridge.generate_tokens(token, code_verifier)
 
         if results:
             _LOGGER.debug(f"validate_token(): request Vehicles")
-            vehicles = await vehicle.req_vehicles()
+            vehicles = await bridge.req_vehicles()
             _LOGGER.debug(f"validate_token(): got Vehicles -> {vehicles}")
             return vehicles
         else:
             _LOGGER.debug(f"validate_token(): failed - {results}")
+            self._can_not_connect_reason = bridge.login_fail_reason
             raise CannotConnect
 
     async def validate_token_only(self, data, token:str, code_verifier:str) -> bool:
@@ -137,13 +139,14 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
+        bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
-        results = await vehicle.generate_tokens(token, code_verifier)
+        results = await bridge.generate_tokens(token, code_verifier)
 
         if not results:
             _LOGGER.debug(f"validate_token_only(): failed - {results}")
+            self._can_not_connect_reason = bridge.login_fail_reason
             raise CannotConnect
         else:
             return True
@@ -153,16 +156,17 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME],
+        bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME],
                                            "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(hass.config.config_dir).joinpath(STORAGE_DIR))
         _LOGGER.debug(f"get_vehicles_from_existing_account(): request Vehicles")
-        vehicles = await vehicle.req_vehicles()
+        vehicles = await bridge.req_vehicles()
         _LOGGER.debug(f"get_vehicles_from_existing_account(): got Vehicles -> {vehicles}")
         if vehicles is not None:
             return vehicles
         else:
+            self._can_not_connect_reason = bridge.login_fail_reason
             raise CannotConnect
 
     async def validate_vin(self, data):
@@ -170,10 +174,10 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
-        vehicle = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION],
+        bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
-        test = await vehicle.get_status()
+        test = await bridge.get_status()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
         if test and test.status_code == 200:
             _LOGGER.debug("200 Code")
@@ -234,7 +238,10 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.extract_vehicle_info_and_proceed_with_next_step(info)
 
             except CannotConnect:
-                errors["base"] = "cannot_connect"
+                if self._can_not_connect_reason is not None:
+                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
+                else:
+                    errors["base"] = "cannot_connect - UNKNOWN REASON"
             except Exception as ex:
                 _LOGGER.error(f"Error validating existing account: {ex}")
                 errors["base"] = "unknown"
@@ -278,7 +285,10 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_token(None)
             except CannotConnect as ex:
                 _LOGGER.debug(f"async_step_user {type(ex)} - {ex}")
-                errors["base"] = "cannot_connect"
+                if self._can_not_connect_reason is not None:
+                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
+                else:
+                    errors["base"] = "cannot_connect - UNKNOWN REASON"
         else:
             user_input = {}
             user_input[CONF_REGION] = DEFAULT_REGION
@@ -334,7 +344,10 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             except CannotConnect as ex:
                 _LOGGER.debug(f"async_step_token {ex}")
-                errors["base"] = "cannot_connect"
+                if self._can_not_connect_reason is not None:
+                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
+                else:
+                    errors["base"] = "cannot_connect - UNKNOWN REASON"
 
         if self.region_key is not None:
             _LOGGER.debug(f"self.region_key {self.region_key}")
@@ -510,7 +523,11 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             except CannotConnect as ex:
                 _LOGGER.debug(f"async_step_reauth_token {ex}")
-                errors["base"] = "cannot_connect"
+                if self._can_not_connect_reason is not None:
+                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
+                else:
+                    errors["base"] = "cannot_connect - UNKNOWN REASON"
+
 
 
             # try:
