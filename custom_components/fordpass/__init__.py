@@ -12,6 +12,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
@@ -83,7 +84,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     # HA can check if we can make an initial data refresh and report the state
     # back to HA (we don't have to code this by ourselves, HA will do this for us)
-    await coordinator.async_config_entry_first_refresh()
+    # await coordinator.async_config_entry_first_refresh()
+
+    # well 'coordinator.async_config_entry_first_refresh()' does not work for our fordpass integration
+    # I must debug later why this is the case
+    await coordinator.async_refresh()  # Get initial data
+    if not coordinator.last_update_success or coordinator.data is None:
+        raise ConfigEntryNotReady
+    else:
+        await coordinator.read_config_on_startup(hass)
 
     # ws watchdog...
     if hass.state is CoreState.running:
