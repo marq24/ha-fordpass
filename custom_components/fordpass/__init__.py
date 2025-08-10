@@ -19,6 +19,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
+from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
@@ -34,7 +35,7 @@ from custom_components.fordpass.const import (
     COORDINATOR_KEY,
     PRESSURE_UNITS,
     LEGACY_REGION_KEYS,
-    RCC_SEAT_MODE_NONE, RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_MODE_HEAT_AND_COOL
+    RCC_SEAT_MODE_NONE, RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_MODE_HEAT_AND_COOL, STARTUP_MESSAGE
 )
 from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
@@ -56,6 +57,13 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up FordPass from a config entry."""
+    if DOMAIN not in hass.data:
+        the_integration = await async_get_integration(hass, DOMAIN)
+        intg_version = the_integration.version if the_integration is not None else "UNKNOWN"
+        _LOGGER.info(STARTUP_MESSAGE % intg_version)
+        hass.data.setdefault(DOMAIN, {"manifest_version": intg_version})
+
+
     user = config_entry.data[CONF_USERNAME]
     vin = config_entry.data[CONF_VIN]
     if UPDATE_INTERVAL in config_entry.options:

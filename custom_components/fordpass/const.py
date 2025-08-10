@@ -5,8 +5,18 @@ from typing import Final
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN: Final = "fordpass"
-
+NAME: Final = "Fordpass integration for Home Assistant [optimized for EV's & EVCC]"
+ISSUE_URL: Final = "https://github.com/marq24/ha-fordpass/issues"
 MANUFACTURER: Final = "Ford Motor Company"
+
+STARTUP_MESSAGE: Final = f"""
+-------------------------------------------------------------------
+{NAME} - v%s
+This is a custom integration!
+If you have any issues with this you need to open an issue here:
+{ISSUE_URL}
+-------------------------------------------------------------------
+"""
 
 CONF_VIN: Final = "vin"
 CONF_PRESSURE_UNIT: Final = "pressure_unit"
