@@ -31,7 +31,7 @@ PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 
 # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3
 DEFAULT_REGION: Final = "rest_of_world"
-REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "can", "mex", "usa", "rest_of_world"]
 LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
 
 REGION_APP_IDS: Final = {
@@ -132,14 +132,14 @@ REGIONS: Final = {
         "countrycode": "ARG"
     },
 
-    # DOES NOT WORK... checked 2025/06/09
+    # NEED AN www.ford.com.au registered account!!!
     "aus": {
         "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
         "locale": "en-AU",
         "locale_url": "https://login.ford.com",
         "countrycode": "AUS"
     },
-    # DOES NOT WORK... checked 2025/06/09
+    # NEED AN www.ford.com.au registered account!!!
     "nzl": {
         "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
         "locale": "en-NZ",
