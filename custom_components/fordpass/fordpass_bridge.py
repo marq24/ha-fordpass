@@ -283,6 +283,10 @@ class ConnectedFordPassVehicle:
         else:
             if "message" in token_data:
                 self.login_fail_reason = token_data["message"]
+            elif "error_description" in token_data:
+                self.login_fail_reason = token_data["error_description"]
+            elif "error" in token_data:
+                self.login_fail_reason = token_data["error"]
 
             _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
             return False
@@ -313,6 +317,10 @@ class ConnectedFordPassVehicle:
         else:
             if "message" in final_access_token:
                 self.login_fail_reason = final_access_token["message"]
+            elif "error_description" in final_access_token:
+                self.login_fail_reason = final_access_token["error_description"]
+            elif "error" in final_access_token:
+                self.login_fail_reason = final_access_token["error"]
 
             _LOGGER.warning(f"{self.vli}generate_tokens_part2 'FAILED' - http status: {response.status} for '...cat-with-b2c-access-token' request - JSON: {final_access_token}")
             return False
