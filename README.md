@@ -90,20 +90,14 @@
 8. Add the new integration `FordPass` and follow the instructions:<br/>
    You will need to provide:
    - Your __FordPass Email__/Account 
-   - __Select a FordPass Region__ — Currently you can select between:
-     - 'France'
-     - 'Germany'
-     - 'Netherlands'
-     - 'Italy'
-     - 'Spain'
-     - 'United Kingdom'
-     - 'other European Countries'
-     - 'Canada'
-     - 'Mexico'
-     - 'The United States of America'
-     - 'Rest of the World'
-     
-     But there is no information __if__ the selection of the region __has any impact__ on the provided data — at least I have not found any differences so far. No matter which region you select, the integration will work (🤞) with all vehicles that are registered in your FordPass account.
+   - __Select a FordPass Region__ (that is currently supported by the integration)
+
+> [!IMPORTANT]  
+> The region you are going to select __must match__ the region for which you have __registered your FordPass__ account.
+>
+> While for some countries there is a cross-region support in place (like for European countries and North America), there are other regions where an account registered in a specific country __can't__ be used in another region. E.g. an Ford account registered with the Ford domain in Australia (ford.com.au) can not be used with the USA domain (ford.com).
+>
+> So if your Country is not listed in the integration, and you follow the recommendation to register a sperate account to be used with the integration, then [__register this second account at the ford.com domain__](https://www.ford.com/#$userCreateAccount), since this ensures that you can use the Integration with the 'Rest of the World' Region setting.
 
 ### Step 3. The hard part — the **Token Setup**
 The actual token request requires an external browser to get finally the FordPass access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]

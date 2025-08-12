@@ -31,7 +31,7 @@ PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 
 # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3
 DEFAULT_REGION: Final = "rest_of_world"
-REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
 LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
 
 REGION_APP_IDS: Final = {
@@ -93,8 +93,6 @@ REGIONS: Final = {
         "locale_url": "https://login.ford.com",
         "countrycode": "GBR"
     },
-
-
     # checked 2025/06/08 - working fine...
     "can": {
         "app_id": REGION_APP_IDS["north_america"],

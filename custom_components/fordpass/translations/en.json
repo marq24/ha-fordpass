@@ -9,12 +9,12 @@
                 "esp": "Spain",
                 "gbr": "United Kingdom of Great Britain and Northern Ireland",
                 "aus": "Australia [requires an 'ford.com.au/ford.co.nz' Account]",
-                "nzl": "New Zealand [requires an 'ford.com.au/ford.co.nz' Account]",
+                "nzl": "New Zealand [requires an 'ford.co.nz/ford.com.au' Account]",
                 "can": "Canada",
                 "mex": "Mexico",
                 "usa": "The United States of America",
-                "bra": "Brazil",
-                "arg": "Argentina",
+                "bra": "Brazil [requires an 'ford.com.br/ford.com.ar' Account]",
+                "arg": "Argentina [requires an 'ford.com.ar/ford.com.br' Account]",
                 "rest_of_europe": "Other European Countries",
                 "rest_of_world": "Rest of the World"
             }
@@ -81,7 +81,7 @@
                 },
                 "data_description": {
                     "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
-                    "region": "The impact of region selection is unknown, but it is recommended to select the region where your vehicle is located (if available in the selection). If you are unsure, select 'Rest of the World'."
+                    "region": "The region you are going to select must match the region for which you have registered your FordPass account. Further details at GitHub"
                 }
             },
             "vehicle": {

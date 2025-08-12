@@ -9,12 +9,12 @@
                 "esp": "Spanien",
                 "gbr": "Vereinigtes Königreich Großbritannien und Irland",
                 "aus": "Australien [benötigt einen 'ford.com.au/ford.co.nz' Konto]",
-                "nzl": "Neuseeland [benötigt einen 'ford.com.au/ford.co.nz' Konto]",
+                "nzl": "Neuseeland [benötigt einen 'ford.co.nz/ford.com.au' Konto]",
                 "can": "Kanada",
                 "mex": "Mexiko",
                 "usa": "Die Vereinigten Staaten von Amerika",
-                "bra": "Brasilien",
-                "arg": "Argentinien",
+                "bra": "Brasilien [benötigt einen 'ford.com.br/ford.com.ar' Konto]",
+                "arg": "Argentinien [benötigt einen 'ford.com.ar/ford.com.br' Konto]",
                 "rest_of_europe": "Andere europäische Länder",
                 "rest_of_world": "Rest der Welt"
             }
@@ -71,7 +71,17 @@
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
                 }
             },
-            "add_vehicle": {},
+            "new_account": {
+            "data": {
+              "password": "FordPass Passwort",
+              "username": "FordPass Username (Email)",
+              "region" : "FordPass Region"
+            },
+            "data_description": {
+              "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
+              "region": "Die Region, die Du auswählst, muss mit der Region übereinstimmen, für die Du dein FordPass-Konto registriert hast. Weitere Details auf GitHub"
+            }
+          },
             "vehicle": {
                 "title": "Zum Hinzufügen ein Fahrzeug auswählen",
                 "description": "Es werden nur Fahrzeuge angezeigt, die derzeit nicht hinzugefügt wurden",

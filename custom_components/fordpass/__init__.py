@@ -63,7 +63,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.info(STARTUP_MESSAGE % intg_version)
         hass.data.setdefault(DOMAIN, {"manifest_version": intg_version})
 
-
     user = config_entry.data[CONF_USERNAME]
     vin = config_entry.data[CONF_VIN]
     if UPDATE_INTERVAL in config_entry.options:
