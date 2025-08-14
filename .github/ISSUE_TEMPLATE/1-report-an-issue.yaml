@@ -19,6 +19,8 @@ body:
       label: Checklist
       description: Please go though this short checklist - TIA
       options:
+        - label: I confirm that I have [read & understand the main Integration 'check-list'](https://github.com/marq24/ha-fordpass/discussions/80)
+          required: true
         - label: I confirm, that I do not have any other fordpass integration installed/configured (please also check deactivated configurations)
           required: true
         - label: My home assistant version is up to date.
