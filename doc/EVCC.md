@@ -178,3 +178,9 @@ curl -X GET "[YOUR-HA-INSTANCE]/api/states/sensor.fordpass_[VIN]_soc" -H "Author
 ```bash
 curl -X GET "http://192.168.10.20:8123/api/states/sensor.fordpass_WF0TK3R7XPMA01234_soc" -H "Authorization: Bearer eyJpc3MiOiIzNWVjNzg5M2Y0ZjQ0MzBmYjUwOGEwMmU4N2Q0MzFmNyIsImlhdCI6MTcxNTUwNzYxMCwiZXhwIjoyMDMwODY3NjEwfQ.GMWO8saHpawkjNzk-uokxYeaP0GFKPQSeDoP3lCO488"
 ```
+
+# Additional Resources:
+- [Create __Long-lived access Token__ in HA](https://github.com/marq24/ha-evcc/blob/main/HA_AS_EVCC_SOURCE.md#preparation-1st-make-home-assistant-sensor-data-accessible-via-api-calls)
+- [Provide HA PV/Grid Data to evcc](https://github.com/marq24/ha-evcc/blob/main/HA_AS_EVCC_SOURCE.md)
+- [Provide HA vehicle data to evcc](https://github.com/marq24/ha-fordpass/blob/main/doc/EVCC.md)
+- [Let evcc control your HA entities (PV surplus handling)](https://github.com/marq24/ha-evcc/blob/main/HA_CONTROLLED_BY_EVCC.md)
