@@ -61,7 +61,7 @@
 
 ## Requirements
 1. Your car must have the latest onboard modem functionality and have been registered/authorized with the fordpass application.
-2. You need a Home Assistant instance (v2023.9 or higher) with the [HACS](https://hacs.xyz) custom integration installed.
+2. You need a Home Assistant instance (v2024.12 or higher) with the [HACS](https://hacs.xyz) custom integration installed.
 3. You __must have removed any previous FordPass integration from your Home Assistant instance__ (especially the original FordPass integration from @itchannel and @SquidBytes) before you can use this fork of the integration. Please be aware that it's quite likely that a configuration can be disabled! [see also the incompatibility information](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#this-fork-is-not-compatible-with-the-original-fordpass-integration-from-itchannel-and-squidbytes)
 
 > [!IMPORTANT]
