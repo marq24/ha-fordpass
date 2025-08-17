@@ -284,7 +284,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
                 return await self.async_step_token(None)
             except CannotConnect as ex:
-                _LOGGER.debug(f"async_step_user {type(ex)} - {ex}")
+                _LOGGER.debug(f"async_step_user {type(ex).__name__} - {ex}")
                 if self._can_not_connect_reason is not None:
                     errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
                 else:

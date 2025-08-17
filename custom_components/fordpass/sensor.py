@@ -10,7 +10,6 @@ from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, Re
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
 from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription
-
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 sensors.append(sensor)
             else:
-                _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' skipping cause no data available: type: {type(value)} - value:'{value}'")
+                _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' skipping cause no data available: type: {type(value).__name__} - value:'{value}'")
 
     async_add_entities(sensors, True)
 

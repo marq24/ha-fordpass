@@ -317,7 +317,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 canceled = self._a_task.cancel()
                 _LOGGER.debug(f"{self.vli}Watchdog: websocket connect task was CANCELED? {canceled}")
             except BaseException as ex:
-                _LOGGER.info(f"{self.vli}Watchdog: websocket connect task cancel failed: {type(ex)} - {ex}")
+                _LOGGER.info(f"{self.vli}Watchdog: websocket connect task cancel failed: {type(ex).__name__} - {ex}")
             self._a_task = None
 
     async def _async_watchdog_check(self, *_):
@@ -506,10 +506,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                     return self.bridge._data_container
 
                 except UpdateFailed as exception:
-                    _LOGGER.warning(f"{self.vli}UpdateFailed: {type(exception)} - {exception}")
+                    _LOGGER.warning(f"{self.vli}UpdateFailed: {type(exception).__name__} - {exception}")
                     raise UpdateFailed() from exception
                 except BaseException as other:
-                    _LOGGER.warning(f"{self.vli}UpdateFailed unexpected: {type(other)} - {other}")
+                    _LOGGER.warning(f"{self.vli}UpdateFailed unexpected: {type(other).__name__} - {other}")
                     raise UpdateFailed() from other
 
             else:
@@ -548,8 +548,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
                 except BaseException as ex:
                     self._available = False  # Mark as unavailable
-                    _LOGGER.warning(f"{self.vli}_async_update_data: Error communicating with FordPass for {self._vin} {type(ex)} -> {str(ex)}")
-                    raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(ex)}") from ex
+                    _LOGGER.warning(f"{self.vli}_async_update_data: Error communicating with FordPass for {self._vin} {type(ex).__name__} -> {str(ex)}")
+                    raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(ex).__name__}") from ex
 
     # def write_data_debug(self, data):
     #     import time

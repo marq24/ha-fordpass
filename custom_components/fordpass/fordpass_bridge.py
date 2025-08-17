@@ -234,7 +234,7 @@ class ConnectedFordPassVehicle:
             with open(filename, "w", encoding="utf-8") as outfile:
                 json.dump(data, outfile, indent=4)
         except BaseException as e:
-            _LOGGER.info(f"{self.vli}__dump_data(): Error while writing data to file '{filename}' - {type(e)} - {e}")
+            _LOGGER.info(f"{self.vli}__dump_data(): Error while writing data to file '{filename}' - {type(e).__name__} - {e}")
 
     def clear_data(self):
         self._cached_vehicles_data = {}
@@ -499,7 +499,7 @@ class ConnectedFordPassVehicle:
                                 _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
                                 _FOUR_NULL_ONE_COUNTER[self.vin] = MAX_401_RESPONSE_COUNT + 1
                         except BaseException as e:
-                            _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e)} - {e}")
+                            _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e).__name__} - {e}")
 
                     (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
@@ -511,7 +511,7 @@ class ConnectedFordPassVehicle:
 
             except BaseException as e:
                 if not await self.__check_for_closed_session(e):
-                    _LOGGER.warning(f"{self.vli}_request_token(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                    _LOGGER.warning(f"{self.vli}_request_token(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
                 else:
                     _LOGGER.info(f"{self.vli}_request_token(): RuntimeError - Session was closed occurred - but a new Session could be generated")
                 self._HAS_COM_ERROR = True
@@ -603,7 +603,7 @@ class ConnectedFordPassVehicle:
 
             except BaseException as e:
                 if not await self.__check_for_closed_session(e):
-                    _LOGGER.warning(f"{self.vli}_request_auto_token(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                    _LOGGER.warning(f"{self.vli}_request_auto_token(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
                 else:
                     _LOGGER.info(f"{self.vli}_request_auto_token(): RuntimeError - Session was closed occurred - but a new Session could be generated")
                 self._HAS_COM_ERROR = True
@@ -624,14 +624,14 @@ class ConnectedFordPassVehicle:
             try:
                 os.makedirs(directory, exist_ok=True)
             except OSError as exc:
-                _LOGGER.warning(f"check_general_fs_access(): could not create directory '{directory}': {type(exc)} - {exc}")
+                _LOGGER.warning(f"check_general_fs_access(): could not create directory '{directory}': {type(exc).__name__} - {exc}")
 
         if os.path.exists(directory):
             try:
                 with open(testfile, "w", encoding="utf-8") as outfile:
                     json.dump({"test": "file"}, outfile)
             except OSError as exc:
-                _LOGGER.warning(f"check_general_fs_access(): could not create test file '{testfile}': {type(exc)} - {exc}")
+                _LOGGER.warning(f"check_general_fs_access(): could not create test file '{testfile}': {type(exc).__name__} - {exc}")
 
             if os.path.exists(testfile):
                 can_create_file = True
@@ -667,7 +667,7 @@ class ConnectedFordPassVehicle:
             with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
                 json.dump(token, outfile)
         except OSError as exc:
-            _LOGGER.error(f"{self.vli}_write_token_to_storage(): Failed to create directory '{self.stored_tokens_location}': {type(exc)} - {exc}")
+            _LOGGER.error(f"{self.vli}_write_token_to_storage(): Failed to create directory '{self.stored_tokens_location}': {type(exc).__name__} - {exc}")
 
     async def _read_token_from_storage(self):
         """Read saved token from a file"""
@@ -701,7 +701,7 @@ class ConnectedFordPassVehicle:
                 _LOGGER.debug(f"{self.vli}No legacy token file found at {stored_tokens_location_legacy}, nothing to move")
 
         except Exception as e:
-            _LOGGER.warning(f"{self.vli}Failed to move token file: {type(e)} - {e}")
+            _LOGGER.warning(f"{self.vli}Failed to move token file: {type(e).__name__} - {e}")
 
     def clear_token(self):
         _LOGGER.debug(f"{self.vli}clear_token()")
@@ -836,15 +836,15 @@ class ConnectedFordPassVehicle:
                         await self._ws_check_for_auth_token_refresh(ws)
 
         except ClientConnectorError as con:
-            _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(con)} - {con}")
+            _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(con).__name__} - {con}")
         except ClientConnectionError as err:
-            _LOGGER.error(f"{self.vli}ws_connect(): ??? {type(err)} - {err}")
+            _LOGGER.error(f"{self.vli}ws_connect(): ??? {type(err).__name__} - {err}")
         except asyncio.TimeoutError as time_exc:
             _LOGGER.debug(f"{self.vli}ws_connect(): TimeoutError: No WebSocket message received within timeout period")
         except CancelledError as canceled:
-            _LOGGER.info(f"{self.vli}ws_connect(): Terminated? - {type(canceled)} - {canceled}")
+            _LOGGER.info(f"{self.vli}ws_connect(): Terminated? - {type(canceled).__name__} - {canceled}")
         except BaseException as x:
-            _LOGGER.error(f"{self.vli}ws_connect(): !!! {type(x)} - {x}")
+            _LOGGER.error(f"{self.vli}ws_connect(): !!! {type(x).__name__} - {x}")
 
         _LOGGER.debug(f"{self.vli}ws_connect() ENDED")
         try:
@@ -852,7 +852,7 @@ class ConnectedFordPassVehicle:
         except UnboundLocalError as is_unbound:
             _LOGGER.debug(f"{self.vli}ws_connect(): skipping ws_close() (since ws is unbound)")
         except BaseException as e:
-            _LOGGER.error(f"{self.vli}ws_connect(): Error while calling ws_close(): {type(e)} - {e}")
+            _LOGGER.error(f"{self.vli}ws_connect(): Error while calling ws_close(): {type(e).__name__} - {e}")
 
         self.ws_connected = False
         return None
@@ -1045,7 +1045,7 @@ class ConnectedFordPassVehicle:
                 await self.ws_close(ws)
 
         except BaseException as e:
-            _LOGGER.error(f"{self.vli}_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e)} - {e}")
+            _LOGGER.error(f"{self.vli}_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e).__name__} - {e}")
 
     async def _ws_check_for_message_update_required(self):
         update_interval = 0
@@ -1100,7 +1100,7 @@ class ConnectedFordPassVehicle:
         except CancelledError:
             _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): was canceled - all good")
         except BaseException as ex:
-            _LOGGER.warning(f"{self.vli}_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex)} - {ex}")
+            _LOGGER.warning(f"{self.vli}_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex).__name__} - {ex}")
 
     async def ws_close(self, ws):
         """Close the WebSocket connection cleanly."""
@@ -1111,7 +1111,7 @@ class ConnectedFordPassVehicle:
                 await ws.close()
                 _LOGGER.debug(f"{self.vli}ws_close(): connection closed successfully")
             except BaseException as e:
-                _LOGGER.info(f"{self.vli}ws_close(): Error closing WebSocket connection: {type(e)} - {e}")
+                _LOGGER.info(f"{self.vli}ws_close(): Error closing WebSocket connection: {type(e).__name__} - {e}")
             finally:
                 ws = None
         else:
@@ -1216,7 +1216,7 @@ class ConnectedFordPassVehicle:
             except CancelledError:
                 _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): was canceled - all good")
             except BaseException as ex:
-                _LOGGER.warning(f"{self.vli}_ws_debounce_update_preferred_charge_times(): Error during 'preferred_charge_times' data refresh - {type(ex)} - {ex}")
+                _LOGGER.warning(f"{self.vli}_ws_debounce_update_preferred_charge_times(): Error during 'preferred_charge_times' data refresh - {type(ex).__name__} - {ex}")
 
 
     async def req_status(self):
@@ -1280,7 +1280,7 @@ class ConnectedFordPassVehicle:
                     self._HAS_COM_ERROR = True
                     return None
                 except BaseException as e:
-                    _LOGGER.debug(f"{self.vli}req_status():  status_code: 403 - Error while handle 'response' - {type(e)} - {e}")
+                    _LOGGER.debug(f"{self.vli}req_status():  status_code: 403 - Error while handle 'response' - {type(e).__name__} - {e}")
                     self._HAS_COM_ERROR = True
                     return None
                 pass
@@ -1291,7 +1291,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_status(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_status(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}req_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
@@ -1340,7 +1340,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_messages(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_messages(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}req_messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
@@ -1410,7 +1410,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_vehicles(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_vehicles(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}req_vehicles(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
@@ -1483,7 +1483,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_remote_climate(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_remote_climate(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}req_remote_climate(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
@@ -1528,7 +1528,7 @@ class ConnectedFordPassVehicle:
                                 modified_result[a_entry["location"]["id"]] = a_entry
                     result_pct = modified_result
                 else:
-                    _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): received unexpected data format: {type(result_pct)} - expected a list of entries")
+                    _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): received unexpected data format: {type(result_pct).__name__} - expected a list of entries")
 
                 #_LOGGER.error(f"--------------------------")
                 #_LOGGER.error(f"--------------------------")
@@ -1554,7 +1554,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}req_preferred_charge_times(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
@@ -1611,7 +1611,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_energy_transfer_status(): Error while '_request_token' for vehicle {self.vin} - {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}req_energy_transfer_status(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}req_energy_transfer_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
@@ -1935,7 +1935,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}Error while '__request_command()' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}Error while '__request_command()' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}RuntimeError while '__request_command()' - Session was closed occurred - but a new Session could be generated")
 
@@ -1982,7 +1982,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic()' for vehicle '{self.vin}' command: '{write_command}' props:'{properties}' -> {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_autonomic()' for vehicle '{self.vin}' command: '{write_command}' props:'{properties}' -> {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}RuntimeError while '__request_and_poll_command_autonomic()' - Session was closed occurred - but a new Session could be generated")
 
@@ -2035,7 +2035,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e)} - {e}")
+                _LOGGER.warning(f"{self.vli}Error while '__request_and_poll_command_ford' for vehicle '{self.vin}' command: '{command}' post_data: '{post_data}' -> {type(e).__name__} - {e}")
             else:
                 _LOGGER.info(f"{self.vli}RuntimeError while '__request_and_poll_command_ford' - Session was closed occurred - but a new Session could be generated")
 
@@ -2189,7 +2189,7 @@ class ConnectedFordPassVehicle:
 
         except BaseException as exc:
             if not await self.__check_for_closed_session(exc):
-                _LOGGER.warning(f"{self.vli}__wait_for_state(): Error during status checking - {type(exc)} - {exc}")
+                _LOGGER.warning(f"{self.vli}__wait_for_state(): Error during status checking - {type(exc).__name__} - {exc}")
             else:
                 _LOGGER.info(f"{self.vli}__wait_for_state(): RuntimeError - Session was closed occurred - but a new Session could be generated")
 

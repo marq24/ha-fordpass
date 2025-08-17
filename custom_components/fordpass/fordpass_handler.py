@@ -100,7 +100,7 @@ class FordpassDataHandler:
             except ValueError as ve:
                 _LOGGER.debug(f"Invalid distance value: '{value}' caused {ve}")
             except BaseException as e:
-                _LOGGER.debug(f"Invalid distance value: '{value}' caused {type(e)} {e}")
+                _LOGGER.debug(f"Invalid distance value: '{value}' caused {type(e).__name__} {e}")
         return None
 
     @staticmethod
@@ -113,7 +113,7 @@ class FordpassDataHandler:
             except ValueError as ve:
                 _LOGGER.debug(f"Invalid temperature value: '{value}' caused {ve}")
             except BaseException as e:
-                _LOGGER.debug(f"Invalid temperature value: '{value}' caused {type(e)} {e}")
+                _LOGGER.debug(f"Invalid temperature value: '{value}' caused {type(e).__name__} {e}")
         return None
 
     ###########################################################
