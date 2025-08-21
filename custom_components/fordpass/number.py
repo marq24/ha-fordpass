@@ -45,8 +45,8 @@ class FordPassNumber(FordPassEntity, NumberEntity):
                 entity_description,
                 native_unit_of_measurement = coordinator.units.temperature_unit,
                 native_step = 1,
-                native_max_value = round(entity_description.native_max_value * 9/5 + 32, 0),
-                native_min_value = round(entity_description.native_min_value * 9/5 + 32, 0),
+                native_max_value = round(entity_description.native_max_value * 1.8 + 32, 0),
+                native_min_value = round(entity_description.native_min_value * 1.8 + 32, 0),
             )
 
         super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
@@ -63,7 +63,7 @@ class FordPassNumber(FordPassEntity, NumberEntity):
             value = self._tag.get_state(self.coordinator.data)
             if value is not None and str(value) != UNSUPPORTED:
                 if self.translate_from_to_fahrenheit:
-                    return round(value * 9/5 + 32, 0)
+                    return round(value * 1.8 + 32, 0)
                 else:
                     return value
 
@@ -80,7 +80,7 @@ class FordPassNumber(FordPassEntity, NumberEntity):
                 if self.translate_from_to_fahrenheit:
                     # we want the value in Celsius, but the user provided Fahrenheit... and we want it
                     # in steps of 0.5 °C
-                    value = round(((float(value) - 32) * 5/9) * 2) / 2
+                    value = round(((float(value) - 32) / 1.8) * 2, 0) / 2
 
                 await self._tag.async_set_value(self.coordinator.data, self.coordinator.bridge, str(value))
 
