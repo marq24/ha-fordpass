@@ -106,47 +106,92 @@ Make sure that the new created sensor `sensor.fordpass_[YOUR-VIN-HERE]_evcc_char
 
 ### A sample evcc.yaml vehicle section that I use for my Ford MachE
 
+The vehicle `type:template ... template: homeassistant` was introduced in evcc 0.207.1 — If you use an older evcc version — please use the alternative example below this section (`type: custom`).
+
+> [!NOTE]
+> This is my evcc.config vehicle section for **my** Ford MachE — In HA it's configured in the fordpass integration as `fordpass_[YOUR-VIN-HERE]` and so the sensors in this yaml are prefixed with `fordpass_wf0tk3r7xpma01234` (obviously you must relace this with your own VIN):
+
+```yaml
+vehicles:
+  - name: ford_mach_e
+    title: MachE GT-XXXXX
+    capacity: 84.65
+    type: template
+    template: homeassistant
+    uri: http://[YOUR-HA-INSTANCE]:8123
+    token: [YOUR-TOKEN-HERE]
+    soc: sensor.fordpass_[YOUR-VIN-HERE]_soc                    # Ladezustand [%]
+    range: sensor.fordpass_[YOUR-VIN-HERE]_elveh                # Restreichweite [km]
+    status: sensor.fordpass_[YOUR-VIN-HERE]_evccstatus          # Ladestatus
+    limitSoc: select.fordpass_[YOUR-VIN-HERE]_elvehtargetcharge # Ziel-Ladezustand [%]
+    odometer: sensor.fordpass_[YOUR-VIN-HERE]_odometer          # Kilometerstand [km]
+    climater: sensor.fordpass_[YOUR-VIN-HERE]_remotestartstatus # Klimatisierung aktiv
+```
+
+#### So the example (with all replacements) would look like:
+```yaml
+vehicles:
+  - name: ford_mach_e
+    title: MachE GT-XXXXX
+    capacity: 84.65
+    type: template
+    template: homeassistant
+    uri: http://http://192.168.10.20:8123
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNWVjNzg5M2Y0ZjQ0MzBmYjUwOGEwMmU4N2Q0MzFmNyIsImlhdCI6MTcxNTUwNzYxMCwiZXhwIjoyMDMwODY3NjEwfQ.GMWO8saHpawkjNzk-uokxYeaP0GFKPQSeDoP3lCO488
+    soc: sensor.fordpass_wf0tk3r7xpma01234_soc                    # Ladezustand [%]
+    range: sensor.fordpass_wf0tk3r7xpma01234_elveh                # Restreichweite [km]
+    status: sensor.fordpass_wf0tk3r7xpma01234_evccstatus          # Ladestatus
+    limitSoc: select.fordpass_wf0tk3r7xpma01234_elvehtargetcharge # Ziel-Ladezustand [%]
+    odometer: sensor.fordpass_wf0tk3r7xpma01234_odometer          # Kilometerstand [km]
+    climater: sensor.fordpass_wf0tk3r7xpma01234_remotestartstatus # Klimatisierung aktiv
+```
+
+
+### Alternative sample evcc.yaml vehicle section — before evcc 0.207.1
+
+The vehicle `type:template ... template: homeassistant` introduced in evcc 0.207.1 — If you use an older evcc version — please use this example (`type: custom`).
+
 > [!NOTE]
 > This is my evcc.config vehicle section for **my** Ford MachE — In HA it's configured in the fordpass integration as `fordpass_[YOUR-VIN-HERE]` and so all URL's for the sensors in this yaml are prefixed with `fordpass_wf0tk3r7xpma01234` (obviously you must relace this with your own VIN):
 
 ```yaml
 vehicles:
-- name: ford_mach_e
-  type: custom
-  title: MachE GT-XXXXX
-  capacity: 84.65
-  soc:
-    source: http
-    uri: http://[YOUR-HA-INSTANCE]:8123/api/states/sensor.fordpass_[YOUR-VIN-HERE]_soc
-    method: GET
-    headers:
-      - Authorization: Bearer [YOUR-TOKEN-HERE]
-      - Content-Type: application/json
-    insecure: true
-    jq: .state | tonumber
-    timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
-
-  range:
-    source: http
-    uri: http://[YOUR-HA-INSTANCE]:8123/api/states/sensor.fordpass_[YOUR-VIN-HERE]_elveh
-    method: GET
-    headers:
-      - Authorization: Bearer [YOUR-TOKEN-HERE]
-      - Content-Type: application/json
-    insecure: true
-    jq: .state | tonumber
-    timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
-
-  status:
-    source: http
-    uri: http://[YOUR-HA-INSTANCE]/api/states/sensor.fordpass_[YOUR-VIN-HERE]_evccstatus
-    method: GET
-    headers:
-      - Authorization: Bearer [YOUR-TOKEN-HERE]
-      - Content-Type: application/json
-    insecure: true
-    jq: .state[0:1]
-    timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
+  - name: ford_mach_e
+    title: MachE GT-XXXXX
+    capacity: 84.65
+    type: custom
+    soc:
+      source: http
+      uri: http://[YOUR-HA-INSTANCE]:8123/api/states/sensor.fordpass_[YOUR-VIN-HERE]_soc
+      method: GET
+      headers:
+        - Authorization: Bearer [YOUR-TOKEN-HERE]
+        - Content-Type: application/json
+      insecure: true
+      jq: .state | tonumber
+      timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
+    
+    range:
+      source: http
+      uri: http://[YOUR-HA-INSTANCE]:8123/api/states/sensor.fordpass_[YOUR-VIN-HERE]_elveh
+      method: GET
+      headers:
+        - Authorization: Bearer [YOUR-TOKEN-HERE]
+        - Content-Type: application/json
+      insecure: true
+      jq: .state | tonumber
+      timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
+    
+    status:
+      source: http
+      uri: http://[YOUR-HA-INSTANCE]/api/states/sensor.fordpass_[YOUR-VIN-HERE]_evccstatus
+      method: GET
+      headers:
+        - Authorization: Bearer [YOUR-TOKEN-HERE]
+        - Content-Type: application/json
+      insecure: true
+      jq: .state[0:1]
+      timeout: 2s # timeout in golang duration format, see https://golang.org/pkg/time/#ParseDuration
 ```
 
 ### Troubleshooting — Testing your settings via command line
