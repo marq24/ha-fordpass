@@ -122,7 +122,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
-        results = await bridge.generate_tokens(token, code_verifier)
+        results = await bridge.generate_tokens(token, code_verifier, data[CONF_REGION])
 
         if results:
             _LOGGER.debug(f"validate_token(): request Vehicles")
@@ -142,7 +142,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
-        results = await bridge.generate_tokens(token, code_verifier)
+        results = await bridge.generate_tokens(token, code_verifier, data[CONF_REGION])
 
         if not results:
             _LOGGER.debug(f"validate_token_only(): failed - {results}")
@@ -326,7 +326,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 # we should not save our user-captured 'code' url...
                 del user_input[CONF_TOKEN_STR]
 
-                if self.check_token(token_fragment):
+                if self.check_token(token_fragment, self.region_key):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
@@ -380,8 +380,14 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_vin()
 
     @staticmethod
-    def check_token(token):
-        if "fordapp://userauthorized/?code=" in token:
+    def check_token(token, region_key):
+        _LOGGER.debug(f"check_token(): selected REGIONS object: {REGIONS[region_key]}")
+
+        redirect_schema = "fordapp"
+        if "redirect_schema" in REGIONS[region_key]:
+            redirect_schema = REGIONS[region_key]["redirect_schema"]
+
+        if f"{redirect_schema}://userauthorized/?code=" in token:
             return True
         return False
 
@@ -389,10 +395,22 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if region_key not in REGIONS:
             _LOGGER.error(f"generate_url(): Invalid region_key: {region_key}")
             region_key = DEFAULT_REGION
-        _LOGGER.debug(f"selected REGIONS object: {REGIONS[region_key]}")
+        _LOGGER.debug(f"generate_url(): selected REGIONS object: {REGIONS[region_key]}")
         self.code_verifier = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
         hashed_code_verifier = self.generate_hash(self.code_verifier)
-        url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri=fordapp://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&ford_application_id={REGIONS[region_key]['app_id']}&country_code={REGIONS[region_key]['countrycode']}"
+
+        # LINCOLN
+        # https://login.lincoln.com/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_Lincoln_en-US/oauth2/v2.0/authorize?redirect_uri=lincolnapp%3A%2F%2Fuserauthorized&response_type=code&scope=09852200-05fd-41f6-8c21-d36d3497dc64%20openid&max_age=3600&login_hint=eyJyZWFsbSI6ICJjbG91ZElkZW50aXR5UmVhbG0ifQ%3D%3D&code_challenge=K2WtKFhDWmbkkx__9U9b4LhI1z_QvEGb6VvZ1RGX45I&code_challenge_method=S256&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&language_code=en-US&ford_application_id=45133B88-0671-4AAF-B8D1-99E684ED4E45&country_code=USA
+
+        sign_up = "B2C_1A_SignInSignUp_"
+        if "sign_up_addon" in REGIONS[region_key]:
+            sign_up = f"{sign_up}{REGIONS[region_key]['sign_up_addon']}"
+
+        redirect_schema = "fordapp"
+        if "redirect_schema" in REGIONS[region_key]:
+            redirect_schema = REGIONS[region_key]["redirect_schema"]
+
+        url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/{sign_up}{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri={redirect_schema}://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&ford_application_id={REGIONS[region_key]['app_id']}&country_code={REGIONS[region_key]['countrycode']}"
         return url
 
     @staticmethod
@@ -497,7 +515,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 # we should not save our user-captured 'code' url...
                 del user_input[CONF_TOKEN_STR]
 
-                if self.check_token(token_fragment):
+                if self.check_token(token_fragment, self.entry.data[CONF_REGION]):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 

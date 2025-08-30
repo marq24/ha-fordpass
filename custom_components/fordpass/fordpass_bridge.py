@@ -255,9 +255,18 @@ class ConnectedFordPassVehicle:
                     _LOGGER.info(f"{self.vli}__check_for_closed_session(): session is closed - but no new session could be created!")
         return False
 
-    async def generate_tokens(self, urlstring, code_verifier):
+    async def generate_tokens(self, urlstring, code_verifier, region_key):
+        sign_up = "B2C_1A_SignInSignUp_"
+        if region_key in REGIONS and "sign_up_addon" in REGIONS[region_key]:
+            sign_up = f"{sign_up}{REGIONS[region_key]['sign_up_addon']}"
+
+        redirect_schema = "fordapp"
+        if region_key in REGIONS and "redirect_schema" in REGIONS[region_key]:
+            redirect_schema = REGIONS[region_key]["redirect_schema"]
+
         _LOGGER.debug(f"{self.vli}generate_tokens() for country_code: {self.locale_code}")
-        code_new = urlstring.replace("fordapp://userauthorized/?code=", "")
+        code_new = urlstring.replace(f"{redirect_schema}://userauthorized/?code=", "")
+
         headers = {
             **loginHeaders,
         }
@@ -266,10 +275,10 @@ class ConnectedFordPassVehicle:
             "grant_type": "authorization_code",
             "code_verifier": code_verifier,
             "code": code_new,
-            "redirect_uri": "fordapp://userauthorized"
+            "redirect_uri": f"{redirect_schema}://userauthorized"
         }
         response = await self.session.post(
-            f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_{self.locale_code}/oauth2/v2.0/token",
+            f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/{sign_up}{self.locale_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
             ssl=True

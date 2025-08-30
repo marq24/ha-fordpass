@@ -39,7 +39,7 @@
    
    - The last request (probably already showed in red) is the one we are interested in... Since this last request contains the code we must capture for the integration, it should start with `userauthorized/...`
    - You are looking for the contents of the "Location Header" as shown in the pic below
-   - The output should look similar to the following string, starting with `fordapp://`:
+   - The output should look similar to the following string, starting with `fordapp://` (or `lincolnapp://`):
    - ```fordapp://userauthorized/?code=eyJraWQiOiItSm9pdi1OX1ktUWNsa***************************```
    - **Ensure you capture the entire string (copy the raw output and not the wrapped text)** and enter it into the text box of the home assistant setup dialog.
    - You then can close the Ford login browser window 

@@ -16,7 +16,8 @@
                 "bra": "Brazil [requires an 'ford.com.br/ford.com.ar' Account]",
                 "arg": "Argentina [requires an 'ford.com.ar/ford.com.br' Account]",
                 "rest_of_europe": "Other European Countries",
-                "rest_of_world": "Rest of the World"
+                "rest_of_world": "Rest of the World",
+                "lincoln_usa": "Lincoln USA"
             }
         },
         "setup_type": {
@@ -39,7 +40,7 @@
             "invalid_auth": "Invalid Credentials",
             "invalid_vin": "Vin not found for given account",
             "invalid_mobile": "Mobile number as username must be specified if using South African Region",
-            "invalid_token": "Token is invalid, please check you copied the correct token from the Header Location, it should start with fordapp://",
+            "invalid_token": "Token is invalid, please check you copied the correct token from the Header Location, it should start with fordapp:// (or lincolnapp://)",
             "unknown": "Unexpected error"
         },
         "step": {

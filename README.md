@@ -107,7 +107,7 @@ Please follow the steps:
 2. Open a new browser (with enabled developer tools) and paste the copied URL it into your second browser
 3. In this second browser: Enter your FordPass credentials (again) and press the login button
 4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but it's not important)
-5. Copy the full `Request-URL` from this `?code=` request from the browser's developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... `]
+5. Copy the full `Request-URL` from this `?code=` request from the browser's developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... ` (or `lincolnapp://userauthorized/?code= ... `)]
 
 More details (how to deal with the browser developer tools) to get your token can be found in the [additional 'obtaining token document'](./doc/OBTAINING_TOKEN.md).
 

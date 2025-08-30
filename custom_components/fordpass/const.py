@@ -31,19 +31,31 @@ PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 
 # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3
 DEFAULT_REGION: Final = "rest_of_world"
-REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "bra", "arg", "can", "mex", "usa", "rest_of_world", "lincoln_usa"]
 LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
 
 REGION_APP_IDS: Final = {
     "africa":           "71AA9ED7-B26B-4C15-835E-9F35CC238561", # South Africa, ...
-    # 'asia_pacific' seams to be broken right now - not working with original FordPass App
     "asia_pacific":     "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260", # Australia, Thailand, New Zealand, ...
     "europe":           "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # used for germany, france, italy, netherlands, uk, rest_of_europe
     "north_america":    "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A", # used for canada, usa, mexico
     "south_america":    "C1DFFEF5-5BA5-486A-9054-8B39A9DF9AFC", # Argentina, Brazil, ...
 }
 
+LINCOLN_REGION_APP_IDS: Final = {
+    "north_america":    "45133B88-0671-4AAF-B8D1-99E684ED4E45"
+}
+
 REGIONS: Final = {
+    "lincoln_usa": {
+        "app_id": LINCOLN_REGION_APP_IDS["north_america"],
+        "locale": "en-US",
+        "locale_url": "https://login.lincoln.com",
+        "sign_up_addon": "Lincoln_",
+        "redirect_schema": "lincolnapp",
+        "countrycode": "USA"
+    },
+
     # checked 2025/06/08 - working fine...
     "deu": {
         "app_id": REGION_APP_IDS["europe"],

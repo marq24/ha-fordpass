@@ -16,7 +16,8 @@
                 "bra": "Brasilien [benötigt einen 'ford.com.br/ford.com.ar' Konto]",
                 "arg": "Argentinien [benötigt einen 'ford.com.ar/ford.com.br' Konto]",
                 "rest_of_europe": "Andere europäische Länder",
-                "rest_of_world": "Rest der Welt"
+                "rest_of_world": "Rest der Welt",
+                "lincoln_usa": "Lincoln USA"
             }
         },
         "setup_type": {
@@ -38,6 +39,8 @@
             "cannot_connect": "Verbindungsfehler",
             "invalid_auth": "Authentifizierungsfehler",
             "invalid_vin": "Die VIN kann nicht in deinem Konto gefunden werden",
+            "invalid_mobile": "Bei Verwendung der südafrikanischen Region muss die Mobiltelefonnummer als Benutzername angegeben werden",
+            "invalid_token": "Das Token ist ungültig. Bitte überprüfe, ob Du das richtige Token aus dem Header-Speicherort kopiert hast. Es sollte mit fordapp:// (oder lincolnapp://) beginnen.",
             "unknown": "Unbekannter Fehler"
         },
         "step": {
