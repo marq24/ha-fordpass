@@ -214,13 +214,13 @@ async def entry_update_listener(hass: HomeAssistant, config_entry: ConfigEntry) 
 #_sync_lock = threading.Lock()
 
 @staticmethod
-def get_none_closed_cached_session(hass: HomeAssistant, user: str, region_key: str, vli:str) -> aiohttp.ClientSession:
+def get_none_closed_cached_session(hass: HomeAssistant, vin:str, vli:str) -> aiohttp.ClientSession:
     """Get a ~~cached~~ aiohttp session for the user & region."""
 
     # 2025-06-12 for now we do not cache anything for a new vehicle... if we start to share a client session
     # across multiple vehicles (= multiple instances of this integration), then WE MUST also sync the token's!
     # When we share tokens, we must synchonize the refresh tokens and share them across multiple vehicles.
-    _LOGGER.debug(f"{vli}Create new aiohttp.ClientSession for user: {user}, region: {region_key}")
+    _LOGGER.debug(f"{vli}Create new aiohttp.ClientSession for vin: {vin}")
     return async_create_clientsession(hass)
 
     # global _session_cache
@@ -243,7 +243,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._vin = vin
         self.vli = f"[@{self._vin}] "
 
-        self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, user, region_key, self.vli), user,
+        self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, vin, self.vli), user,
                                                vin, region_key, coordinator=self, storage_path=Path(hass.config.config_dir).joinpath(STORAGE_DIR),
                                                local_logging=config_entry.options.get(CONF_LOG_TO_FILESYSTEM, False))
 
@@ -291,11 +291,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._force_classic_requests = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval_as_int))
 
-    async def get_new_client_session(self, user: str, region_key: str) -> aiohttp.ClientSession:
-        """Get a new aiohttp ClientSession for the user and region."""
+    async def get_new_client_session(self, vin: str) -> aiohttp.ClientSession:
+        """Get a new aiohttp ClientSession for the vehicle."""
         if self.hass is None:
             raise ValueError(f"{self.vli}Home Assistant instance is not available")
-        return get_none_closed_cached_session(self.hass, user, region_key, self.vli)
+        return get_none_closed_cached_session(self.hass, vin, self.vli)
 
     async def start_watchdog(self, event=None):
         """Start websocket watchdog."""

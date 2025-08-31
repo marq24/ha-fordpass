@@ -184,6 +184,7 @@ class ConnectedFordPassVehicle:
             self._storage_path = storage_path
         else:
             self._storage_path = Path(".storage")
+
         if tokens_location is None:
             if storage_path is not None:
                 self.stored_tokens_location = str(storage_path.joinpath(DOMAIN, f"{username}_access_token@{region_key}.txt"))
@@ -247,7 +248,7 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}__check_for_closed_session(): RuntimeError - session is closed - trying to create a new session")
             # this might look a bit strange - but I don't want to pass the hass object down to the vehicle object...
             if self.coordinator is not None:
-                new_session = await self.coordinator.get_new_client_session(user=self.username, region_key=self.region_key)
+                new_session = await self.coordinator.get_new_client_session(vin=self.vin)
                 if new_session is not None and not new_session.closed:
                     self.session = new_session
                     return True
@@ -697,7 +698,10 @@ class ConnectedFordPassVehicle:
 
     async def _rename_token_file_if_needed(self, username:str):
         """Move a legacy token file to new region-specific location if it exists"""
-        stored_tokens_location_legacy = f".storage/fordpass/{username}_access_token.txt"
+        if self._storage_path is not None:
+            stored_tokens_location_legacy = str(self._storage_path.joinpath(DOMAIN, f"{username}_access_token.txt"))
+        else:
+            stored_tokens_location_legacy = f".storage/{DOMAIN}/{username}_access_token.txt"
         try:
             # Check if the legacy file exists
             if os.path.isfile(stored_tokens_location_legacy):
