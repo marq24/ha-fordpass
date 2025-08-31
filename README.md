@@ -19,7 +19,7 @@
 > [!NOTE]
 > Even if this integration was initially forked from [@itchannel and @SquidBytes](https://github.com/itchannel/fordpass-ha), the current version is a complete rewrite and is __not compatible__ with the __original FordPass integration__.
 > 
-> I have been continuously working on improvements of the integration in the past month, especially on the compatibility with the latest Home Assistant versions and apply clean code standards. I hope this effort will make it much easier for other developers to understand how the communication with the FordPass backend works and how to extend/adjust the integration in the future.
+> I have been continuously working on improvements of the integration in the past month, especially on the compatibility with the latest Home Assistant versions and apply clean code standards. I hope this effort will make it much easier for other developers to understand how the communication with the Ford backend works and how to extend/adjust the integration in the future.
 >
 > This is a __cloud push integration__, which means that the data is pushed from Ford backend systems to Home Assistant via a websocket connection — so you receive data as it changes. __No polling__ (in a certain interval) __is required anymore__.
 > 
@@ -32,26 +32,26 @@
 
 
 > [!WARNING]
-> ## Disclaimer — The use of this HA integration could lead to a (temporary) lock of your FordPass account.
+> ## Disclaimer — The use of this HA integration could lead to a (temporary) lock of your FordPass™/The Lincoln Way™ account.
 > **This integration is not officially supported by Ford, and as such, using this integration could result in your account being locked out!** 
 > 
 > Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
 > 
-> It's recommended to use/create a **separate FordPass account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpass-account-is-recommended)).
+> It's recommended to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpass-account-is-recommended)).
 
 
 > [!IMPORTANT]
 > ## Unusual Integration Setup 
 > Status Quo in spring/summer 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is because Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
 > 
-> The current implementation is based on API calls the original FordPass App (for Android & iOS) performs, and it's some sort of reverse engineered.
+> The current implementation is based on API calls the original FordPass™/The Lincoln Way™ App (for Android & iOS) performs, and it's some sort of reverse engineered.
 > 
 > This approach implies that when Ford is going to change something in their none-public/undocumented API, it's quite likely that the integration will break instantly.
 > 
 > __It's impossible to predict__ when this will happen, but __I will try__ to keep the integration up-to-date and working __as long as possible__, since I drive a Ford myself.
 > 
-> ## Fetch & Store FordPass Access Token
-> During the integration setup, you will be guided through the process to obtain an access token for your vehicle in the context of your FordPass account.
+> ## Fetch & Store FordPass™/The Lincoln Way™ Access Token
+> During the integration setup, you will be guided through the process to obtain an access token for your vehicle in the context of your FordPass™/The Lincoln Way™ account.
 > 
 > This should be a _one-time process_, and the access token will be stored in a file outside the custom integration directory (This is to prevent the access token from being deleted during updates of the integration itself). As already explaind, I can't give any guarantee that process will work in the future.
 > 
@@ -60,7 +60,7 @@
 ---
 
 ## Requirements
-1. Your car must have the latest onboard modem functionality and have been registered/authorized with the fordpass application.
+1. Your car must have the latest onboard modem functionality and have been registered/authorized with the FordPass™/The Lincoln Way™ application.
 2. You need a Home Assistant instance (v2024.12 or higher) with the [HACS](https://hacs.xyz) custom integration installed.
 3. You __must have removed any previous FordPass integration from your Home Assistant instance__ (especially the original FordPass integration from @itchannel and @SquidBytes) before you can use this fork of the integration. Please be aware that it's quite likely that a configuration can be disabled! [see also the incompatibility information](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#this-fork-is-not-compatible-with-the-original-fordpass-integration-from-itchannel-and-squidbytes)
 
@@ -89,23 +89,23 @@
 7. After the restart go to  `Settings` -> `Devices & Services` area
 8. Add the new integration `FordPass` and follow the instructions:<br/>
    You will need to provide:
-   - Your __FordPass Email__/Account 
-   - __Select a FordPass Region__ (that is currently supported by the integration)
+   - Your __FordPass™/The Lincoln Way™ Email__/Account 
+   - __Select a FordPass™/The Lincoln Way™ Region__ (that is currently supported by the integration)
 
 > [!IMPORTANT]  
-> The region you are going to select __must match__ the region for which you have __registered your FordPass__ account.
+> The region you are going to select __must match__ the region for which you have __registered your FordPass™/The Lincoln Way™__ account.
 >
 > While for some countries there is a cross-region support in place (like for European countries and North America), there are other regions where an account registered in a specific country __can't__ be used in another region. E.g. an Ford account registered with the Ford domain in Australia (ford.com.au) can not be used with the USA domain (ford.com).
 >
 > So if your Country is not listed in the integration, and you follow the recommendation to register a sperate account to be used with the integration, then [__register this second account at the ford.com domain__](https://www.ford.com/#$userCreateAccount), since this ensures that you can use the Integration with the 'Rest of the World' Region setting.
 
 ### Step 3. The hard part — the **Token Setup**
-The actual token request requires an external browser to get finally the FordPass access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
+The actual token request requires an external browser to get finally the FordPass™/The Lincoln Way™ access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
 
 Please follow the steps:
 1. Copy the URL listed in the first input field
 2. Open a new browser (with enabled developer tools) and paste the copied URL it into your second browser
-3. In this second browser: Enter your FordPass credentials (again) and press the login button
+3. In this second browser: Enter your FordPass™/The Lincoln Way™ credentials (again) and press the login button
 4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but it's not important)
 5. Copy the full `Request-URL` from this `?code=` request from the browser's developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... ` (or `lincolnapp://userauthorized/?code= ... `)]
 
@@ -122,9 +122,9 @@ More details (how to deal with the browser developer tools) to get your token ca
 Currently, the integration supports to pause and unpause an EV charging session. This is done by a switch in the Home Assistant UI. The switch will be available for all PHEV and BEV vehicles.
 
 > [!NOTE]
-> I (marq24) must admit that I have not fully understood how the charging control works in detail, since I have not yet found a way to start a charging session via the FordPass API. The commands the FordPass App sends to the Ford backend are quite confusing for me.
+> I (marq24) must admit that I have not fully understood how the charging control works in detail, since I have not yet found a way to start a charging session via the Ford API. The commands the FordPass™ App sends to the Ford backend are quite confusing for me.
 > 
-> So please don't be disappointed if the charging control does not work as expected, there might be a general misunderstanding on my site, how the current FordPass APP is intended to control the charging process of the vehicle.
+> So please don't be disappointed if the charging control does not work as expected, there might be a general misunderstanding on my site, how the current FordPass™ APP is intended to control the charging process of the vehicle.
 > 
 > But what works at least for me is, then when the vehicle is plugged in and the wallbox has started to charge my car that the new switch is toggled to it's `ON` state. When I then use the switch, the charging process is paused and the switch is toggled to `OFF`. When I toggle the switch `ON` again, the charging process resumes — so it seems to work somehow. 
 > 
@@ -139,36 +139,36 @@ Charge control of your EV is experimental. The Integration can (try to) start a 
 So do not expect that the charging control will work with all charging stations. Personally, I use [evcc.io to control the charging](https://evcc.io/) of my Ford Mustang Mach-E.
 
 
-## Use of a separate FordPass account is recommended
+## Use of a separate FordPass™/The Lincoln Way™ account is recommended
 
 > [!TIP]
-> It's recommended to use a separate FordPass account for this integration. This is to prevent any issues with the FordPass account being locked due to the polling of the API.
+> It's recommended to use a separate FordPass™/The Lincoln Way™ account for this integration. This is to prevent any issues with the FordPass™/The Lincoln Way™ account being locked due to the polling of the API.
 
 Here is a short procedure how to create and connect a second account:
 
-1. Create a new FordPass account (via the regular Ford website) with a different email address (and confirm this account by eMail). All this can be done via a regular web browser.<br/>__It's important, that you can access this eMail account from your mobile phone where the FordPass App is installed__ (we need this in step 6).
-2. On a mobile Device: Open the FordPass app (logged in with your original account), then you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
+1. Create a new FordPass™ account (via the regular Ford website) with a different email address (and confirm this account by eMail). All this can be done via a regular web browser.<br/>__It's important, that you can access this eMail account from your mobile phone where the FordPass™ App is installed__ (we need this in step 6).
+2. On a mobile Device: Open the FordPass™ app (logged in with your original account), then you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
 3. On the next screen select `Vehicle Access` (from the options: `Phone As A Key >`, `Software updates >` & `Vehicle Access >`)
 4. Select `Invite Driver(s) Invite` and then enter the next screen the eMail address of the new account you created in step 1. 
-5. Now you can log out with your main account from the FordPass app and log-in again with the new account (created in step 1).
-6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.<br/>__This step must be performed on the mobile device where the FordPass app is installed!__ (since only on a mobile device with installed Fordpass you can open the acceptance-link of this eMail)
-7. Finally, you should now have connected your car to the new FordPass account.
-8. You can now log out again of the FordPass app with your second account and re-login with your original FordPass account.
+5. Now you can log out with your main account from the FordPass™ app and log-in again with the new account (created in step 1).
+6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.<br/>__This step must be performed on the mobile device where the FordPass™ app is installed!__ (since only on a mobile device with installed FordPass™ you can open the acceptance-link of this eMail)
+7. Finally, you should now have connected your car to the new FordPass™ account.
+8. You can now log out again of the FordPass™ app with your second account and re-login with your original FordPass™ account.
 9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
 
 
 ## Multi-Vehicle Support
 
-When you have __multiple__ vehicles registered in your FordPass account, then in the FordPass App you must first select the vehicle you want to use, before you can access any data or functionality of this vehicle. __The same limitation is also true__ for this Home Assistant integration.
+When you have __multiple__ vehicles registered in your FordPass™/The Lincoln Way™ account, then in the FordPass™/The Lincoln Way™ App you must first select the vehicle you want to use, before you can access any data or functionality of this vehicle. __The same limitation is also true__ for this Home Assistant integration.
 
-The main reason for this restriction is the fact, that the FordPass App and this integration makes use of a websocket connection to the Ford backend, which is some sort of bound to a single vehicle at a time.
+The main reason for this restriction is the fact, that the FordPass™ App and this integration makes use of a websocket connection to the Ford backend, which is some sort of bound to a single vehicle at a time.
 
 So you have three options to use multiple vehicles in Home Assistant with this integration:
-1. **Use multiple FordPass accounts**: You can create a separate FordPass account for each of your vehicles and then add each account as a separate integration in Home Assistant. This way you can use multiple vehicles in Home Assistant that does not have any influence on each other [my personal recommendation].
+1. **Use multiple FordPass™ accounts**: You can create a separate FordPass™ account for each of your vehicles and then add each account as a separate integration in Home Assistant. This way you can use multiple vehicles in Home Assistant that does not have any influence on each other [my personal recommendation].
 
 2. **Use different Regions**: If you have multiple vehicles, you can create for each of the vehicles a separate Region (and create a new access token per Region).
 
-3. **Have _only one_ vehicle _active_ in Home Assistant**: If you have multiple vehicles in your FordPass account, you can activate only use one of the vehicles at a time in Home Assistant. This means that you must first deactivate the current active vehicle in HA (deactivate the device) and then activate the new vehicle you want to use. This approach is quite similar to the way how FordPass App deals with multiple vehicles in your FordPass account, but probably that's not what you want.
+3. **Have _only one_ vehicle _active_ in Home Assistant**: If you have multiple vehicles in your FordPass™ account, you can activate only use one of the vehicles at a time in Home Assistant. This means that you must first deactivate the current active vehicle in HA (deactivate the device) and then activate the new vehicle you want to use. This approach is quite similar to the way how FordPass™ App deals with multiple vehicles in your FordPass™ account, but probably that's not what you want.
 
 
 ## Services
@@ -251,9 +251,9 @@ This service will contact the modem in the vehicle and request to sync data betw
 [^3]: There are four controls — one for each seat. Depending on your vehicle configuration you can select 'Heating Level I-III' and 'Cooling Level I-III' for each seat individually. Please note that not all vehicles support the full set of featured (e.g., only heating) and/or that there might be only the front seats available.
 [^4]: The 'Start charging' button will only work with supporting charging stations (wallboxes) - e.g., Ford Charge Station Pro (FCSP), and only if the vehicle is plugged in. If the vehicle is not plugged in, the button will be disabled.
 [^5]: Once the charging process has been started, the switch allows you to pause and unpause the charging process. It's not possible to actually start a charging session via this switch — you must use the _EV Start_-button for this! The switch will be toggled to `ON` when the vehicle is plugged in and the wallbox has started to charge the car. When you toggle the switch `OFF`, the charging process will be paused, and when you toggle it `ON` again, the charging process will resume.
-[^6]: In FordPass App you can create _Target Charge Locations_ — Based on the previous DC charging locations (this functionality was also new for me).<br/>
+[^6]: In FordPass™ App you can create _Target Charge Locations_ — Based on the previous DC charging locations (this functionality was also new for me).<br/>
    This integration will create up to three select entities — one for the first three of these locations. You can select the target charge level for each of these locations [some sort of strange option list: 50%, 60%, 70%, 80%, 85%, 90%, 95% & 100%]. The target charge level will be used when you start a charging session, e.g., via the _EV Start_-button.
-   If you don't have any target charge locations configured in FordPass, then this entity will not be available in Home Assistant.<br/>
+   If you don't have any target charge locations configured in FordPass™, then this entity will not be available in Home Assistant.<br/>
    The entities for the second and third 'charge locations select'-entities are disabled by default, but you can enable them in the integration.
 
 
@@ -273,7 +273,7 @@ logger:
 
 ### Additional considerations before reporting an issue
 
-If you miss entities or functionality, please check if there is any data available in the FordPass App. If there is no data available in the FordPass App, then there might be good reasons, why there is no data available for this integration either. Please be aware that not all vehicles support all features, so it's possible that some entities are not available for your vehicle.
+If you miss entities or functionality, please check if there is any data available in the FordPass™/The Lincoln Way™ App. If there is no data available in the FordPass™/The Lincoln Way™ App, then there might be good reasons, why there is no data available for this integration either. Please be aware that not all vehicles support all features, so it's possible that some entities are not available for your vehicle.
 
 You can enable the __Log API responses to local HA filesystem__ in the integration configuration. This will log all API responses to the local HA filesystem, which can be helpful for any data debugging purposes. The log files will be stored in the `.storage/fordpass/data_dumps` directory of your Home Assistant installation.
 
@@ -290,9 +290,9 @@ This might be a quite unusual request, but I would like to ask you to consider s
 
 It's correct that this implies that you are willing to share your vehicle data (like the location) with me and I would __fully understand if you are not willing to do so__. But at least it must be allowed to ask. Since I can't afford to buy another Ford vehicle (nor do I actually have the space), it would be great if I would be able to test (besides with my EV, also) PEV's, DIESEL and GAS vehicles with this integration.
 
-You can do this by adding my FordPass account to your existing vehicle as it's described here in the section [Use of a separate FordPass account is recommended](#use-of-a-separate-fordpass-account-is-recommended).
+You can do this by adding my FordPass™/The Lincoln Way™ account to your existing vehicle as it's described here in the section [Use of a separate FordPass account is recommended](#use-of-a-separate-fordpass-account-is-recommended).
 
-So if you are willing to help, please send me a short eMail and I will send you my FordPass account eMail address, so you can add me to your vehicle (and can accept your invite). You can end the sharing at any time by removing my account from your vehicle in your FordPass app.
+So if you are willing to help, please send me a short eMail and I will send you my FordPass™/The Lincoln Way™ account eMail address, so you can add me to your vehicle (and can accept your invite). You can end the sharing at any time by removing my account from your vehicle in your FordPass™/The Lincoln Way™ app.
 
 
 ## Supporting the development

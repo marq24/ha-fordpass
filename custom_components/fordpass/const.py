@@ -18,7 +18,9 @@ If you have any issues with this you need to open an issue here:
 -------------------------------------------------------------------
 """
 
+CONF_BRAND: Final = "brand"
 CONF_VIN: Final = "vin"
+
 CONF_PRESSURE_UNIT: Final = "pressure_unit"
 CONF_LOG_TO_FILESYSTEM: Final = "log_to_filesystem"
 COORDINATOR_KEY: Final = "coordinator"
@@ -30,8 +32,14 @@ DEFAULT_PRESSURE_UNIT: Final = "kPa"
 PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 
 # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3
-DEFAULT_REGION: Final = "rest_of_world"
-REGION_OPTIONS: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "bra", "arg", "can", "mex", "usa", "rest_of_world", "lincoln_usa"]
+BRAND_OPTIONS = ["ford", "lincoln"]
+
+DEFAULT_REGION_FORD: Final = "rest_of_world"
+REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+
+REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
+DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
+
 LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
 
 REGION_APP_IDS: Final = {

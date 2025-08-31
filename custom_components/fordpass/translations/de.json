@@ -2,6 +2,7 @@
     "selector": {
         "region": {
             "options": {
+                "aaa": "------ FORD Fahrzeuge ------",
                 "deu": "Deutschland",
                 "fra": "Frankreich",
                 "nld": "Niederlande",
@@ -17,13 +18,20 @@
                 "arg": "Argentinien [benötigt einen 'ford.com.ar/ford.com.br' Konto]",
                 "rest_of_europe": "Andere europäische Länder",
                 "rest_of_world": "Rest der Welt",
-                "lincoln_usa": "Lincoln USA"
+                "zzz": "------ LINCOLN Fahrzeuge ------",
+                "lincoln_usa": "Vereinigten Staaten von Amerika"
             }
         },
         "setup_type": {
             "options": {
-                "new_account": "Ein neues FordPass Konto (oder neue Region) hinzufügen",
-                "add_vehicle": "Ein weiteres Fahrzeug aus einem bestehenden FordPass Konto/Region hinzufügen"
+                "new_account": "Ein neues FordPass™/The Lincoln Way™ Konto (oder neue Region) hinzufügen",
+                "add_vehicle": "Ein weiteres Fahrzeug aus einem bestehenden FordPass™/The Lincoln Way™ Konto/Region hinzufügen"
+            }
+        },
+        "brand": {
+            "options": {
+                "ford": "Ford Fahrzeuge - FordPass™ App",
+                "lincoln": "Lincoln Fahrzeuge - The Lincoln Way™ App"
             }
         }
     },
@@ -33,7 +41,8 @@
             "no_vehicles": "Keine Fahrzeuge im Konto oder alle sind bereits konfiguriert",
             "reauth_successful": "Re-Autorisierung erfolgreich",
             "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut",
-            "no_filesystem_access": "Diese Integration benötigt Zugriff auf das lokale Dateisystem Deiner HomeAssistant Installation, um einen Schlüssel für Deinen FordPass Account speichern zu können.\n\nHierzu wird im in dem Ordner '.storage/' einen Unterordner anlegen. Dies ist jedoch derzeit nicht möglich. Ein interner Test ist fehlgeschlagen. Details hierzu findest Du im LOG Deiner Home Assistant Instanz.\n\nBitte stelle sicher, dass Du die Home Assistant Installation mit dem richtigen Benutzer ausführst, der Schreibzugriff auf das lokale Dateisystem hat.\n\nWenn Du Home Assistant in einem Docker-Container ausführst, stelle sicher, dass Du den Container mit dem richtigen Benutzer ausführst und dass der Container Zugriff auf das lokale Dateisystem hat.\n\nBitte prüfe Deine installation und starte die Einrichtung dieser Integration neu, sobald der Zugriff auf das lokale Dateisystem möglich ist."
+            "no_filesystem_access": "Diese Integration benötigt Zugriff auf das lokale Dateisystem Deiner HomeAssistant Installation, um einen Schlüssel für Deinen FordPass™/The Lincoln Way™ Account speichern zu können.\n\nHierzu wird im in dem Ordner '.storage/' einen Unterordner anlegen. Dies ist jedoch derzeit nicht möglich. Ein interner Test ist fehlgeschlagen. Details hierzu findest Du im LOG Deiner Home Assistant Instanz.\n\nBitte stelle sicher, dass Du die Home Assistant Installation mit dem richtigen Benutzer ausführst, der Schreibzugriff auf das lokale Dateisystem hat.\n\nWenn Du Home Assistant in einem Docker-Container ausführst, stelle sicher, dass Du den Container mit dem richtigen Benutzer ausführst und dass der Container Zugriff auf das lokale Dateisystem hat.\n\nBitte prüfe Deine installation und starte die Einrichtung dieser Integration neu, sobald der Zugriff auf das lokale Dateisystem möglich ist.",
+            "no_brand": "Kein Hersteller (Ford oder Lincoln) erkannt"
         },
         "error": {
             "cannot_connect": "Verbindungsfehler",
@@ -45,22 +54,22 @@
         },
         "step": {
             "user": {
-                "title": "Neues FordPass-Konto oder weiteres Fahrzeug hinzufügen",
-                "description": "Da Du schon mindestens ein FordPass-Konto konfiguriert hast, musst Du zunächst auswählen, ob Du ein weiteres Fahrzeug, oder neues Konto (oder eine neue Region) hinzufügen möchtest",
+                "title": "Neues FordPass™/The Lincoln Way™-Konto oder weiteres Fahrzeug hinzufügen",
+                "description": "Da Du schon mindestens ein FordPass™/The Lincoln Way™-Konto konfiguriert hast, musst Du zunächst auswählen, ob Du ein weiteres Fahrzeug, oder neues Konto (oder eine neue Region) hinzufügen möchtest",
                 "data": {
                     "setup_type": "Was möchtest Du tun?"
                 }
             },
             "select_account": {
-                "title": "FordPass-Konto auswählen",
-                "description": "Bitte wähle das FordPass-Konto, aus dem Du ein weiteres Fahrzeug hinzufügen möchtest.",
+                "title": "FordPass™/The Lincoln Way™-Konto auswählen",
+                "description": "Bitte wähle das FordPass™/The Lincoln Way™-Konto, aus dem Du ein weiteres Fahrzeug hinzufügen möchtest.",
                 "data": {
-                    "account": "FordPass Konto"
+                    "account": "FordPass™/The Lincoln Way™ Konto"
                 }
             },
             "token": {
                 "title": "Zugriffs-Token Einrichtung",
-                "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine FordPass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
+                "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine FordPass™/The Lincoln Way™-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
                 "data": {
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
@@ -68,23 +77,39 @@
             },
             "reauth_token": {
                 "title": "Erneute Autorisierung erforderlich",
-                "description": "Dein bisheriges Token ist ungültig (geworden) - Du musst also ein Neues angeben:\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\n\nBitte befolge die Schritte:\n1. Kopiere die URL aus dem oberen Feld\n2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweite Browserfenster ein\n3. Gibt Deine FordPass-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\n4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\n5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\n6. Klicke auf „OK“ um fortzufahren",
+                "description": "Dein bisheriges Token ist ungültig (geworden) - Du musst also ein Neues angeben:\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\n\nBitte befolge die Schritte:\n1. Kopiere die URL aus dem oberen Feld\n2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweite Browserfenster ein\n3. Gibt Deine FordPass™/The Lincoln Way™-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\n4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\n5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\n6. Klicke auf „OK“ um fortzufahren",
                 "data": {
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
                 }
             },
-            "new_account": {
-            "data": {
-              "password": "FordPass Passwort",
-              "username": "FordPass Username (Email)",
-              "region" : "FordPass Region"
+            "brand": {
+                "data": {
+                    "brand": "Wähle einen Hersteller aus"
+                }
             },
-            "data_description": {
-              "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
-              "region": "Die Region, die Du auswählst, muss mit der Region übereinstimmen, für die Du dein FordPass-Konto registriert hast. Weitere Details auf GitHub"
-            }
-          },
+            "new_account_ford": {
+                "data": {
+                    "password": "FordPass™ Passwort",
+                    "username": "FordPass™ Username (Email)",
+                    "region": "FordPass™ Region"
+                },
+                "data_description": {
+                    "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
+                    "region": "Die Region, die Du auswählst, muss mit der Region übereinstimmen, für die Du dein FordPass™-Konto registriert hast. Weitere Details auf GitHub"
+                }
+            },
+            "new_account_lincoln": {
+                  "data": {
+                      "password": "The Lincoln Way™ Passwort",
+                      "username": "The Lincoln Way™ Username (Email)",
+                      "region" : "The Lincoln Way™ Region"
+                  },
+                  "data_description": {
+                      "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
+                      "region": "Die Region, die Du auswählst, muss mit der Region übereinstimmen, für die Du dein The Lincoln Way™-Konto registriert hast. Weitere Details auf GitHub"
+                  }
+            },
             "vehicle": {
                 "title": "Zum Hinzufügen ein Fahrzeug auswählen",
                 "description": "Es werden nur Fahrzeuge angezeigt, die derzeit nicht hinzugefügt wurden",

@@ -23,13 +23,17 @@ from homeassistant.helpers.storage import STORAGE_DIR
 
 from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_PRESSURE_UNIT,
+    CONF_BRAND,
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
     DEFAULT_PRESSURE_UNIT,
     DOMAIN,
     PRESSURE_UNITS,
-    REGION_OPTIONS,
-    DEFAULT_REGION,
+    BRAND_OPTIONS,
+    REGION_OPTIONS_FORD,
+    REGION_OPTIONS_LINCOLN,
+    DEFAULT_REGION_FORD,
+    DEFAULT_REGION_LINCOLN,
     REGIONS,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT
@@ -76,7 +80,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
-    region_key = DEFAULT_REGION
+    region_key = DEFAULT_REGION_FORD
     username = None
     code_verifier = None
     cached_login_input = {}
@@ -85,7 +89,6 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     _vehicle_name = None
     _can_not_connect_reason = None
     _session: aiohttp.ClientSession | None = None
-
 
     @callback
     def configured_vehicles(self, hass: HomeAssistant) -> set[str]:
@@ -196,7 +199,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             if user_input.get(CONF_SETUP_TYPE) == NEW_ACCOUNT:
-                return await self.async_step_new_account()
+                return await self.async_step_brand()
             elif user_input.get(CONF_SETUP_TYPE) == ADD_VEHICLE:
                 return await self.async_step_select_account()
 
@@ -218,7 +221,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         else:
             # No existing accounts, go directly to new account setup
-            return await self.async_step_new_account()
+            return await self.async_step_brand()
 
 
     async def async_step_select_account(self, user_input=None):
@@ -275,24 +278,17 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.extract_vehicle_info_and_proceed_with_next_step(info)
 
 
-    async def async_step_new_account(self, user_input=None):
+    async def async_step_brand(self, user_input=None):
         errors = {}
         if user_input is not None:
-            try:
-                self.region_key = user_input[CONF_REGION]
-                self.username = user_input[CONF_USERNAME]
+            if user_input[CONF_BRAND] == "ford":
+                return await self.async_step_new_account_ford()
+            else:
+                return await self.async_step_new_account_lincoln()
 
-                return await self.async_step_token(None)
-            except CannotConnect as ex:
-                _LOGGER.debug(f"async_step_user {type(ex).__name__} - {ex}")
-                if self._can_not_connect_reason is not None:
-                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
-                else:
-                    errors["base"] = "cannot_connect - UNKNOWN REASON"
         else:
             user_input = {}
-            user_input[CONF_REGION] = DEFAULT_REGION
-            user_input[CONF_USERNAME] = ""
+            user_input[CONF_BRAND] = "ford"
 
         has_fs_write_access = await asyncio.get_running_loop().run_in_executor(None,
                                                                                ConnectedFordPassVehicle.check_general_fs_access,
@@ -301,21 +297,95 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_filesystem_access")
         else:
             return self.async_show_form(
-                step_id="new_account",
-                data_schema=vol.Schema(
-                    {
-                        vol.Required(CONF_USERNAME, default=""): str,
-                        vol.Required(CONF_REGION, default=DEFAULT_REGION):
-                            selector.SelectSelector(
-                                selector.SelectSelectorConfig(
-                                    options=REGION_OPTIONS,
-                                    mode=selector.SelectSelectorMode.DROPDOWN,
-                                    translation_key=CONF_REGION,
-                                )
+                step_id="brand",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_BRAND, default="ford"):
+                        selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=BRAND_OPTIONS,
+                                mode=selector.SelectSelectorMode.LIST,
+                                translation_key=CONF_BRAND,
                             )
-                    }
-                ), errors=errors
+                        )
+                }), errors=errors
             )
+
+
+    async def async_step_new_account_ford(self, user_input=None):
+        account_data = {"default": DEFAULT_REGION_FORD,
+                        "options": REGION_OPTIONS_FORD,
+                        "step_id": "new_account_ford"}
+        errors = {}
+        if user_input is not None:
+            try:
+                self.region_key = user_input[CONF_REGION]
+                self.username = user_input[CONF_USERNAME]
+                return await self.async_step_token(None)
+
+            except CannotConnect as ex:
+                _LOGGER.debug(f"async_step_new_account_ford {type(ex).__name__} - {ex}")
+                if self._can_not_connect_reason is not None:
+                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
+                else:
+                    errors["base"] = "cannot_connect - UNKNOWN REASON"
+        else:
+            user_input = {}
+            user_input[CONF_REGION] = account_data["default"]
+            user_input[CONF_USERNAME] = ""
+
+        return self.async_show_form(
+            step_id=account_data["step_id"],
+            data_schema=vol.Schema({
+                vol.Required(CONF_USERNAME, default=""): str,
+                vol.Required(CONF_REGION, default=account_data["default"]):
+                    selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=account_data["options"],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key=CONF_REGION,
+                        )
+                    )
+            }), errors=errors
+        )
+
+
+    async def async_step_new_account_lincoln(self, user_input=None):
+        account_data = {"default": DEFAULT_REGION_LINCOLN,
+                        "options": REGION_OPTIONS_LINCOLN,
+                        "step_id": "new_account_lincoln"}
+        errors = {}
+        if user_input is not None:
+            try:
+                self.region_key = user_input[CONF_REGION]
+                self.username = user_input[CONF_USERNAME]
+                return await self.async_step_token(None)
+
+            except CannotConnect as ex:
+                _LOGGER.debug(f"async_step_new_account_lincoln {type(ex).__name__} - {ex}")
+                if self._can_not_connect_reason is not None:
+                    errors["base"] = f"cannot_connect - '{self._can_not_connect_reason}'"
+                else:
+                    errors["base"] = "cannot_connect - UNKNOWN REASON"
+        else:
+            user_input = {}
+            user_input[CONF_REGION] = account_data["default"]
+            user_input[CONF_USERNAME] = ""
+
+        return self.async_show_form(
+            step_id=account_data["step_id"],
+            data_schema=vol.Schema({
+                vol.Required(CONF_USERNAME, default=""): str,
+                vol.Required(CONF_REGION, default=account_data["default"]):
+                    selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=account_data["options"],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key=CONF_REGION,
+                        )
+                    )
+            }), errors=errors
+        )
+
 
     async def async_step_token(self, user_input=None):
         errors = {}
@@ -363,6 +433,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.error("No region_key set - FATAL ERROR")
             raise ConfigError(f"No region_key set - FATAL ERROR")
 
+
     async def extract_vehicle_info_and_proceed_with_next_step(self, info):
         if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
             self._vehicles = info["userVehicles"]["vehicleDetails"]
@@ -394,7 +465,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def generate_url(self, region_key):
         if region_key not in REGIONS:
             _LOGGER.error(f"generate_url(): Invalid region_key: {region_key}")
-            region_key = DEFAULT_REGION
+            region_key = DEFAULT_REGION_FORD
         _LOGGER.debug(f"generate_url(): selected REGIONS object: {REGIONS[region_key]}")
         self.code_verifier = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
         hashed_code_verifier = self.generate_hash(self.code_verifier)

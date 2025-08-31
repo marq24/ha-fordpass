@@ -27,7 +27,7 @@ from custom_components.fordpass.const import (
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
     DEFAULT_PRESSURE_UNIT,
-    DEFAULT_REGION,
+    DEFAULT_REGION_FORD,
     DOMAIN,
     MANUFACTURER,
     UPDATE_INTERVAL,
@@ -78,8 +78,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.debug(f"[@{vin}] Region: {config_entry.data[CONF_REGION]}")
         region_key = config_entry.data[CONF_REGION]
     else:
-        _LOGGER.debug(f"[@{vin}] cant get region for key: {CONF_REGION} in {config_entry.data.keys()} using default: '{DEFAULT_REGION}'")
-        region_key = DEFAULT_REGION
+        _LOGGER.debug(f"[@{vin}] cant get region for key: {CONF_REGION} in {config_entry.data.keys()} using default: '{DEFAULT_REGION_FORD}'")
+        region_key = DEFAULT_REGION_FORD
 
     # this should not be required... but to be as compatible as possible with existing installations
     # if there is a user out there who has initially set the region to "UK&Europe", we must patch the region key
