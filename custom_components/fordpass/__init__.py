@@ -29,7 +29,9 @@ from custom_components.fordpass.const import (
     DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION_FORD,
     DOMAIN,
-    MANUFACTURER,
+    MANUFACTURER_FORD,
+    MANUFACTURER_LINCOLN,
+    REGION_OPTIONS_LINCOLN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
     COORDINATOR_KEY,
@@ -249,6 +251,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._available = True
         self._reauth_requested = False
+        self._is_brand_lincoln = region_key in REGION_OPTIONS_LINCOLN
         self._engine_type = None
         self._number_of_lighting_zones = 0
         self._supports_GUARD_MODE = None
@@ -620,7 +623,7 @@ class FordPassEntity(CoordinatorEntity):
             "identifiers": {(DOMAIN, self.coordinator._vin)},
             "name": f"VIN: {self.coordinator._vin}",
             "model": f"{model}",
-            "manufacturer": MANUFACTURER,
+            "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD
         }
 
     def _friendly_name_internal(self) -> str | None:

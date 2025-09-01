@@ -7,7 +7,8 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN: Final = "fordpass"
 NAME: Final = "Fordpass integration for Home Assistant [optimized for EV's & EVCC]"
 ISSUE_URL: Final = "https://github.com/marq24/ha-fordpass/issues"
-MANUFACTURER: Final = "Ford Motor Company"
+MANUFACTURER_FORD: Final = "Ford Motor Company"
+MANUFACTURER_LINCOLN: Final = "Lincoln Motor Company"
 
 STARTUP_MESSAGE: Final = f"""
 -------------------------------------------------------------------

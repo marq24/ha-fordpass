@@ -1,4 +1,5 @@
 # FordPass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)
+## Supporting all Ford vehicles with FordPass™ & Lincoln vehicles with The Lincoln Way™ connectivity
 
 <!--
 > [!NOTE]  
@@ -37,7 +38,7 @@
 > 
 > Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
 > 
-> It's recommended to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
+> **It's recommended** to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
 
 
 > [!IMPORTANT]
@@ -78,8 +79,8 @@
 1. In HA HACS, you need to add a new custom repository (via the 'three dots' menu in the top right corner).
 2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
 3. After adding the new repository, you can search for `fordpass` in the search bar.
-4. Important there is already a default HACS fordpass integration — Please make sure to select the 'correct' one with the description: _FordPass integration for Home Assistant [fork optimized for EV's & EVCC]_.
-5. Install the 'correct' (aka 'this') fordpass integration (v2025.5.0 or higher).
+4. Important there is already a default HACS fordpass integration — Please make sure to select the 'correct' one with the description: _FordPass integration for Home Assistant - support for Ford & Lincoln vehicles [optimized for EV's & EVCC]_.
+5. Install the 'correct' (aka 'this') fordpass integration (v2025.9.0 or higher).
 6. Restart HA.
 
 ### Step 2. Setup the Integration
@@ -144,7 +145,7 @@ So do not expect that the charging control will work with all charging stations.
 > [!TIP]
 > It's recommended to use a separate FordPass™/The Lincoln Way™ account for this integration. This is to prevent any issues with the FordPass™/The Lincoln Way™ account being locked due to the polling of the API.
 
-Here is a short procedure how to create and connect a second account:
+Here is a short procedure how to create and connect a second account (for FordPass™):
 
 1. Create a new FordPass™ account (via the regular Ford website) with a different email address (and confirm this account by eMail). All this can be done via a regular web browser.<br/>__It's important, that you can access this eMail account from your mobile phone where the FordPass™ App is installed__ (we need this in step 6).
 2. On a mobile Device: Open the FordPass™ app (logged in with your original account), then you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
