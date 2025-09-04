@@ -1,15 +1,16 @@
 """All vehicle sensors from the accessible by the API"""
 import logging
+from dataclasses import replace
 from numbers import Number
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, RestoreStateData
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
-from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription
+from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,6 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
 
     def __init__(self, coordinator:FordPassDataUpdateCoordinator, entity_description:ExtSensorEntityDescription):
+        # make sure that we set the device class for battery sensors [see #89]
+        if (coordinator.supportPureEvOrPluginEv and entity_description.tag == Tag.SOC) or (not coordinator.supportPureEvOrPluginEv and entity_description.tag == Tag.BATTERY):
+            entity_description = replace(
+                entity_description,
+                device_class = SensorDeviceClass.BATTERY
+            )
         super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
     @property
