@@ -233,7 +233,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 # Temporarily removed due to Ford backend API changes
                 # data["guardstatus"] = await self.vehicle.guardStatus()
 
-                data["messages"] = await self.vehicle.messages()
+                #data["messages"] = await self.vehicle.messages()
                 data["vehicles"] = await self.vehicle.vehicles()
                 _LOGGER.debug(data)
                 # If data has now been fetched but was previously unavailable, log and reset
