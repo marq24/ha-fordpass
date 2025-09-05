@@ -1,4 +1,6 @@
 ## **Changelog**
+### Version 1.80 Beta 4
+- Disabled messages until I can look at the new API endpoint
 ### Version 1.80 (WIP only update if you like living on the edge!)
 - Token storage moved to HA stores (BREAKING CHANGE!! will require reauth)
 - Ability to add other vehicles from account without reauthenticating
