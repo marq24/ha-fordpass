@@ -59,7 +59,7 @@ SENSORS = {
     # },
     "remoteStartStatus": {"icon": "mdi:remote", "api_key": "remoteStartCountdownTimer"},
     # "zoneLighting": {"icon": "mdi:spotlight-beam"},
-    "messages": {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "sensor_type": "single"},
+    #"messages": {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "sensor_type": "single"},
     "dieselSystemStatus": {"icon": "mdi:smoking-pipe", "api_key": "dieselExhaustFilterStatus"},
     "exhaustFluidLevel": {"icon": "mdi:barrel", "api_key": "dieselExhaustFluidLevel", "measurement": "%"},
     # Debug Sensors (Disabled by default)
