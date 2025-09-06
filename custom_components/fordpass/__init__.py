@@ -390,7 +390,13 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self.data.clear()
 
     @property
+    def has_ev_soc(self) -> bool:
+        return self._engine_type is not None and self._engine_type in ["BEV", "PHEV"]
+
+    @property
     def supportPureEvOrPluginEv(self) -> bool:
+        # looks like that 'HEV' are just have an additional 48V battery getting energy from breaking...
+        # and also looks like that there is no special EV related data present in state object (json)
         return self._engine_type is not None and self._engine_type in ["BEV", "HEV", "PHEV"]
 
     @property
