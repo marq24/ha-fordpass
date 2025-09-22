@@ -36,7 +36,7 @@ PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 BRAND_OPTIONS = ["ford", "lincoln"]
 
 DEFAULT_REGION_FORD: Final = "rest_of_world"
-REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
 
 REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
 DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
@@ -164,6 +164,14 @@ REGIONS: Final = {
         "locale": "en-NZ",
         "locale_url": "https://login.ford.com",
         "countrycode": "NZL"
+    },
+
+    # NEED AN www.ford.co.za registered account!!!
+    "zaf": {
+        "app_id": REGION_APP_IDS["africa"],
+        "locale": "en-ZA",
+        "locale_url": "https://login.ford.com",
+        "countrycode": "ZAF"
     },
 
     # we use the 'usa' as the default region...,
