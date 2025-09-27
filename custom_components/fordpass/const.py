@@ -24,6 +24,7 @@ CONF_VIN: Final = "vin"
 
 CONF_PRESSURE_UNIT: Final = "pressure_unit"
 CONF_LOG_TO_FILESYSTEM: Final = "log_to_filesystem"
+CONF_FORCE_REMOTE_CLIMATE_CONTROL: Final = "force_remote_climate_control"
 COORDINATOR_KEY: Final = "coordinator"
 
 UPDATE_INTERVAL: Final = "update_interval"

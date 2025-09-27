@@ -134,9 +134,11 @@
                     "pressure_unit": "Maßeinheit für Druck",
                     "distance_unit": "Maßeinheit für Entfernung",
                     "update_interval": "Aktualisierungsintervall FordPass-API (Sekunden)",
+                    "force_remote_climate_control": "Die Optionen der Klima Fernsteuerung (❄|☀) [RemoteControl] sollen immer verfügbar sein",
                     "log_to_filesystem": "Protokolliere API-Antworten im im lokalen HA Dateisystem"
                 },
                 "data_description": {
+                    "force_remote_climate_control": "Wenn Du diese Option aktivierts, werden die von Ford vorgegebenen Einstellungen ignoriert.",
                     "log_to_filesystem": "Diese Option sollte nicht über einen längern Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/fordpass/data_dumps'"
                 },
                 "description": "Optionen konfigurieren"

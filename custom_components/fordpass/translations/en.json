@@ -135,9 +135,11 @@
                     "distance_unit": "Unit of Distance",
                     "distance_conversion": "Disable distance conversion",
                     "update_interval": "Interval to poll FordPass API (Seconds)",
+                    "force_remote_climate_control": "The remote climate (❄|☀) control options should always be available",
                     "log_to_filesystem": "Log API responses to local HA filesystem"
                 },
                 "data_description": {
+                    "force_remote_climate_control": "If you activate this option, the setting specified by Ford will be ignored.",
                     "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/fordpass/data_dumps'"
                 },
                 "description": "Configure fordpass options"

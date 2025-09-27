@@ -196,14 +196,16 @@ class ConnectedFordPassVehicle:
         self._is_reauth_required = False
         self.status_updates_allowed = True
 
+        self.coordinator = coordinator
         # our main data container that holds all data that have been fetched from the vehicle
         self._data_container = {}
+
+        self._vehicle_options_init_complete = False
         self._cached_vehicles_data = {}
         self._remote_climate_control_supported = None
         self._cached_rcc_data = {}
         self._preferred_charge_times_supported = None
         self._cached_pct_data = {}
-        self.coordinator = coordinator
 
         # websocket connection related variables
         self._ws_debounced_update_task = None
@@ -1157,17 +1159,31 @@ class ConnectedFordPassVehicle:
             if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
                 data[ROOT_VEHICLES] = self._cached_vehicles_data
 
-                # we must check if the vehicle supports 'remote climate control'...
-                if self._remote_climate_control_supported is None and "vehicleProfile" in self._cached_vehicles_data:
-                    for a_vehicle_profile in self._cached_vehicles_data["vehicleProfile"]:
-                        if a_vehicle_profile["VIN"] == self.vin:
-                            if "remoteClimateControl" in a_vehicle_profile:
-                                self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
+                if not self._vehicle_options_init_complete:
+                    if "vehicleProfile" in self._cached_vehicles_data:
+                        for a_vehicle_profile in self._cached_vehicles_data["vehicleProfile"]:
+                            if a_vehicle_profile["VIN"] == self.vin:
 
-                            if "showEVBatteryLevel" in a_vehicle_profile:
-                                self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
+                                # we must check if the vehicle supports 'remote climate control'...
+                                if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
+                                    self._remote_climate_control_supported = True
+                                else:
+                                    if "remoteClimateControl" in a_vehicle_profile:
+                                        self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
+                                    elif "remoteHeatingCooling" in a_vehicle_profile:
+                                        self._remote_climate_control_supported = a_vehicle_profile["remoteHeatingCooling"]
+                                    else:
+                                        self._remote_climate_control_supported = False
 
-                            break
+                                if "showEVBatteryLevel" in a_vehicle_profile:
+                                    self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
+                                else:
+                                    self._preferred_charge_times_supported = False
+
+                                # ok record that we do not read the vehicle profile data again - since the init for this
+                                # VIN is completed...
+                                self._vehicle_options_init_complete = True
+                                break
 
             # only update remote climate data if not present yet
             if self._remote_climate_control_supported:

@@ -26,6 +26,7 @@ from custom_components.fordpass.const import (
     CONF_PRESSURE_UNIT,
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
+    CONF_FORCE_REMOTE_CLIMATE_CONTROL,
     DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION_FORD,
     DOMAIN,
@@ -73,8 +74,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         update_interval_as_int = UPDATE_INTERVAL_DEFAULT
     _LOGGER.debug(f"[@{vin}] Update interval: {update_interval_as_int}")
 
-    for config_emtry_data in config_entry.data:
-        _LOGGER.debug(f"[@{vin}] config_entry.data: {config_emtry_data}")
+    for config_entry_data in config_entry.data:
+        _LOGGER.debug(f"[@{vin}] config_entry.data: {config_entry_data}")
 
     if CONF_REGION in config_entry.data.keys():
         _LOGGER.debug(f"[@{vin}] Region: {config_entry.data[CONF_REGION]}")
@@ -260,6 +261,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_ALARM = None
         self._supports_GEARLEVERPOSITION = None
         self._supports_AUTO_UPDATES = None
+        self._force_REMOTE_CLIMATE_CONTROL = config_entry.options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False)
         self._supports_REMOTE_CLIMATE_CONTROL = None
         self._supports_HEATED_STEERING_WHEEL = None
         self._supports_HEATED_HEATED_SEAT_MODE = None
@@ -431,9 +433,16 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 _LOGGER.debug(f"{self.vli}GearLeverPosition support: {self._supports_GEARLEVERPOSITION}")
 
                             # remote climate control stuff...
-                            if "remoteClimateControl" in a_vehicle_profile:
-                                self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
-                                _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
+                            if self._force_REMOTE_CLIMATE_CONTROL:
+                                self._supports_REMOTE_CLIMATE_CONTROL = True
+                                _LOGGER.debug(f"{self.vli}RemoteClimateControl FORCED: {self._supports_REMOTE_CLIMATE_CONTROL}")
+                            else:
+                                if "remoteClimateControl" in a_vehicle_profile:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
+                                    _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
+                                elif "remoteHeatingCooling" in a_vehicle_profile:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteHeatingCooling"]
+                                    _LOGGER.debug(f"{self.vli}RemoteClimateControl/remoteHeatingCooling support: {self._supports_REMOTE_CLIMATE_CONTROL}")
 
                             if "heatedSteeringWheel" in a_vehicle_profile:
                                 self._supports_HEATED_STEERING_WHEEL = a_vehicle_profile["heatedSteeringWheel"]

@@ -26,6 +26,7 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_BRAND,
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
+    CONF_FORCE_REMOTE_CLIMATE_CONTROL,
     DEFAULT_PRESSURE_UNIT,
     DOMAIN,
     PRESSURE_UNITS,
@@ -670,6 +671,8 @@ class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
         options = {
             vol.Optional(CONF_PRESSURE_UNIT,
                          default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
+            vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL,
+                         default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
             vol.Optional(CONF_LOG_TO_FILESYSTEM,
                          default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
             vol.Optional(UPDATE_INTERVAL,
