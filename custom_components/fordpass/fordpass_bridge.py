@@ -203,6 +203,7 @@ class ConnectedFordPassVehicle:
         self._vehicle_options_init_complete = False
         self._cached_vehicles_data = {}
         self._remote_climate_control_supported = None
+        self._remote_climate_control_forced = None
         self._cached_rcc_data = {}
         self._preferred_charge_times_supported = None
         self._cached_pct_data = {}
@@ -1167,7 +1168,9 @@ class ConnectedFordPassVehicle:
                                 # we must check if the vehicle supports 'remote climate control'...
                                 if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
                                     self._remote_climate_control_supported = True
+                                    self._remote_climate_control_forced = True
                                 else:
+                                    self._remote_climate_control_forced = False
                                     if "remoteClimateControl" in a_vehicle_profile:
                                         self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
                                     elif "remoteHeatingCooling" in a_vehicle_profile:
@@ -1475,20 +1478,21 @@ class ConnectedFordPassVehicle:
 
                 result_rcc = await response_rcc.json()
 
-                # check if there is a 'profile' in the result... and if not, we will create a default one!
-                # profiles_obj = result_rcc.get("rccUserProfiles", [])
-                # if len(profiles_obj) == 0:
-                #     _LOGGER.info(f"{self.vli}req_remote_climate(): creating a default 'remote climate control' profile for vehicle")
-                #     result_rcc["rccUserProfiles"] = [
-                #         {"preferenceType": "RccHeatedWindshield_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "RccRearDefrost_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "RccHeatedSteeringWheel_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "RccLeftFrontClimateSeat_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "RccLeftRearClimateSeat_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "RccRightFrontClimateSeat_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "RccRightRearClimateSeat_Rq", "preferenceValue": "Off"},
-                #         {"preferenceType": "SetPointTemp_Rq", "preferenceValue": "24_0"}
-                #     ]
+                if self._remote_climate_control_forced:
+                    # check if there is a 'profile' in the result... and if not, we will create a default one!
+                    profiles_obj = result_rcc.get("rccUserProfiles", [])
+                    if len(profiles_obj) == 0:
+                        _LOGGER.info(f"{self.vli}req_remote_climate(): creating a default 'remote climate control' profile for the vehicle")
+                        result_rcc["rccUserProfiles"] = [
+                            {"preferenceType": "RccHeatedWindshield_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "RccRearDefrost_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "RccHeatedSteeringWheel_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "RccLeftFrontClimateSeat_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "RccLeftRearClimateSeat_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "RccRightFrontClimateSeat_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "RccRightRearClimateSeat_Rq", "preferenceValue": "Off"},
+                            {"preferenceType": "SetPointTemp_Rq", "preferenceValue": "22_0"}
+                        ]
 
                 if self._LOCAL_LOGGING:
                     await self._local_logging("rcc", result_rcc)
