@@ -11,7 +11,7 @@ from asyncio import CancelledError
 from datetime import datetime, timezone
 from numbers import Number
 from pathlib import Path
-from typing import Final
+from typing import Final, Iterable
 
 import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
@@ -1479,20 +1479,23 @@ class ConnectedFordPassVehicle:
                 result_rcc = await response_rcc.json()
 
                 if self._remote_climate_control_forced:
-                    # check if there is a 'profile' in the result... and if not, we will create a default one!
-                    profiles_obj = result_rcc.get("rccUserProfiles", [])
-                    if len(profiles_obj) == 0:
-                        _LOGGER.info(f"{self.vli}req_remote_climate(): creating a default 'remote climate control' profile for the vehicle")
-                        result_rcc["rccUserProfiles"] = [
-                            {"preferenceType": "RccHeatedWindshield_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "RccRearDefrost_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "RccHeatedSteeringWheel_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "RccLeftFrontClimateSeat_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "RccLeftRearClimateSeat_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "RccRightFrontClimateSeat_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "RccRightRearClimateSeat_Rq", "preferenceValue": "Off"},
-                            {"preferenceType": "SetPointTemp_Rq", "preferenceValue": "22_0"}
-                        ]
+                    try:
+                        # check if there is a 'profile' in the result... and if not, we will create a default one!
+                        a_profiles_obj = result_rcc.get("rccUserProfiles", [])
+                        if a_profiles_obj is None or not isinstance(a_profiles_obj, Iterable) or len(a_profiles_obj) == 0:
+                            _LOGGER.info(f"{self.vli}req_remote_climate(): creating a default 'remote climate control' profile for the vehicle")
+                            result_rcc["rccUserProfiles"] = [
+                                {"preferenceType": "RccHeatedWindshield_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "RccRearDefrost_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "RccHeatedSteeringWheel_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "RccLeftFrontClimateSeat_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "RccLeftRearClimateSeat_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "RccRightFrontClimateSeat_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "RccRightRearClimateSeat_Rq", "preferenceValue": "Off"},
+                                {"preferenceType": "SetPointTemp_Rq", "preferenceValue": "22_0"}
+                            ]
+                    except BaseException as e:
+                        _LOGGER.info(f"{self.vli}req_remote_climate(): Error while check for empty 'rccUserProfiles' for vehicle {self.vin} - {type(e).__name__} - {e}")
 
                 if self._LOCAL_LOGGING:
                     await self._local_logging("rcc", result_rcc)
