@@ -39,12 +39,12 @@ class FordpassButton(FordPassEntity, ButtonEntity):
     def available(self):
         """Return True if entity is available."""
         state = super().available
-        if self._tag == Tag.DOOR_LOCK:
-            # Update Data button is always available
-            return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED"
-        elif self._tag == Tag.DOOR_UNLOCK:
-            return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "DISARMED"
-        elif self._tag in [Tag.EV_START, Tag.EV_CANCEL, Tag.EV_PAUSE]:
+        if self._tag in [Tag.EV_START, Tag.EV_CANCEL, Tag.EV_PAUSE]:
             return state and Tag.EVCC_STATUS.get_state(self.coordinator.data) in ["B", "C"]
+
+        # elif self._tag == Tag.DOOR_LOCK:
+        #     return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED"
+        # elif self._tag == Tag.DOOR_UNLOCK:
+        #     return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "DISARMED"
 
         return state
