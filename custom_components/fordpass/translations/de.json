@@ -56,9 +56,12 @@
         "step": {
             "user": {
                 "title": "Neues FordPass™/The Lincoln Way™-Konto oder weiteres Fahrzeug hinzufügen",
-                "description": "Da Du schon mindestens ein FordPass™/The Lincoln Way™-Konto konfiguriert hast, musst Du zunächst auswählen, ob Du ein weiteres Fahrzeug, oder neues Konto (oder eine neue Region) hinzufügen möchtest",
+                "description": "Da Du schon mindestens ein FordPass™/The Lincoln Way™-Konto konfiguriert hast, musst Du zunächst auswählen, ob Du ein weiteres Fahrzeug, oder neues Konto (oder eine neue Region) hinzufügen möchtest.\n-- --\n### Wichtige Informationen bei mehr als einem Fahrzeug\n\nWenn Du __mehrere__ Fahrzeuge in Deinem FordPass™/The Lincoln Way™-Konto registriert hast, musst Du auch in der FordPass™/The Lincoln Way™-App zunächst das gewünschte Fahrzeug auswählen, bevor Du auf die Daten oder Funktionen des Fahrzeugs zugreifen kannst. __Dieselbe Einschränkung gilt__ auch für diese Home Assistant-Integration.\n\nDer Hauptgrund für diese Einschränkung ist die Tatsache, dass die FordPass™-App und diese Integration eine WebSocket-Verbindung zum Ford-Backend nutzen, die jeweils an ein einzelnes Fahrzeug gebunden ist.\n\nAlle Details findest Du unter: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#multi-vehicle-support",
                 "data": {
                     "setup_type": "Was möchtest Du tun?"
+                },
+                "data_description": {
+                    "setup_type": "Wenn Du mit demselben Account ein zweites Fahrzeug einrichtest, darf immer nur eines der beiden im HA aktiv sein – sonst überschreiben sich die Access-Token gegenseitig"
                 }
             },
             "select_account": {
@@ -66,6 +69,9 @@
                 "description": "Bitte wähle das FordPass™/The Lincoln Way™-Konto, aus dem Du ein weiteres Fahrzeug hinzufügen möchtest.",
                 "data": {
                     "account": "FordPass™/The Lincoln Way™ Konto"
+                },
+                "data_description": {
+                    "account": "Wenn Du mit demselben Account ein zweites Fahrzeug einrichtest, darf immer nur eines der beiden im HA aktiv sein – sonst überschreiben sich die Access-Token gegenseitig"
                 }
             },
             "token": {

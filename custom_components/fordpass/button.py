@@ -19,6 +19,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_
 
     for a_entity_description in BUTTONS:
         a_entity_description: ExtButtonEntityDescription
+
+        if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
+            _LOGGER.debug(f"{coordinator.vli}BUTTON '{a_entity_description.tag}' not supported for this engine-type/vehicle")
+            continue
+
         button = FordpassButton(coordinator, a_entity_description)
         entities.append(button)
 

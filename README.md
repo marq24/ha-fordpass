@@ -17,6 +17,23 @@
 > [!CAUTION]
 > Negative potential consequences of an action.
 -->
+
+[![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
+
+> [!WARNING]
+> ## General Disclaimer
+> **This integration is not officially supported by Ford, and as such, using this integration could have unexpected/unwanted results.**
+>
+> Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**! [ _I am not affiliated with Ford in any way._]
+>
+> ## FordPass™/The Lincoln Way™ Account Disclaimer 
+> **The use of this HA integration could lead to a (temporary) lock of your FordPass™/The Lincoln Way™ account.**
+> Since this integration is not officially supported by Ford, using it could result in your being locked out! from your account.
+>
+> **It's recommended** to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
+
+---
+
 > [!NOTE]
 > Even if this integration was initially forked from [@itchannel and @SquidBytes](https://github.com/itchannel/fordpass-ha), the current version is a complete rewrite and is __not compatible__ with the __original FordPass integration__.
 > 
@@ -26,20 +43,12 @@
 > 
 > It would be quite gentle if you could consider supporting the development of this integration by any kind of contribution — TIA
 
-[![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
+---
 
 > [!NOTE]
 > My main motivation comes from the fact that I own a Ford Mustang Mach-E 2023, and I wanted to have a Home Assistant integration that just works with my car. I will focus on the features that are available for electrical vehicles, but of course I will try not to mess up the features for petrol or diesel vehicles. [If you like to support me with this challange: Please see also the _I need you_ section](https://github.com/marq24/ha-fordpass#i-need-you)
 
-
-> [!WARNING]
-> ## Disclaimer — The use of this HA integration could lead to a (temporary) lock of your FordPass™/The Lincoln Way™ account.
-> **This integration is not officially supported by Ford, and as such, using this integration could result in your account being locked out!** 
-> 
-> Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**!
-> 
-> **It's recommended** to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
-
+---
 
 > [!IMPORTANT]
 > ## Unusual Integration Setup 

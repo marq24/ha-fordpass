@@ -56,9 +56,12 @@
         "step": {
             "user": {
                 "title": "Add new FordPass™/The Lincoln Way™ account or vehicle",
-                "description": "Since you have already configured at least one FordPass™/The Lincoln Way™ account, you must first select whether you want to add another vehicle or a new account (or region).",
+                "description": "Since you have already configured at least one FordPass™/The Lincoln Way™ account, you must first select whether you want to add another vehicle or a new account (or region).\n-- --\n### Important information concerning Multi-Vehicle Support\n\nWhen you have __multiple__ vehicles registered in your FordPass™/The Lincoln Way™ account, then in the FordPass™/The Lincoln Way™ App you must first select the vehicle you want to use, before you can access any data or functionality of this vehicle. __The same limitation is also true__ for this Home Assistant integration.\n\nThe main reason for this restriction is the fact, that the FordPass™ App and this integration makes use of a websocket connection to the Ford backend, which is some sort of bound to a single vehicle at a time.\n\nYou will find all details here: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#multi-vehicle-support",
                 "data": {
                     "setup_type": "What do you want to do?"
+                },
+                "data_description": {
+                    "setup_type": "If you set up a second vehicle with the same account, only one of the two may be active in HA at any one time - otherwise the access tokens will overwrite each other"
                 }
             },
             "select_account": {
@@ -66,6 +69,9 @@
                 "description": "Please select the FordPass™/The Lincoln Way™ account from which you want to add another vehicle.",
                 "data": {
                     "account": "FordPass™/The Lincoln Way™ account"
+                },
+                "data_description": {
+                    "account": "If you set up a second vehicle with the same account, only one of the two may be active in HA at any one time - otherwise the access tokens will overwrite each other"
                 }
             },
             "token": {
