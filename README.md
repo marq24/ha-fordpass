@@ -1,13 +1,20 @@
-# IMPORTANT 2025/10/22 - Integration Setup does NOT WORK ANYLONGER
-
-I am sorry to let you know, that Ford have changed once again the initial login procedure to receive a inital ACCESS-Token for a Ford vehcile. This means, that NEW users currently can't setup this integration - since the complete Setup will NOT work.
-
-This was just a question of time, when this will happening - but we will see, IF and WHEN it's possible again to dig a new tunnel though the Ford backends :-/ 
-
-If you have currently your integration configured, then you might be lucky and this will continue to work... *sigh* - I'll keep you update.
-
 # FordPass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)
 ## Supporting all Ford vehicles with FordPass™ & Lincoln vehicles with The Lincoln Way™ connectivity
+
+> [!IMPORTANT]  
+> ## New Users: You need version 2025.10.2 or later!
+> When you want to initially setup this integration you must use the latest version (2025.10.2 or later) - in any other case you will get no response from the Ford backend, when the integration trying to fetch the access_token ([see Issue #107](https://github.com/marq24/ha-fordpass/issues/107)).
+
+
+<!--
+# IMPORTANT 2025/10/22 - Integration Setup does NOT WORK ANYLONGER
+
+I am sorry to let you know, that Ford have changed once again the initial login procedure to receive a initial ACCESS-Token for a Ford vehicle. This means, that NEW users currently can't setup this integration - since the complete Setup will NOT work.
+
+This was just a question of time, when this will happen - but we will see, IF and WHEN it's possible again to dig a new tunnel though the Ford backends :-/
+
+If you have currently your integration configured, then you might be lucky and this will continue to work... *sigh* - I'll keep you update.
+-->
 
 <!--
 > [!NOTE]  

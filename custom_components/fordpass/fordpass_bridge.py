@@ -46,11 +46,22 @@ apiHeaders = {
     "Content-Type": "application/json",
 }
 
+# with this 'old' headers the request to get the final token is not working any longer
+# reported 22 October 2025
 loginHeaders = {
     "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Language": "en-US,en;q=0.5",
     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
     "Accept-Encoding": "gzip, deflate, br",
+}
+
+# Kudos to Rik for providing this info
+loginHeadersOct2025 = {
+    "Accept-Encoding": "gzip",
+    "Connection": "Keep-Alive",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "User-Agent": "okhttp/4.12",
+    #"Host": "login.ford.com" # looks like that this info is not required (which makes my live easier)
 }
 
 MAX_401_RESPONSE_COUNT: Final = 10
@@ -272,14 +283,16 @@ class ConnectedFordPassVehicle:
         code_new = urlstring.replace(f"{redirect_schema}://userauthorized/?code=", "")
 
         headers = {
-            **loginHeaders,
+            **loginHeadersOct2025,
         }
         data = {
             "client_id": "09852200-05fd-41f6-8c21-d36d3497dc64",
+            "scope": "09852200-05fd-41f6-8c21-d36d3497dc64 openid",
+            "redirect_uri": f"{redirect_schema}://userauthorized",
             "grant_type": "authorization_code",
-            "code_verifier": code_verifier,
+            "resource" : "",
             "code": code_new,
-            "redirect_uri": f"{redirect_schema}://userauthorized"
+            "code_verifier": code_verifier,
         }
         response = await self.session.post(
             f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/{sign_up}{self.locale_code}/oauth2/v2.0/token",
