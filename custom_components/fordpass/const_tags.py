@@ -242,6 +242,30 @@ class Tag(ApiKey, Enum):
                                  attrs_fn=FordpassDataHandler.get_outside_temp_attrs)
     ENGINE_OIL_TEMP     = ApiKey(key="engineOilTemp",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineOilTemp", None))
+
+    # Driving dynamics sensors
+    YAW_RATE            = ApiKey(key="yawRate",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "yawRate", None))
+    ACCELERATION        = ApiKey(key="acceleration",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "acceleration", None))
+    BRAKE_PEDAL_STATUS  = ApiKey(key="brakePedalStatus",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakePedalStatus"))
+    BRAKE_TORQUE        = ApiKey(key="brakeTorque",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakeTorque", None))
+    ACCELERATOR_PEDAL   = ApiKey(key="acceleratorPedalPosition",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "acceleratorPedalPosition", None))
+    PARKING_BRAKE       = ApiKey(key="parkingBrakeStatus",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"))
+    TORQUE_TRANSMISSION = ApiKey(key="torqueAtTransmission",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "torqueAtTransmission", None))
+    WHEEL_TORQUE        = ApiKey(key="wheelTorqueStatus",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "wheelTorqueStatus"))
+
+    # Environmental sensors
+    CABIN_TEMP          = ApiKey(key="cabinTemp",
+                                 state_fn=FordpassDataHandler.get_cabin_temp_state,
+                                 attrs_fn=FordpassDataHandler.get_cabin_temp_attrs)
+
     SOC                 = ApiKey(key="soc",
                                  state_fn=FordpassDataHandler.get_soc_state,
                                  attrs_fn=FordpassDataHandler.get_soc_attrs)
@@ -496,6 +520,74 @@ SENSORS = [
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         has_entity_name=True,
     ),
+
+    # Driving dynamics sensors
+    ExtSensorEntityDescription(
+        tag=Tag.YAW_RATE,
+        key=Tag.YAW_RATE.key,
+        icon="mdi:rotate-3d-variant",
+        state_class=SensorStateClass.MEASUREMENT,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.ACCELERATION,
+        key=Tag.ACCELERATION.key,
+        icon="mdi:arrow-up-bold",
+        state_class=SensorStateClass.MEASUREMENT,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.BRAKE_PEDAL_STATUS,
+        key=Tag.BRAKE_PEDAL_STATUS.key,
+        icon="mdi:car-brake-alert",
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.BRAKE_TORQUE,
+        key=Tag.BRAKE_TORQUE.key,
+        icon="mdi:car-brake-hold",
+        state_class=SensorStateClass.MEASUREMENT,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.ACCELERATOR_PEDAL,
+        key=Tag.ACCELERATOR_PEDAL.key,
+        icon="mdi:foot-print",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.PARKING_BRAKE,
+        key=Tag.PARKING_BRAKE.key,
+        icon="mdi:car-brake-parking",
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.TORQUE_TRANSMISSION,
+        key=Tag.TORQUE_TRANSMISSION.key,
+        icon="mdi:transmission-tower",
+        state_class=SensorStateClass.MEASUREMENT,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.WHEEL_TORQUE,
+        key=Tag.WHEEL_TORQUE.key,
+        icon="mdi:tire",
+        has_entity_name=True,
+    ),
+
+    # Environmental sensors
+    ExtSensorEntityDescription(
+        tag=Tag.CABIN_TEMP,
+        key=Tag.CABIN_TEMP.key,
+        icon="mdi:home-thermometer",
+        state_class=SensorStateClass.MEASUREMENT,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        has_entity_name=True,
+    ),
+
     # Tag.DEEPSLEEP: {"icon": "mdi:power-sleep", "name": "Deep Sleep Mode Active", "api_key": "commandPreclusion", "api_class": "states"},
     ExtSensorEntityDescription(
         tag=Tag.DEEPSLEEP,
