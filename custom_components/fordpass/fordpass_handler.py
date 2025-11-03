@@ -83,6 +83,11 @@ class FordpassDataHandler:
         return data.get(ROOT_METRICS, {}).get(metrics_key, {})
 
     @staticmethod
+    def get_attr_of_metrics_value_dict(data, metrics_key, metrics_attr, default=UNSUPPORTED):
+        """Get an attribute that is present in the value dict."""
+        return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", {}).get(metrics_attr, default)
+
+    @staticmethod
     def get_value_at_index_for_metrics_key(data, metrics_key, index=0, default=UNSUPPORTED):
         sub_data = data.get(ROOT_METRICS, {}).get(metrics_key, [{}])
         if len(sub_data) > index:
@@ -980,6 +985,31 @@ class FordpassDataHandler:
         return None
 
     def get_cabin_temp_attrs(data, units:UnitSystem):
+        data_events = FordpassDataHandler.get_events(data)
+        attrs = {}
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
+                    attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
+                    attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+        return attrs or None
+
+
+    # CABIN_TEMP state + attributes (from trip data)
+    def get_cabin_temperature_state(data):
+        data_events = FordpassDataHandler.get_events(data)
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
+                    return tripData["cabin_temperature"]
+        return None
+
+    def get_cabin_temperature_attrs(data, units:UnitSystem):
         data_events = FordpassDataHandler.get_events(data)
         attrs = {}
         if "customEvents" in data_events:

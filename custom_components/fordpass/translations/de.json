@@ -239,7 +239,17 @@
             "soc":                      {"name": "Ladestand"},
             "evccstatus":               {"name": "EVCC Status-Code"},
             "seatbelt":                 {"name": "Gurt-Status"},
-            "deviceconnectivity":       {"name": "Verbindung"}
+            "deviceconnectivity":       {"name": "Verbindung"},
+
+            "yawrate":                  {"name": "Gier und Neigung"},
+            "acceleration":             {"name": "Beschleunigung"},
+            "brakepedalstatus":         {"name": "Status Bremspedal"},
+            "braketorque":              {"name": "Bremsmoment"},
+            "acceleratorpedalposition": {"name": "Gaspedalstellung"},
+            "parkingbrakestatus":       {"name": "Status Feststellbremse"},
+            "torqueattransmission":     {"name": "Drehmoment am Getriebe"},
+            "wheeltorquestatus":        {"name": "Status Drehmoment am Rad"},
+            "cabintemperature":         {"name": "Innenraumtemperatur"}
         },
         "select": {
             "zonelighting": {

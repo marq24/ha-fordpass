@@ -251,6 +251,26 @@ class Tag(ApiKey, Enum):
     SOC                 = ApiKey(key="soc",
                                  state_fn=FordpassDataHandler.get_soc_state,
                                  attrs_fn=FordpassDataHandler.get_soc_attrs)
+    YAW_RATE            = ApiKey(key="yawRate",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "yawRate", None))
+    ACCELERATION        = ApiKey(key="acceleration",
+                                 state_fn=lambda data: FordpassDataHandler.get_attr_of_metrics_value_dict(data, "acceleration", "x", None),
+                                 attrs_fn=lambda data, units: FordpassDataHandler.get_value_for_metrics_key(data, "acceleration"))
+    BRAKE_PEDAL_STATUS  = ApiKey(key="brakePedalStatus",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakePedalStatus"))
+    BRAKE_TORQUE        = ApiKey(key="brakeTorque",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakeTorque", None))
+    ACCELERATOR_PEDAL   = ApiKey(key="acceleratorPedalPosition",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "acceleratorPedalPosition", None))
+    PARKING_BRAKE       = ApiKey(key="parkingBrakeStatus",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"))
+    TORQUE_TRANSMISSION = ApiKey(key="torqueAtTransmission",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "torqueAtTransmission", None))
+    WHEEL_TORQUE        = ApiKey(key="wheelTorqueStatus",
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "wheelTorqueStatus"))
+    CABIN_TEMP          = ApiKey(key="cabinTemperature",
+                                 state_fn=FordpassDataHandler.get_cabin_temperature_state,
+                                 attrs_fn=FordpassDataHandler.get_cabin_temperature_attrs)
 
     DEVICECONNECTIVITY  =  ApiKey(key="deviceConnectivity",
                                   state_fn=FordpassDataHandler.get_device_connectivity_state)
