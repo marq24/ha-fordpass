@@ -1,10 +1,11 @@
 # FordPass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)
 ## Supporting all Ford vehicles with FordPass™ & Lincoln vehicles with The Lincoln Way™ connectivity
 
+<!--
 > [!IMPORTANT]  
 > ## New Users: You need version 2025.10.2 or later!
 > When you want to initially setup this integration you must use the latest version (2025.10.2 or later) - in any other case you will get no response from the Ford backend, when the integration trying to fetch the access_token ([see Issue #107](https://github.com/marq24/ha-fordpass/issues/107)).
-
+-->
 
 <!--
 # IMPORTANT 2025/10/22 - Integration Setup does NOT WORK ANYLONGER
@@ -248,7 +249,15 @@ This service will contact the modem in the vehicle and request to sync data betw
 | EV Charging information            |               | X      | X                 |
 | State of Charge (SOC)              |               | ?      | X                 |
 | EVCC status code ('A', 'B' or 'C') |               | ?      | X                 |
-
+| Yaw Rate                           | X             | X      | X                 |
+| Acceleration (X-Axis               | X             | X      | X                 |
+| Status Brake Pedal                 | X             | X      | X                 |
+| Brake Torque                       | X             | X      | X                 |
+| Accelerator Pedal Position (%)     | X             | X      | X                 |
+| Status Parking Brake               | X             | X      | X                 |
+| Torque at Transmission             | X             | X      | X                 |  
+| Status Wheel Torque                | X             | X      | X                 |
+| Cabin Temperature                  | X             | X      | X                 |
 
 ## Buttons / Switches / Other
 

@@ -18,7 +18,8 @@ from aiohttp import ClientConnectorError, ClientConnectionError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.fordpass import DOMAIN
-from custom_components.fordpass.const import REGIONS, ZONE_LIGHTS_VALUE_OFF
+from custom_components.fordpass.const import REGIONS, ZONE_LIGHTS_VALUE_OFF, REMOTE_START_STATE_ACTIVE, \
+    REMOTE_START_STATE_INACTIVE
 from custom_components.fordpass.fordpass_handler import (
     ROOT_STATES,
     ROOT_EVENTS,
@@ -142,6 +143,7 @@ class ConnectedFordPassVehicle:
     _ws_in_use_access_token: str | None = None
     _LAST_MESSAGES_UPDATE: float = 0.0
     _last_ignition_state: str | None = None
+    _last_remote_start_state: str | None = None
     _ws_debounced_full_refresh_task: asyncio.Task | None = None
     _ws_debounced_preferred_charge_times_refresh_task: asyncio.Task | None = None
     # when you have multiple vehicles, you need to set the vehicle log id
@@ -227,6 +229,7 @@ class ConnectedFordPassVehicle:
         self.ws_connected = False
         self._ws_LAST_UPDATE = 0
         self._last_ignition_state = INTEGRATION_INIT
+        self._last_remote_start_state = INTEGRATION_INIT
 
         _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
 
@@ -919,6 +922,16 @@ class ConnectedFordPassVehicle:
                         self._ws_debounced_full_refresh_task.cancel()
 
             self._last_ignition_state = new_ignition_state
+
+            # when a remote start was triggered externally - the integration should update the
+            # update_remote_climate information
+            a_start_val = self._data_container.get(ROOT_METRICS, {}).get("remoteStartCountdownTimer", {}).get("value", 0)
+            new_remote_start_state = REMOTE_START_STATE_ACTIVE if a_start_val > 0 else REMOTE_START_STATE_INACTIVE
+            if self._last_remote_start_state != INTEGRATION_INIT:
+                if REMOTE_START_STATE_ACTIVE == new_remote_start_state and self._last_remote_start_state != new_remote_start_state:
+                    self.update_remote_climate_int()
+
+            self._last_remote_start_state = new_remote_start_state
 
         return new_metrics or new_states or new_events or new_msg
 
@@ -1827,9 +1840,11 @@ class ConnectedFordPassVehicle:
         return result
 
     async def set_rcc(self, data:dict, result_list:dict):
+        _LOGGER.debug(f"{self.vli}set_rcc() - Attempting to set RCC with VIN: {data.get('vin')}, crccStateFlag: {data.get('crccStateFlag')}, preferences count: {len(data.get('userPreferences', []))}")
+
         result = await self.__request_command(command="setRemoteClimateControl", post_data=data)
         if result:
-            _LOGGER.debug(f"{self.vli}set_rcc() - remote_climate_control set successfully")
+            _LOGGER.debug(f"{self.vli}set_rcc() - remote_climate_control set successfully! Result: {result}")
 
             if self._cached_rcc_data is not None:
                 # we will also update the cached remote climate control data
@@ -1838,6 +1853,7 @@ class ConnectedFordPassVehicle:
                     self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = {}
 
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
+                _LOGGER.debug(f"{self.vli}set_rcc() - Updated cached RCC data")
         else:
             _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {data}")
 
@@ -1862,6 +1878,10 @@ class ConnectedFordPassVehicle:
 
     async def remote_start(self):
         await self.update_remote_climate_int()
+        # we already set the new _last_remote_start_state to 'REMOTE_START_STATE_ACTIVE', to avoid a second call
+        # to 'update_remote_climate_int' (when the websocket detect, that the remote start state has been
+        # changed...
+        self._last_remote_start_state = REMOTE_START_STATE_ACTIVE
         return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="remoteStart")
 
     async def cancel_remote_start(self):
