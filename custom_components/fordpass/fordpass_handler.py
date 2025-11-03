@@ -131,12 +131,12 @@ class FordpassDataHandler:
         attrs = {}
         fuel_range = FordpassDataHandler.get_value_for_metrics_key(data, "fuelRange")
         if isinstance(fuel_range, Number):
-            attrs["fuelRange"] = FordpassDataHandler.localize_distance(fuel_range, units)
+            attrs['fuelRange'] = FordpassDataHandler.localize_distance(fuel_range, units)
 
         # for PEV's
         battery_range = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryRange")
         if isinstance(battery_range, Number):
-            attrs["batteryRange"] = FordpassDataHandler.localize_distance(battery_range, units)
+            attrs['batteryRange'] = FordpassDataHandler.localize_distance(battery_range, units)
 
         return attrs
 
@@ -166,9 +166,9 @@ class FordpassDataHandler:
         attrs = {}
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "batteryVoltage" in data_metrics:
-            attrs["batteryVoltage"] = data_metrics.get("batteryVoltage", 0)
+            attrs['batteryVoltage'] = data_metrics.get("batteryVoltage", 0)
         if "batteryLoadStatus" in data_metrics:
-            attrs["batteryLoadStatus"] = data_metrics.get("batteryLoadStatus", UNSUPPORTED)
+            attrs['batteryLoadStatus'] = data_metrics.get("batteryLoadStatus", UNSUPPORTED)
         return attrs or None
 
 
@@ -177,7 +177,7 @@ class FordpassDataHandler:
         attrs = {}
         for a_seat in FordpassDataHandler.get_metrics(data).get("seatBeltStatus", [{}]):
             if "vehicleOccupantRole" in a_seat and "value" in a_seat:
-                attrs[FordpassDataHandler.to_camel(a_seat["vehicleOccupantRole"])] = a_seat["value"]
+                attrs[FordpassDataHandler.to_camel(a_seat['vehicleOccupantRole'])] = a_seat['value']
         return attrs or None
 
 
@@ -195,26 +195,26 @@ class FordpassDataHandler:
             digits = 2
 
         if "tirePressure" in data_metrics:
-            for a_tire in data_metrics["tirePressure"]:
+            for a_tire in data_metrics['tirePressure']:
                 a_val = a_tire.get("value", UNSUPPORTED)
                 if a_val is not None and a_val != UNSUPPORTED and isinstance(a_val, Number):
                     if "vehicleWheel" in a_tire:
-                        attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
+                        attrs[FordpassDataHandler.to_camel(a_tire['vehicleWheel'])] = f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
 
         if "tirePressureStatus" in data_metrics:
-            for a_tire in data_metrics["tirePressureStatus"]:
+            for a_tire in data_metrics['tirePressureStatus']:
                 a_val = a_tire.get("value", UNSUPPORTED)
                 if a_val is not None and a_val != UNSUPPORTED:
                     if "vehicleWheel" in a_tire:
-                        attrs[f"{FordpassDataHandler.to_camel(a_tire["vehicleWheel"])}_state"] = a_val
+                        attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_state"] = a_val
 
         if "tirePressureSystemStatus" in data_metrics:
             count = 0
-            for a_system_state in data_metrics["tirePressureSystemStatus"]:
+            for a_system_state in data_metrics['tirePressureSystemStatus']:
                 a_val = a_system_state.get("value", UNSUPPORTED)
                 if a_val is not None and a_val != UNSUPPORTED:
                     if "vehicleWheel" in a_system_state:
-                        attrs[f"{FordpassDataHandler.to_camel(a_system_state["vehicleWheel"])}_system_state"] = a_val
+                        attrs[f"{FordpassDataHandler.to_camel(a_system_state['vehicleWheel'])}_system_state"] = a_val
                     else:
                         if count == 0:
                             attrs[f"systemState"] = a_val
@@ -233,21 +233,21 @@ class FordpassDataHandler:
         attrs = FordpassDataHandler.get_metrics_dict(data, "position")
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "compassDirection" in data_metrics:
-            attrs["compassDirection"] = data_metrics.get("compassDirection", {}).get("value", UNSUPPORTED)
+            attrs['compassDirection'] = data_metrics.get("compassDirection", {}).get("value", UNSUPPORTED)
         if "heading" in data_metrics:
-            attrs["heading"] = data_metrics.get("heading", {}).get("value", UNSUPPORTED)
+            attrs['heading'] = data_metrics.get("heading", {}).get("value", UNSUPPORTED)
         return attrs or None
 
     def get_gps_tracker_attr(data, units:UnitSystem):
         # units will be 'None' in this case (just to let you know)
         position_data = FordpassDataHandler.get_value_for_metrics_key(data, "position")
         attrs = {}
-        if "location" in position_data and "alt" in position_data["location"]:
-            attrs["Altitude"] = position_data["location"]["alt"]
+        if "location" in position_data and "alt" in position_data['location']:
+            attrs['Altitude'] = position_data['location']['alt']
         if "gpsCoordinateMethod" in position_data:
-            attrs["gpsCoordinateMethod"] = position_data["gpsCoordinateMethod"]
+            attrs['gpsCoordinateMethod'] = position_data['gpsCoordinateMethod']
         if "gpsDimension" in position_data:
-            attrs["gpsDimension"] = position_data["gpsDimension"]
+            attrs['gpsDimension'] = position_data['gpsDimension']
         return attrs or None
 
     def get_gps_lat(data) -> float:
@@ -269,7 +269,7 @@ class FordpassDataHandler:
         if "panicAlarmStatus" in data_metrics:
             val = data_metrics.get("panicAlarmStatus", {}).get("value", UNSUPPORTED)
             if val != UNSUPPORTED:
-                attrs["panicAlarmStatus"] = val
+                attrs['panicAlarmStatus'] = val
         return attrs or None
 
     # DOOR_LOCK state
@@ -387,7 +387,7 @@ class FordpassDataHandler:
             a_upper_case_lock_value = a_lock_state.get("value", UNSUPPORTED).upper()
             if a_upper_case_lock_value in ["LOCKED", "DOUBLE_LOCKED"]:
                 # if we have an ALL_DOORS lock state, we can ignore the other door lock states
-                if "vehicleDoor" in a_lock_state and a_lock_state["vehicleDoor"].upper() == "ALL_DOORS":
+                if "vehicleDoor" in a_lock_state and a_lock_state['vehicleDoor'].upper() == "ALL_DOORS":
                     # we instantly return the 'VEHICLE_LOCK_STATE_LOCKED' and skip the complete
                     # loop [and don't bother with any additional stuff]
                     return VEHICLE_LOCK_STATE_LOCKED
@@ -395,7 +395,7 @@ class FordpassDataHandler:
                     locked_doors += 1
 
             # we ignore unknown, or MECHANICAL door latch types...
-            elif a_upper_case_lock_value == "UNKNOWN" or ("tags" in a_lock_state and "DOOR_LATCH_TYPE" in a_lock_state["tags"] and a_lock_state["tags"]["DOOR_LATCH_TYPE"] == "MECHANICAL"):
+            elif a_upper_case_lock_value == "UNKNOWN" or ("tags" in a_lock_state and "DOOR_LATCH_TYPE" in a_lock_state['tags'] and a_lock_state['tags']['DOOR_LATCH_TYPE'] == "MECHANICAL"):
                 required_locked_doors -= 1
 
         if locked_doors > 0:
@@ -410,7 +410,7 @@ class FordpassDataHandler:
     def get_door_status_state(data):
         data_metrics = FordpassDataHandler.get_metrics(data)
         for value in data_metrics.get("doorStatus", []):
-            if value["value"].upper() in ["CLOSED", "INVALID", "UNKNOWN"]:
+            if value['value'].upper() in ["CLOSED", "INVALID", "UNKNOWN"]:
                 continue
             return "Open"
         if data_metrics.get("hoodStatus", {}).get("value", UNSUPPORTED).upper() == "OPEN":
@@ -427,10 +427,10 @@ class FordpassDataHandler:
                 else:
                     attrs[FordpassDataHandler.to_camel(a_door['vehicleDoor'])] = a_door['value']
             else:
-                attrs[FordpassDataHandler.to_camel(a_door["vehicleDoor"])] = a_door['value']
+                attrs[FordpassDataHandler.to_camel(a_door['vehicleDoor'])] = a_door['value']
 
-        if "hoodStatus" in data_metrics and "value" in data_metrics["hoodStatus"]:
-            attrs["hood"] = data_metrics["hoodStatus"]["value"]
+        if "hoodStatus" in data_metrics and "value" in data_metrics['hoodStatus']:
+            attrs['hood'] = data_metrics['hoodStatus']['value']
 
         return attrs or None
 
@@ -449,16 +449,16 @@ class FordpassDataHandler:
         attrs = {}
         for a_window in data_metrics.get("windowStatus", []):
             if "value" in a_window:
-                if "vehicleWindow" in a_window and a_window["vehicleWindow"].upper().startswith("UNSPECIFIED_"):
-                    front_or_rear_txt = a_window["vehicleWindow"].split("_")[1]
+                if "vehicleWindow" in a_window and a_window['vehicleWindow'].upper().startswith("UNSPECIFIED_"):
+                    front_or_rear_txt = a_window['vehicleWindow'].split("_")[1]
                     if front_or_rear_txt.upper() == "FRONT":
-                        attrs[FordpassDataHandler.to_camel(a_window["vehicleSide"])] = a_window["value"]
+                        attrs[FordpassDataHandler.to_camel(a_window['vehicleSide'])] = a_window['value']
                     else:
-                        attrs[FordpassDataHandler.to_camel(front_or_rear_txt + "_" + a_window["vehicleSide"])] = a_window["value"]
+                        attrs[FordpassDataHandler.to_camel(front_or_rear_txt + "_" + a_window['vehicleSide'])] = a_window['value']
                 else:
-                    attrs[FordpassDataHandler.to_camel(a_window["vehicleWindow"])] = a_window["value"]
+                    attrs[FordpassDataHandler.to_camel(a_window['vehicleWindow'])] = a_window['value']
             else:
-                attrs[FordpassDataHandler.to_camel(a_window["vehicleWindow"] + "_") + a_window["vehicleSide"]] = a_window
+                attrs[FordpassDataHandler.to_camel(a_window['vehicleWindow'] + "_") + a_window['vehicleSide']] = a_window
 
         return attrs
 
@@ -513,36 +513,36 @@ class FordpassDataHandler:
             batt_amps = attrs.get("batteryAmperage", 0)
 
             if isinstance(batt_volt, Number) and batt_volt != 0 and isinstance(batt_amps, Number) and batt_amps != 0:
-                attrs["batterykW"] = round((batt_volt * batt_amps) / 1000, 2)
+                attrs['batterykW'] = round((batt_volt * batt_amps) / 1000, 2)
             else:
-                attrs["batterykW"] = 0
+                attrs['batterykW'] = 0
 
         # Returning 0 in else - to prevent attribute from not displaying
         if "xevTractionMotorVoltage" in data_metrics and "xevTractionMotorCurrent" in data_metrics:
             motor_volt = attrs.get("motorVoltage", 0)
             motor_amps = attrs.get("motorAmperage", 0)
             if isinstance(motor_volt, Number) and motor_volt != 0 and isinstance(motor_amps, Number) and motor_amps != 0:
-                attrs["motorkW"] = round((motor_volt * motor_amps) / 1000, 2)
+                attrs['motorkW'] = round((motor_volt * motor_amps) / 1000, 2)
             else:
-                attrs["motorkW"] = 0
+                attrs['motorkW'] = 0
 
         if "customMetrics" in data_metrics:
             for key in data_metrics.get("customMetrics", {}):
                 if "accumulated-vehicle-speed-cruising-coaching-score" in key:
-                    attrs["tripSpeedScore"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    attrs['tripSpeedScore'] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if "accumulated-deceleration-coaching-score" in key:
-                    attrs["tripDecelerationScore"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    attrs['tripDecelerationScore'] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if "accumulated-acceleration-coaching-score" in key:
-                    attrs["tripAccelerationScore"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    attrs['tripAccelerationScore'] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if "custom:vehicle-electrical-efficiency" in key:
                     # Still don't know what this value is, but if I add it and get more data it could help to figure it out
-                    attrs["tripElectricalEfficiency"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    attrs['tripElectricalEfficiency'] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if "custom:xevRemoteDataResponseStatus" in key:
-                    attrs["remoteDataResponseStatus"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    attrs['remoteDataResponseStatus'] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if ":custom:xev-" in key:
                     entryName = FordpassDataHandler.to_camel(key.split(":custom:xev-")[1])
@@ -553,24 +553,24 @@ class FordpassDataHandler:
             tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
             for dataStr in tripDataStr:
                 tripData = json.loads(dataStr)
-                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
-                    attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
-                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
-                    attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+                if "ambient_temperature" in tripData and isinstance(tripData['ambient_temperature'], Number):
+                    attrs['tripAmbientTemp'] = FordpassDataHandler.localize_temperature(tripData['ambient_temperature'], units)
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData['outside_air_ambient_temperature'], Number):
+                    attrs['tripOutsideAirAmbientTemp'] = FordpassDataHandler.localize_temperature(tripData['outside_air_ambient_temperature'], units)
                 if "trip_duration" in tripData:
-                    attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
-                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
-                    attrs["tripCabinTemp"] = FordpassDataHandler.localize_temperature(tripData["cabin_temperature"], units)
-                if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number):
-                    attrs["tripEnergyConsumed"] = round(tripData["energy_consumed"] / 1000, 2)
-                if "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
-                    attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
+                    attrs['tripDuration'] = str(dt.parse_duration(str(tripData['trip_duration'])))
+                if "cabin_temperature" in tripData and isinstance(tripData['cabin_temperature'], Number):
+                    attrs['tripCabinTemp'] = FordpassDataHandler.localize_temperature(tripData['cabin_temperature'], units)
+                if "energy_consumed" in tripData and isinstance(tripData['energy_consumed'], Number):
+                    attrs['tripEnergyConsumed'] = round(tripData['energy_consumed'] / 1000, 2)
+                if "distance_traveled" in tripData and isinstance(tripData['distance_traveled'], Number):
+                    attrs['tripDistanceTraveled'] = FordpassDataHandler.localize_distance(tripData['distance_traveled'], units)
 
-                if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number)  and "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
-                    if attrs["tripDistanceTraveled"] == 0 or attrs["tripEnergyConsumed"] == 0:
-                        attrs["tripEfficiency"] = 0
+                if "energy_consumed" in tripData and isinstance(tripData['energy_consumed'], Number)  and "distance_traveled" in tripData and isinstance(tripData['distance_traveled'], Number):
+                    if attrs['tripDistanceTraveled'] == 0 or attrs['tripEnergyConsumed'] == 0:
+                        attrs['tripEfficiency'] = 0
                     else:
-                        attrs["tripEfficiency"] = attrs["tripDistanceTraveled"] / attrs["tripEnergyConsumed"]
+                        attrs['tripEfficiency'] = attrs['tripDistanceTraveled'] / attrs['tripEnergyConsumed']
         return attrs
 
 
@@ -661,27 +661,27 @@ class FordpassDataHandler:
             ch_amps = attrs.get("chargingAmperage", 0)
 
             if isinstance(ch_volt, Number) and ch_volt != 0 and isinstance(ch_amps, Number) and ch_amps != 0:
-                attrs["chargingkW"] = round((ch_volt * ch_amps) / 1000, 2)
+                attrs['chargingkW'] = round((ch_volt * ch_amps) / 1000, 2)
             elif isinstance(ch_volt, Number) and ch_volt != 0 and "xevBatteryIoCurrent" in data_metrics:
                 # Get Battery Io Current for DC Charging calculation
                 batt_amps = float(data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
                 # DC Charging calculation: Use absolute value for amperage to handle negative values
                 if isinstance(batt_amps, Number) and batt_amps != 0:
-                    attrs["chargingkW"] = round((ch_volt * abs(batt_amps)) / 1000, 2)
+                    attrs['chargingkW'] = round((ch_volt * abs(batt_amps)) / 1000, 2)
                 else:
-                    attrs["chargingkW"] = 0
+                    attrs['chargingkW'] = 0
             else:
-                attrs["chargingkW"] = 0
+                attrs['chargingkW'] = 0
 
         if "xevBatteryTimeToFullCharge" in data_metrics:
             cs_update_time = dt.parse_datetime(data_metrics.get("xevBatteryTimeToFullCharge", {}).get("updateTime", 0))
             cs_est_end_time = cs_update_time + timedelta(minutes=data_metrics.get("xevBatteryTimeToFullCharge", {}).get("value", 0))
-            attrs["estimatedEndTime"] = dt.as_local(cs_est_end_time)
+            attrs['estimatedEndTime'] = dt.as_local(cs_est_end_time)
 
         if "customMetrics" in data_metrics:
             for key in data_metrics.get("customMetrics", {}):
                 if "custom:charge-power-kw" in key:
-                    attrs["chargePowerKw"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    attrs['chargePowerKw'] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
         return attrs
 
@@ -694,10 +694,10 @@ class FordpassDataHandler:
         attrs = {}
 
         if "xevChargeStationCommunicationStatus" in data_metrics:
-            attrs["ChargingStationStatus"] = data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", UNSUPPORTED)
+            attrs['ChargingStationStatus'] = data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", UNSUPPORTED)
 
         if "xevChargeStationPowerType" in data_metrics:
-            attrs["ChargingType"] = data_metrics.get("xevChargeStationPowerType", {}).get("value", UNSUPPORTED)
+            attrs['ChargingType'] = data_metrics.get("xevChargeStationPowerType", {}).get("value", UNSUPPORTED)
 
         return attrs
 
@@ -778,17 +778,17 @@ class FordpassDataHandler:
                 # little sense...
                 post_data = {
                     "chargeProfile": {
-                        "chargeMode":pct_data["chargeProfile"]["chargeMode"],
-                        "schedules":pct_data["chargeProfile"]["schedules"],
+                        "chargeMode":pct_data['chargeProfile']['chargeMode'],
+                        "schedules":pct_data['chargeProfile']['schedules'],
                         "targetSoc":target_value
                     },
                     "location": {
-                        "address":  pct_data["location"]["address"],
-                        "id":       pct_data["location"]["id"],
-                        "latitude": pct_data["location"]["latitude"],
-                        "longitude":pct_data["location"]["longitude"],
-                        "name":     pct_data["location"]["name"],
-                        "type":     pct_data["location"]["type"],
+                        "address":  pct_data['location']['address'],
+                        "id":       pct_data['location']['id'],
+                        "latitude": pct_data['location']['latitude'],
+                        "longitude":pct_data['location']['longitude'],
+                        "name":     pct_data['location']['name'],
+                        "type":     pct_data['location']['type'],
                     },
                     "vin": vehicle.vin
                 }
@@ -881,10 +881,10 @@ class FordpassDataHandler:
         attrs = {}
         count = 1
         for a_msg in data.get(ROOT_MESSAGES, []):
-            attrs[f"msg{count:03}_Date"] = f"{a_msg["createdDate"]}"
-            attrs[f"msg{count:03}_Type"] = f"{a_msg["messageType"]}"
-            attrs[f"msg{count:03}_Subject"] = f"{a_msg["messageSubject"]}"
-            attrs[f"msg{count:03}_Content"] = f"{a_msg["messageBody"]}"
+            attrs[f"msg{count:03}_Date"] = f"{a_msg['createdDate']}"
+            attrs[f"msg{count:03}_Type"] = f"{a_msg['messageType']}"
+            attrs[f"msg{count:03}_Subject"] = f"{a_msg['messageSubject']}"
+            attrs[f"msg{count:03}_Content"] = f"{a_msg['messageBody']}"
             count = count + 1
         return attrs
 
@@ -893,7 +893,7 @@ class FordpassDataHandler:
     def get_diesel_system_status_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
         if data_metrics.get("indicators", {}).get("dieselExhaustOverTemp", {}).get("value") is not None:
-            return {"dieselExhaustOverTemp": data_metrics["indicators"]["dieselExhaustOverTemp"]["value"]}
+            return {"dieselExhaustOverTemp": data_metrics['indicators']['dieselExhaustOverTemp']['value']}
         return None
 
 
@@ -903,14 +903,14 @@ class FordpassDataHandler:
         attrs = {}
 
         if data_metrics.get("dieselExhaustFluidLevelRangeRemaining", {}).get("value") is not None:
-            attrs["dieselExhaustFluidRange"] = data_metrics["dieselExhaustFluidLevelRangeRemaining"]["value"]
+            attrs['dieselExhaustFluidRange'] = data_metrics['dieselExhaustFluidLevelRangeRemaining']['value']
 
         indicators = data_metrics.get("indicators", {})
         indicator_fields = ["dieselExhaustFluidLow", "dieselExhaustFluidSystemFault"]
 
         for field in indicator_fields:
             if indicators.get(field, {}).get("value") is not None:
-                attrs[field] = indicators[field]["value"]
+                attrs[field] = indicators[field]['value']
 
         return attrs or None
 
@@ -938,7 +938,7 @@ class FordpassDataHandler:
 
         for field in metric_fields:
             if field in data_metrics and "value" in data_metrics[field]:
-                attrs[field] = data_metrics[field]["value"]
+                attrs[field] = data_metrics[field]['value']
 
         return attrs or None
 
@@ -954,9 +954,9 @@ class FordpassDataHandler:
         for key, value in data_metrics.get("indicators", {}).items():
             if value.get("value") is not None:
                 if value.get("additionalInfo") is not None:
-                    attrs[f"{FordpassDataHandler.to_camel(key)}_{FordpassDataHandler.to_camel(value.get("additionalInfo"))}"] = value["value"]
+                    attrs[f"{FordpassDataHandler.to_camel(key)}_{FordpassDataHandler.to_camel(value.get('additionalInfo'))}"] = value['value']
                 else:
-                    attrs[FordpassDataHandler.to_camel(key)] = value["value"]
+                    attrs[FordpassDataHandler.to_camel(key)] = value['value']
 
         return attrs or None
 
@@ -975,8 +975,8 @@ class FordpassDataHandler:
             tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
             for dataStr in tripDataStr:
                 tripData = json.loads(dataStr)
-                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
-                    return tripData["cabin_temperature"]
+                if "cabin_temperature" in tripData and isinstance(tripData['cabin_temperature'], Number):
+                    return tripData['cabin_temperature']
         return None
 
     def get_cabin_temp_attrs(data, units:UnitSystem):
@@ -986,10 +986,10 @@ class FordpassDataHandler:
             tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
             for dataStr in tripDataStr:
                 tripData = json.loads(dataStr)
-                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
-                    attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
-                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
-                    attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+                if "ambient_temperature" in tripData and isinstance(tripData['ambient_temperature'], Number):
+                    attrs['tripAmbientTemp'] = FordpassDataHandler.localize_temperature(tripData['ambient_temperature'], units)
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData['outside_air_ambient_temperature'], Number):
+                    attrs['tripOutsideAirAmbientTemp'] = FordpassDataHandler.localize_temperature(tripData['outside_air_ambient_temperature'], units)
         return attrs or None
 
 
@@ -1049,7 +1049,7 @@ class FordpassDataHandler:
         for a_list_entry in list_data:
             if a_list_entry.get("preferenceType", "") == rcc_key:
                 old_value = a_list_entry.get("preferenceValue")
-                a_list_entry["preferenceValue"] = new_value
+                a_list_entry['preferenceValue'] = new_value
                 preference_found = True
                 _LOGGER.debug(f"RCC: Updating {rcc_key} from '{old_value}' to '{new_value}'")
                 break
@@ -1067,7 +1067,7 @@ class FordpassDataHandler:
 
         # ok we hardcode the new set values in our data object of our bridge...
         # grrr this does not work - we don't have access to the data conatiner object...
-        #data[ROOT_REMOTE_CLIMATE_CONTROL]["rccUserProfiles"] = list_data
+        #data[ROOT_REMOTE_CLIMATE_CONTROL]['rccUserProfiles'] = list_data
 
         return await vehicle.set_rcc(rcc_dict, list_data)
 
@@ -1100,16 +1100,16 @@ class FordpassDataHandler:
         # marq24: need to find a vehicle that still supports 'guard' mode to test this...
         # Need to find the correct response for enabled vs. disabled, so this may be spotty at the moment
         guard_status_data = data.get("guardstatus", {})
-        return "returnCode" in guard_status_data and guard_status_data["returnCode"] == 200
+        return "returnCode" in guard_status_data and guard_status_data['returnCode'] == 200
 
     def get_guard_mode_state(data):
         # marq24: need to find a vehicle that still supports 'guard' mode to test this...
         # Need to find the correct response for enabled vs. disabled, so this may be spotty at the moment
         guard_status_data = data.get("guardstatus", {})
         _LOGGER.debug(f"guardstatus: {guard_status_data}")
-        if "returnCode" in guard_status_data and guard_status_data["returnCode"] == 200:
-            if "session" in guard_status_data and "gmStatus" in guard_status_data["session"]:
-                if guard_status_data["session"]["gmStatus"] == "enable":
+        if "returnCode" in guard_status_data and guard_status_data['returnCode'] == 200:
+            if "session" in guard_status_data and "gmStatus" in guard_status_data['session']:
+                if guard_status_data['session']['gmStatus'] == "enable":
                     return "ON"
                 return "OFF"
             return UNSUPPORTED
