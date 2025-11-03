@@ -1827,9 +1827,12 @@ class ConnectedFordPassVehicle:
         return result
 
     async def set_rcc(self, data:dict, result_list:dict):
+        _LOGGER.info(f"{self.vli}set_rcc() - Attempting to set RCC with VIN: {data.get('vin')}, crccStateFlag: {data.get('crccStateFlag')}, preferences count: {len(data.get('userPreferences', []))}")
+
         result = await self.__request_command(command="setRemoteClimateControl", post_data=data)
+
         if result:
-            _LOGGER.debug(f"{self.vli}set_rcc() - remote_climate_control set successfully")
+            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control set successfully! Result: {result}")
 
             if self._cached_rcc_data is not None:
                 # we will also update the cached remote climate control data
@@ -1838,8 +1841,10 @@ class ConnectedFordPassVehicle:
                     self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = {}
 
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
+                _LOGGER.debug(f"{self.vli}set_rcc() - Updated cached RCC data")
         else:
-            _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {data}")
+            _LOGGER.error(f"{self.vli}set_rcc() - FAILED! Command returned False. Data sent: {data}")
+            _LOGGER.error(f"{self.vli}set_rcc() - This usually means the vehicle rejected the command or is not in a state to accept RCC commands")
 
         return result
 
