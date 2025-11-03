@@ -928,7 +928,7 @@ class FordpassDataHandler:
             "gearLeverPosition",
             "parkingBrakeStatus",
             "torqueAtTransmission",
-            "wheelTorqueStatus"
+            "wheelTorqueStatus",
             "yawRate"
         ]
         # Fields that are only relevant for non-electric vehicles
