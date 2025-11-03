@@ -459,7 +459,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
                             break
                 else:
-                    _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data["vehicles"]}")
+                    _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data['vehicles']}")
 
                 # check, if RemoteStart is supported
                 if "vehicleCapabilities" in veh_data:
@@ -471,7 +471,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
                             break
                 else:
-                    _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data["vehicles"]}")
+                    _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data['vehicles']}")
 
                 # check, if GuardMode is supported
                 # [original impl]
@@ -537,7 +537,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             data = await self.bridge.update_all()
                             if data is not None:
                                 try:
-                                    _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]["vehicleProfile"])} vehicles for {self._vin}")
+                                    _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
                                 except BaseException:
                                     pass
 

@@ -242,7 +242,7 @@ class ConnectedFordPassVehicle:
         filename = str(self._storage_path.joinpath(DOMAIN, "data_dumps", self.username, self.region_key, self.vin,
                                                    f"{a_datetime.year}", f"{a_datetime.month:02d}",
                                                    f"{a_datetime.day:02d}", f"{a_datetime.hour:02d}",
-                                                   f"{a_datetime.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]}_{type}.json"))
+                                                   f"{a_datetime.strftime('%Y-%m-%d_%H-%M-%S.%f')[:-3]}_{type}.json"))
         try:
             directory = os.path.dirname(filename)
             if not os.path.exists(directory):
@@ -810,7 +810,7 @@ class ConnectedFordPassVehicle:
 
                                 elif "_error" in ws_data:
                                     # in case of any error, we simply close the websocket connection
-                                    _LOGGER.info(f"{self.vli}ws_connect(): error object read: {ws_data["_error"]}")
+                                    _LOGGER.info(f"{self.vli}ws_connect(): error object read: {ws_data['_error']}")
                                     break
 
                                     # err_obj = ws_data["_error"]
@@ -965,7 +965,7 @@ class ConnectedFordPassVehicle:
                     if "value" in a_state_obj:
                         a_value_obj = a_state_obj["value"]
                         if "toState" in a_value_obj:
-                            _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+                            _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj['toState']}")
                             to_state_value = a_value_obj["toState"].upper()
                             if to_state_value in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                 if ROOT_METRICS in a_value_obj:
@@ -1027,7 +1027,7 @@ class ConnectedFordPassVehicle:
     #             if "value" in a_state_obj:
     #                 a_value_obj = a_state_obj["value"]
     #                 if "toState" in a_value_obj:
-    #                     _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj["toState"]}")
+    #                     _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj['toState']}")
     #                     if a_value_obj["toState"].lower() == "success":
     #                         if ROOT_METRICS in a_value_obj:
     #                             self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)

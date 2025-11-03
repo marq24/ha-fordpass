@@ -211,7 +211,7 @@ class FordpassDataHandler:
                 a_val = a_tire.get("value", UNSUPPORTED)
                 if a_val is not None and a_val != UNSUPPORTED:
                     if "vehicleWheel" in a_tire:
-                        attrs[f"{FordpassDataHandler.to_camel(a_tire["vehicleWheel"])}_state"] = a_val
+                        attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_state"] = a_val
 
         if "tirePressureSystemStatus" in data_metrics:
             count = 0
@@ -219,7 +219,7 @@ class FordpassDataHandler:
                 a_val = a_system_state.get("value", UNSUPPORTED)
                 if a_val is not None and a_val != UNSUPPORTED:
                     if "vehicleWheel" in a_system_state:
-                        attrs[f"{FordpassDataHandler.to_camel(a_system_state["vehicleWheel"])}_system_state"] = a_val
+                        attrs[f"{FordpassDataHandler.to_camel(a_system_state['vehicleWheel'])}_system_state"] = a_val
                     else:
                         if count == 0:
                             attrs[f"systemState"] = a_val
@@ -886,10 +886,10 @@ class FordpassDataHandler:
         attrs = {}
         count = 1
         for a_msg in data.get(ROOT_MESSAGES, []):
-            attrs[f"msg{count:03}_Date"] = f"{a_msg["createdDate"]}"
-            attrs[f"msg{count:03}_Type"] = f"{a_msg["messageType"]}"
-            attrs[f"msg{count:03}_Subject"] = f"{a_msg["messageSubject"]}"
-            attrs[f"msg{count:03}_Content"] = f"{a_msg["messageBody"]}"
+            attrs[f"msg{count:03}_Date"] = f"{a_msg['createdDate']}"
+            attrs[f"msg{count:03}_Type"] = f"{a_msg['messageType']}"
+            attrs[f"msg{count:03}_Subject"] = f"{a_msg['messageSubject']}"
+            attrs[f"msg{count:03}_Content"] = f"{a_msg['messageBody']}"
             count = count + 1
         return attrs
 
@@ -959,7 +959,7 @@ class FordpassDataHandler:
         for key, value in data_metrics.get("indicators", {}).items():
             if value.get("value") is not None:
                 if value.get("additionalInfo") is not None:
-                    attrs[f"{FordpassDataHandler.to_camel(key)}_{FordpassDataHandler.to_camel(value.get("additionalInfo"))}"] = value["value"]
+                    attrs[f"{FordpassDataHandler.to_camel(key)}_{FordpassDataHandler.to_camel(value.get('additionalInfo'))}"] = value["value"]
                 else:
                     attrs[FordpassDataHandler.to_camel(key)] = value["value"]
 
