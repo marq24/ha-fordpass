@@ -240,7 +240,17 @@
             "soc":                      {"name": "State of Charge"},
             "evccstatus":               {"name": "EVCC status code"},
             "seatbelt":                 {"name": "Belt Status"},
-            "deviceconnectivity":       {"name": "Connectivity"}
+            "deviceconnectivity":       {"name": "Connectivity"},
+
+            "yawrate":                  {"name": "Yaw Rate"},
+            "acceleration":             {"name": "Acceleration"},
+            "brakepedalstatus":         {"name": "Status Brake Pedal"},
+            "braketorque":              {"name": "Brake Torque"},
+            "acceleratorpedalposition": {"name": "Accelerator Pedal Position"},
+            "parkingbrakestatus":       {"name": "Status Parking Brake"},
+            "torqueattransmission":     {"name": "Torque at Transmission"},
+            "wheeltorquestatus":        {"name": "Status Wheel Torque"},
+            "cabintemperature":         {"name": "Cabin Temperature"}
         },
         "select": {
             "zonelighting": {

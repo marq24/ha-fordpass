@@ -83,6 +83,11 @@ class FordpassDataHandler:
         return data.get(ROOT_METRICS, {}).get(metrics_key, {})
 
     @staticmethod
+    def get_attr_of_metrics_value_dict(data, metrics_key, metrics_attr, default=UNSUPPORTED):
+        """Get an attribute that is present in the value dict."""
+        return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", {}).get(metrics_attr, default)
+
+    @staticmethod
     def get_value_at_index_for_metrics_key(data, metrics_key, index=0, default=UNSUPPORTED):
         sub_data = data.get(ROOT_METRICS, {}).get(metrics_key, [{}])
         if len(sub_data) > index:
@@ -928,7 +933,7 @@ class FordpassDataHandler:
             "gearLeverPosition",
             "parkingBrakeStatus",
             "torqueAtTransmission",
-            "wheelTorqueStatus"
+            "wheelTorqueStatus",
             "yawRate"
         ]
         # Fields that are only relevant for non-electric vehicles
@@ -967,6 +972,31 @@ class FordpassDataHandler:
         if isinstance(ambient_temp, Number):
             return {"ambientTemp": FordpassDataHandler.localize_temperature(ambient_temp, units)}
         return None
+
+
+    # CABIN_TEMP state + attributes (from trip data)
+    def get_cabin_temperature_state(data):
+        data_events = FordpassDataHandler.get_events(data)
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
+                    return tripData["cabin_temperature"]
+        return None
+
+    def get_cabin_temperature_attrs(data, units:UnitSystem):
+        data_events = FordpassDataHandler.get_events(data)
+        attrs = {}
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
+                    attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
+                    attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+        return attrs or None
 
 
     # RCC (remote climate control) state
@@ -1019,10 +1049,18 @@ class FordpassDataHandler:
         if list_data is None or not isinstance(list_data, Iterable) or len(list_data) == 0:
             return False
 
+        # Find and update the preference
+        preference_found = False
         for a_list_entry in list_data:
             if a_list_entry.get("preferenceType", "") == rcc_key:
+                old_value = a_list_entry.get("preferenceValue")
                 a_list_entry["preferenceValue"] = new_value
+                preference_found = True
+                _LOGGER.debug(f"RCC: Updating {rcc_key} from '{old_value}' to '{new_value}'")
                 break
+
+        if not preference_found:
+            _LOGGER.info(f"RCC: preferenceType '{rcc_key}' not found in rccUserProfiles. Available types: {[p.get('preferenceType') for p in list_data]}")
 
         rcc_dict = {
             "crccStateFlag": "On",
