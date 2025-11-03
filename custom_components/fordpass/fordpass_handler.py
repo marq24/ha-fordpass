@@ -968,6 +968,30 @@ class FordpassDataHandler:
             return {"ambientTemp": FordpassDataHandler.localize_temperature(ambient_temp, units)}
         return None
 
+    # CABIN_TEMP state + attributes (from trip data)
+    def get_cabin_temp_state(data):
+        data_events = FordpassDataHandler.get_events(data)
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
+                    return tripData["cabin_temperature"]
+        return None
+
+    def get_cabin_temp_attrs(data, units:UnitSystem):
+        data_events = FordpassDataHandler.get_events(data)
+        attrs = {}
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
+                    attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
+                    attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+        return attrs or None
+
 
     # RCC (remote climate control) state
     def get_rcc_state(data, rcc_key):
@@ -1017,18 +1041,29 @@ class FordpassDataHandler:
     async def set_rcc_int(rcc_key:str, data:dict, vehicle, new_value: str) -> bool:
         list_data = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
         if list_data is None or not isinstance(list_data, Iterable) or len(list_data) == 0:
+            _LOGGER.warning(f"RCC: No rccUserProfiles found in data. Cannot set {rcc_key} to {new_value}")
             return False
 
+        # Find and update the preference
+        preference_found = False
         for a_list_entry in list_data:
             if a_list_entry.get("preferenceType", "") == rcc_key:
+                old_value = a_list_entry.get("preferenceValue")
                 a_list_entry["preferenceValue"] = new_value
+                preference_found = True
+                _LOGGER.debug(f"RCC: Updating {rcc_key} from '{old_value}' to '{new_value}'")
                 break
+
+        if not preference_found:
+            _LOGGER.warning(f"RCC: preferenceType '{rcc_key}' not found in rccUserProfiles. Available types: {[p.get('preferenceType') for p in list_data]}")
 
         rcc_dict = {
             "crccStateFlag": "On",
             "userPreferences": list_data,
             "vin": vehicle.vin
         }
+
+        _LOGGER.debug(f"RCC: Sending command with {len(list_data)} preferences. Full payload: {rcc_dict}")
 
         # ok we hardcode the new set values in our data object of our bridge...
         # grrr this does not work - we don't have access to the data conatiner object...
