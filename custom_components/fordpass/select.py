@@ -98,12 +98,18 @@ class FordPassSelect(FordPassEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         try:
+            _LOGGER.info(f"SELECT {self._tag.key}: User selected '{option}'")
             if option is None or option=="" or str(option).lower() == "null" or str(option).lower() == "none":
                 await self._tag.async_select_option(self.coordinator.data, self.coordinator.bridge, None)
             else:
                 await self._tag.async_select_option(self.coordinator.data, self.coordinator.bridge, option)
+            _LOGGER.info(f"SELECT {self._tag.key}: Command completed")
 
-        except ValueError:
+        except ValueError as e:
+            _LOGGER.error(f"SELECT {self._tag.key}: ValueError - {e}")
+            return None
+        except Exception as e:
+            _LOGGER.error(f"SELECT {self._tag.key}: Unexpected error - {type(e).__name__}: {e}")
             return None
 
     @property

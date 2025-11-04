@@ -74,6 +74,7 @@ class FordPassNumber(FordPassEntity, NumberEntity):
 
     async def async_set_native_value(self, value) -> None:
         try:
+            _LOGGER.info(f"NUMBER {self._tag.key}: User set value to '{value}'")
             if value is None or str(value) == "null" or str(value).lower() == "none":
                 await self._tag.async_set_value(self.coordinator.data, self.coordinator.bridge, None)
             else:
@@ -83,8 +84,13 @@ class FordPassNumber(FordPassEntity, NumberEntity):
                     value = round(((float(value) - 32) / 1.8) * 2, 0) / 2
 
                 await self._tag.async_set_value(self.coordinator.data, self.coordinator.bridge, str(value))
+            _LOGGER.info(f"NUMBER {self._tag.key}: Command completed")
 
-        except ValueError:
+        except ValueError as e:
+            _LOGGER.error(f"NUMBER {self._tag.key}: ValueError - {e}")
+            return None
+        except Exception as e:
+            _LOGGER.error(f"NUMBER {self._tag.key}: Unexpected error - {type(e).__name__}: {e}")
             return None
 
     @property
