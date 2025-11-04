@@ -36,15 +36,25 @@ class FordPassSwitch(FordPassEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Send request to vehicle on switch status on"""
-        await self._tag.turn_on_off(self.coordinator.data, self.coordinator.bridge, True)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
+        _LOGGER.info(f"SWITCH {self._tag.key}: User turned ON")
+        try:
+            await self._tag.turn_on_off(self.coordinator.data, self.coordinator.bridge, True)
+            await self.coordinator.async_request_refresh()
+            self.async_write_ha_state()
+            _LOGGER.info(f"SWITCH {self._tag.key}: Turn ON completed")
+        except Exception as e:
+            _LOGGER.error(f"SWITCH {self._tag.key}: Turn ON failed - {type(e).__name__}: {e}")
 
     async def async_turn_off(self, **kwargs):
         """Send request to vehicle on switch status off"""
-        await self._tag.turn_on_off(self.coordinator.data, self.coordinator.bridge, False)
-        await self.coordinator.async_request_refresh()
-        self.async_write_ha_state()
+        _LOGGER.info(f"SWITCH {self._tag.key}: User turned OFF")
+        try:
+            await self._tag.turn_on_off(self.coordinator.data, self.coordinator.bridge, False)
+            await self.coordinator.async_request_refresh()
+            self.async_write_ha_state()
+            _LOGGER.info(f"SWITCH {self._tag.key}: Turn OFF completed")
+        except Exception as e:
+            _LOGGER.error(f"SWITCH {self._tag.key}: Turn OFF failed - {type(e).__name__}: {e}")
 
     @property
     def is_on(self):
