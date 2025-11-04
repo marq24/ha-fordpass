@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Final, NamedTuple, Callable, Any
 
 from homeassistant.components.button import ButtonEntityDescription
-from homeassistant.components.number import NumberEntityDescription, NumberMode
+from homeassistant.components.number import NumberEntityDescription, NumberMode, NumberDeviceClass
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory
@@ -835,6 +835,7 @@ NUMBERS = [
         tag=Tag.RCC_TEMPERATURE,
         key=Tag.RCC_TEMPERATURE.key,
         icon="mdi:thermometer",
+        device_class=NumberDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         native_min_value=16.0,
         native_max_value=30.0,
