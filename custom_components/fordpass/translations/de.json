@@ -42,7 +42,7 @@
             "no_vehicles": "Keine Fahrzeuge im Konto oder alle sind bereits konfiguriert",
             "reauth_successful": "Re-Autorisierung erfolgreich",
             "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut",
-            "no_filesystem_access": "Diese Integration benötigt Zugriff auf das lokale Dateisystem Deiner HomeAssistant Installation, um einen Schlüssel für Deinen FordPass™/The Lincoln Way™ Account speichern zu können.\n\nHierzu wird im in dem Ordner '.storage/' einen Unterordner anlegen. Dies ist jedoch derzeit nicht möglich. Ein interner Test ist fehlgeschlagen. Details hierzu findest Du im LOG Deiner Home Assistant Instanz.\n\nBitte stelle sicher, dass Du die Home Assistant Installation mit dem richtigen Benutzer ausführst, der Schreibzugriff auf das lokale Dateisystem hat.\n\nWenn Du Home Assistant in einem Docker-Container ausführst, stelle sicher, dass Du den Container mit dem richtigen Benutzer ausführst und dass der Container Zugriff auf das lokale Dateisystem hat.\n\nBitte prüfe Deine installation und starte die Einrichtung dieser Integration neu, sobald der Zugriff auf das lokale Dateisystem möglich ist.",
+            "no_filesystem_access": "Diese Integration benötigt Zugriff auf das lokale Dateisystem Deiner Home Assistant Installation, um einen Schlüssel für Deinen FordPass™/The Lincoln Way™ Account speichern zu können.\n\nHierzu wird im in dem Ordner '.storage/' einen Unterordner anlegen. Dies ist jedoch derzeit nicht möglich. Ein interner Test ist fehlgeschlagen. Details hierzu findest Du im LOG Deiner Home Assistant Instanz.\n\nBitte stelle sicher, dass Du die Home Assistant Installation mit dem richtigen Benutzer ausführst, der Schreibzugriff auf das lokale Dateisystem hat.\n\nWenn Du Home Assistant in einem Docker-Container ausführst, stelle sicher, dass Du den Container mit dem richtigen Benutzer ausführst und dass der Container Zugriff auf das lokale Dateisystem hat.\n\nBitte prüfe Deine installation und starte die Einrichtung dieser Integration neu, sobald der Zugriff auf das lokale Dateisystem möglich ist.",
             "no_brand": "Kein Hersteller (Ford oder Lincoln) erkannt"
         },
         "error": {
@@ -76,7 +76,7 @@
             },
             "token": {
                 "title": "Zugriffs-Token Einrichtung",
-                "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffnen einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine FordPass™/The Lincoln Way™-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
+                "description": "Die Token-Einrichtung erfordert einen externen Browser, um den finalen Zugriffstoken von Ford zu erhalten.\r\rDetails findest Du unter https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rBitte befolge die Schritte:\r1. Kopiere die URL aus dem oberen Feld\r2. Öffne einen weiteren Browser (mit aktivierten Entwicklertools) und füge die kopierte URL in dieses zweiter Browserfenster ein\r3. Gibt Deine FordPass™/The Lincoln Way™-Anmeldeinformationen (erneut) ein und starte den Anmeldeforgang\r4. Beobachte die Registerkarte „Netzwerk“, bis der Request „?code=“ zu sehen ist\r5. Kopiere die vollständige „Request-URL“ dieser Anfrage aus den Browser Entwicklertools und fügen diese hier unten im Token-Feld ein\r6. Klicke auf „OK“ um fortzufahren",
                 "data": {
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
@@ -141,11 +141,11 @@
                     "distance_unit": "Maßeinheit für Entfernung",
                     "update_interval": "Aktualisierungsintervall FordPass-API (Sekunden)",
                     "force_remote_climate_control": "Die Optionen der Klima Fernsteuerung (❄|☀) [RemoteControl] sollen immer verfügbar sein",
-                    "log_to_filesystem": "Protokolliere API-Antworten im im lokalen HA Dateisystem"
+                    "log_to_filesystem": "Protokolliere API-Antworten im lokalen HA Dateisystem"
                 },
                 "data_description": {
-                    "force_remote_climate_control": "Wenn Du diese Option aktivierts, werden die von Ford vorgegebenen Einstellungen ignoriert.",
-                    "log_to_filesystem": "Diese Option sollte nicht über einen längern Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/fordpass/data_dumps'"
+                    "force_remote_climate_control": "Wenn Du diese Option aktivierst, werden die von Ford vorgegebenen Einstellungen ignoriert.",
+                    "log_to_filesystem": "Diese Option sollte nicht über einen längeren Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/fordpass/data_dumps'"
                 },
                 "description": "Optionen konfigurieren"
             }
@@ -172,7 +172,7 @@
         },
         "poll_api": {
             "name": "API aufrufen",
-            "description": "Ruft eine manuelle Datenaktualisierung aus der FordPass-API auf. (Vorsicht: Häufige Aufrufen können zu einer temporären Drosselung/Sperre führen)"
+            "description": "Ruft eine manuelle Datenaktualisierung aus der FordPass-API auf. (Vorsicht: Häufige Aufrufe können zu einer temporären Drosselung/Sperre führen)"
         }
     },
     "title": "FordPass",
@@ -218,7 +218,7 @@
             "elvehplug":                {"name": "EV Steckerstatus"},
             "elvehcharging":            {"name": "EV Ladestatus"},
             "speed":                    {"name": "Geschwindigkeit"},
-            "enginespeed":              {"name": "Motordrehzal"},
+            "enginespeed":              {"name": "Motordrehzahl"},
             "gearleverposition":        {"name": "Gang"},
             "indicators":               {"name": "Warnmeldungen"},
             "coolanttemp":              {"name": "Temperatur Kühlmittel"},
