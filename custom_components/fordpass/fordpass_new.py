@@ -36,8 +36,8 @@ loginHeaders = {
 
 NEW_API = True
 
-BASE_URL = "https://usapi.cv.ford.com/api"
-GUARD_URL = "https://api.mps.ford.com/api"
+BASE_URL = "https://api.vehicle.ford.com/api"
+GUARD_URL = "https://api.foundational.ford.com/api" #"https://api.mps.ford.com/api"
 SSO_URL = "https://sso.ci.ford.com"
 AUTONOMIC_URL = "https://api.autonomic.ai/v1"
 AUTONOMIC_ACCOUNT_URL = "https://accounts.autonomic.ai/v1"
@@ -78,6 +78,7 @@ class Vehicle:
         
         data = {
             "client_id": "09852200-05fd-41f6-8c21-d36d3497dc64",
+            "scope": "09852200-05fd-41f6-8c21-d36d3497dc64 openid",
             "grant_type": "authorization_code",
             "code_verifier": code_verifier,
             "code": code_new,
@@ -86,7 +87,10 @@ class Vehicle:
 
         _LOGGER.debug(data)
         headers = {
-            **loginHeaders,
+            "Accept-Encoding": "gzip",
+            "Connection": "Keep-Alive",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "okhttp/4.12",
         }
         
         async with self.session.post(
@@ -485,7 +489,7 @@ class Vehicle:
             "dashboardRefreshRequest": "All"
         }
         async with self.session.post(
-            f"{GUARD_URL}/expdashboard/v1/details/",
+            f"{BASE_URL}/expdashboard/v1/details/",
             headers=headers,
             json=data
         ) as response:
