@@ -9,35 +9,39 @@ from base64 import urlsafe_b64encode
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Final
+from secrets import token_urlsafe
 
 import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries, exceptions
-from homeassistant.config_entries import ConfigError
+from homeassistant.config_entries import ConfigError, ConfigFlowResult, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
 from homeassistant.core import callback, HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.storage import STORAGE_DIR
 
 from custom_components.fordpass.const import (  # pylint:disable=unused-import
+    DOMAIN,
+    OAUTH_ID,
+    CLIENT_ID,
+    REGIONS,
+    REGION_OPTIONS_FORD,
+    DEFAULT_REGION_FORD,
+    REGION_OPTIONS_LINCOLN,
+    DEFAULT_REGION_LINCOLN,
+
     CONF_PRESSURE_UNIT,
     CONF_BRAND,
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
-    DEFAULT_PRESSURE_UNIT,
-    DOMAIN,
     PRESSURE_UNITS,
+    DEFAULT_PRESSURE_UNIT,
     BRAND_OPTIONS,
-    REGION_OPTIONS_FORD,
-    REGION_OPTIONS_LINCOLN,
-    DEFAULT_REGION_FORD,
-    DEFAULT_REGION_LINCOLN,
-    REGIONS,
+
     UPDATE_INTERVAL,
-    UPDATE_INTERVAL_DEFAULT
+    UPDATE_INTERVAL_DEFAULT,
 )
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 
@@ -76,7 +80,7 @@ class InvalidMobile(exceptions.HomeAssistantError):
     """Error to no mobile specified for South African Account"""
 
 
-class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for FordPass."""
 
     VERSION = 1
@@ -90,6 +94,31 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     _vehicle_name = None
     _can_not_connect_reason = None
     _session: aiohttp.ClientSession | None = None
+
+    # @staticmethod
+    # def base64_url_encode(data):
+    #     """Encode string to base64"""
+    #     return urlsafe_b64encode(data).rstrip(b'=')
+    #
+    # def generate_hash(self, code):
+    #     """Generate hash for login"""
+    #     hashengine = hashlib.sha256()
+    #     hashengine.update(code.encode('ascii'))
+    #     return self.base64_url_encode(hashengine.digest()).decode('utf-8')
+
+    @staticmethod
+    def generate_code_challenge():
+        # Create a code verifier with a length of 128 characters
+        code_verifier = token_urlsafe(96)
+
+        hashed_verifier = hashlib.sha256(code_verifier.encode("utf-8"))
+        code_challenge = urlsafe_b64encode(hashed_verifier.digest())
+        code_challenge_without_padding = code_challenge.rstrip(b"=")
+        return {
+            "code_verifier": code_verifier,
+            "code_challenge_method": "S256",
+            "code_challenge": code_challenge_without_padding,
+        }
 
     @callback
     def configured_vehicles(self, hass: HomeAssistant) -> set[str]:
@@ -126,6 +155,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
+
         results = await bridge.generate_tokens(token, code_verifier, data[CONF_REGION])
 
         if results:
@@ -146,6 +176,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], "", data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
+
         results = await bridge.generate_tokens(token, code_verifier, data[CONF_REGION])
 
         if not results:
@@ -181,7 +212,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         bridge = ConnectedFordPassVehicle(self._session, data[CONF_USERNAME], data[CONF_VIN], data[CONF_REGION],
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
-        test = await bridge.get_status()
+
+        test = await bridge.req_status()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
         if test and test.status_code == 200:
             _LOGGER.debug("200 Code")
@@ -468,8 +500,11 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.error(f"generate_url(): Invalid region_key: {region_key}")
             region_key = DEFAULT_REGION_FORD
         _LOGGER.debug(f"generate_url(): selected REGIONS object: {REGIONS[region_key]}")
-        self.code_verifier = ''.join(random.choice(string.ascii_lowercase) for i in range(43))
-        hashed_code_verifier = self.generate_hash(self.code_verifier)
+
+        cc_object = self.generate_code_challenge()
+        code_challenge = cc_object["code_challenge"].decode("utf-8")
+        code_challenge_method = cc_object["code_challenge_method"]
+        self.code_verifier = cc_object["code_verifier"]
 
         # LINCOLN
         # https://login.lincoln.com/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_Lincoln_en-US/oauth2/v2.0/authorize?redirect_uri=lincolnapp%3A%2F%2Fuserauthorized&response_type=code&scope=09852200-05fd-41f6-8c21-d36d3497dc64%20openid&max_age=3600&login_hint=eyJyZWFsbSI6ICJjbG91ZElkZW50aXR5UmVhbG0ifQ%3D%3D&code_challenge=K2WtKFhDWmbkkx__9U9b4LhI1z_QvEGb6VvZ1RGX45I&code_challenge_method=S256&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&language_code=en-US&ford_application_id=45133B88-0671-4AAF-B8D1-99E684ED4E45&country_code=USA
@@ -482,19 +517,8 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if "redirect_schema" in REGIONS[region_key]:
             redirect_schema = REGIONS[region_key]["redirect_schema"]
 
-        url = f"{REGIONS[region_key]['locale_url']}/4566605f-43a7-400a-946e-89cc9fdb0bd7/{sign_up}{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri={redirect_schema}://userauthorized&response_type=code&max_age=3600&code_challenge={hashed_code_verifier}&code_challenge_method=S256&scope=%2009852200-05fd-41f6-8c21-d36d3497dc64%20openid&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&ford_application_id={REGIONS[region_key]['app_id']}&country_code={REGIONS[region_key]['countrycode']}"
+        url = f"{REGIONS[region_key]['login_url']}/{OAUTH_ID}/{sign_up}{REGIONS[region_key]['locale']}/oauth2/v2.0/authorize?redirect_uri={redirect_schema}://userauthorized&response_type=code&max_age=3600&code_challenge={code_challenge}&code_challenge_method={code_challenge_method}&scope=%20{CLIENT_ID}%20openid&client_id={CLIENT_ID}&ui_locales={REGIONS[region_key]['locale']}&language_code={REGIONS[region_key]['locale']}&ford_application_id={REGIONS[region_key]['app_id']}&country_code={REGIONS[region_key]['countrycode']}"
         return url
-
-    @staticmethod
-    def base64_url_encode(data):
-        """Encode string to base64"""
-        return urlsafe_b64encode(data).rstrip(b'=')
-
-    def generate_hash(self, code):
-        """Generate hash for login"""
-        hashengine = hashlib.sha256()
-        hashengine.update(code.encode('utf-8'))
-        return self.base64_url_encode(hashengine.digest()).decode('utf-8')
 
     @staticmethod
     def valid_number(phone_number):
@@ -560,6 +584,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if not available_vehicles:
             _LOGGER.debug("No Vehicles?")
             return self.async_abort(reason="no_vehicles")
+
         return self.async_show_form(
             step_id="vehicle",
             data_schema=vol.Schema(
@@ -569,17 +594,16 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
-        """Handle re-authentication"""
-        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        return await self.async_step_reauth_token()
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
+        """Handle flow upon an API authentication error."""
+        return await self.async_step_reauth_confirm()
 
-
-    async def async_step_reauth_token(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Dialog that informs the user that reauth is required."""
 
         errors: dict[str, str] = {}
-        assert self.entry is not None
+        reauth_entry = self._get_reauth_entry()
+        assert reauth_entry is not None
 
         if user_input is not None:
             try:
@@ -587,27 +611,26 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 # we should not save our user-captured 'code' url...
                 del user_input[CONF_TOKEN_STR]
 
-                if self.check_token(token_fragment, self.entry.data[CONF_REGION]):
+                if self.check_token(token_fragment, reauth_entry.data[CONF_REGION]):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
                     # ok we have already the username and region, this must be stored
                     # in the config entry, so we can get it from there...
-                    user_input[CONF_REGION] = self.entry.data[CONF_REGION]
-                    user_input[CONF_USERNAME] = self.entry.data[CONF_USERNAME]
+                    user_input[CONF_REGION] = reauth_entry.data[CONF_REGION]
+                    user_input[CONF_USERNAME] = reauth_entry.data[CONF_USERNAME]
                     _LOGGER.debug(f"async_step_reauth_token: user_input -> {user_input}")
 
                     info = await self.validate_token_only(user_input, token_fragment, self.code_verifier)
                     if info:
                         # do we want to check, if the VIN is still accessible?!
                         # for now we just will reload the config entry...
-                        await self.hass.config_entries.async_reload(self.entry.entry_id)
+                        await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                         return self.async_abort(reason="reauth_successful")
                     else:
                         # what we need to do, if user did not re-authenticate successfully?
-                        _LOGGER.warning(f"Re-Authorization failed - fordpass integration can't provide data for VIN: {self.entry.data[CONF_VIN]}")
+                        _LOGGER.warning(f"Re-Authorization failed - fordpass integration can't provide data for VIN: {reauth_entry.data[CONF_VIN]}")
                         return self.async_abort(reason="reauth_unsuccessful")
-                        pass
                 else:
                     errors["base"] = "invalid_token"
 
@@ -618,35 +641,15 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     errors["base"] = "cannot_connect - UNKNOWN REASON"
 
-
-
-            # try:
-            #     info = await self._async_get_info(host)
-            # except (DeviceConnectionError, InvalidAuthError, FirmwareUnsupported):
-            #     return self.async_abort(reason="reauth_unsuccessful")
-            #
-            # if self.entry.data.get("gen", 1) != 1:
-            #     user_input[CONF_USERNAME] = "admin"
-            # try:
-            #     await validate_input(self.hass, host, info, user_input)
-            # except (DeviceConnectionError, InvalidAuthError, FirmwareUnsupported):
-            #     return self.async_abort(reason="reauth_unsuccessful")
-            # else:
-            #     self.hass.config_entries.async_update_entry(
-            #         self.entry, data={**self.entry.data, **user_input}
-            #     )
-            #     await self.hass.config_entries.async_reload(self.entry.entry_id)
-            #     return self.async_abort(reason="reauth_successful")
-
         # then we generate again the fordpass-login-url and show it to the
         # user...
         return self.async_show_form(
-            step_id="reauth_token", data_schema=vol.Schema(
-                {
-                    vol.Optional(CONF_URL, default=self.generate_url(self.entry.data[CONF_REGION])): str,
-                    vol.Required(CONF_TOKEN_STR): str,
-                }
-            ), errors=errors
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({
+                vol.Optional(CONF_URL, default=self.generate_url(reauth_entry.data[CONF_REGION])): str,
+                vol.Required(CONF_TOKEN_STR): str,
+            }),
+            errors=errors
         )
 
     @staticmethod
@@ -656,7 +659,7 @@ class FordPassConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return FordPassOptionsFlowHandler(config_entry)
 
 
-class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
+class FordPassOptionsFlowHandler(OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry):
         """Initialize options flow."""
         if len(dict(config_entry.options)) == 0:
@@ -668,14 +671,8 @@ class FordPassOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        options = {
-            vol.Optional(CONF_PRESSURE_UNIT,
-                         default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
-            vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL,
-                         default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
-            vol.Optional(CONF_LOG_TO_FILESYSTEM,
-                         default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
-            vol.Optional(UPDATE_INTERVAL,
-                         default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int,
-        }
+        options = {vol.Optional(CONF_PRESSURE_UNIT, default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
+                   vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL, default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
+                   vol.Optional(CONF_LOG_TO_FILESYSTEM, default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
+                   vol.Optional(UPDATE_INTERVAL, default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int}
         return self.async_show_form(step_id="init", data_schema=vol.Schema(options))

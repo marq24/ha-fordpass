@@ -18,8 +18,14 @@ from aiohttp import ClientConnectorError, ClientConnectionError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from custom_components.fordpass import DOMAIN
-from custom_components.fordpass.const import REGIONS, ZONE_LIGHTS_VALUE_OFF, REMOTE_START_STATE_ACTIVE, \
+from custom_components.fordpass.const import (
+    OAUTH_ID,
+    CLIENT_ID,
+    REGIONS,
+    ZONE_LIGHTS_VALUE_OFF,
+    REMOTE_START_STATE_ACTIVE,
     REMOTE_START_STATE_INACTIVE
+)
 from custom_components.fordpass.fordpass_handler import (
     ROOT_STATES,
     ROOT_EVENTS,
@@ -80,7 +86,7 @@ AUTONOMIC_BETA_URL: Final = "https://api.autonomic.ai/v1beta"
 AUTONOMIC_WS_URL: Final = "wss://api.autonomic.ai/v1beta"
 AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 
-FORD_LOGIN_URL: Final = "https://login.ford.com"
+#FORD_LOGIN_URL: Final = "https://login.ford.com"
 FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
 ERROR: Final = "ERROR"
@@ -170,6 +176,7 @@ class ConnectedFordPassVehicle:
         self.account_key = f"{username}µ@µ{region_key}"
         self.app_id = REGIONS[self.region_key]["app_id"]
         self.locale_code = REGIONS[self.region_key]["locale"]
+        self.login_url = REGIONS[self.region_key]["login_url"]
         self.countrycode = REGIONS[self.region_key]["countrycode"]
         self.vin = vin
         # this is just our initial log identifier for the vehicle... we will
@@ -283,22 +290,22 @@ class ConnectedFordPassVehicle:
             redirect_schema = REGIONS[region_key]["redirect_schema"]
 
         _LOGGER.debug(f"{self.vli}generate_tokens() for country_code: {self.locale_code}")
-        code_new = urlstring.replace(f"{redirect_schema}://userauthorized/?code=", "")
+        the_code = urlstring.replace(f"{redirect_schema}://userauthorized/?code=", "")
 
         headers = {
             **loginHeadersOct2025,
         }
         data = {
-            "client_id": "09852200-05fd-41f6-8c21-d36d3497dc64",
-            "scope": "09852200-05fd-41f6-8c21-d36d3497dc64 openid",
+            "client_id": CLIENT_ID,
+            "scope": f"{CLIENT_ID} openid",
             "redirect_uri": f"{redirect_schema}://userauthorized",
             "grant_type": "authorization_code",
             "resource" : "",
-            "code": code_new,
+            "code": the_code,
             "code_verifier": code_verifier,
         }
         response = await self.session.post(
-            f"{FORD_LOGIN_URL}/4566605f-43a7-400a-946e-89cc9fdb0bd7/{sign_up}{self.locale_code}/oauth2/v2.0/token",
+            f"{self.login_url}/{OAUTH_ID}/{sign_up}{self.locale_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
             ssl=True

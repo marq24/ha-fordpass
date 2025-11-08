@@ -52,6 +52,9 @@ REGION_APP_IDS: Final = {
     "south_america":    "C1DFFEF5-5BA5-486A-9054-8B39A9DF9AFC", # Argentina, Brazil, ...
 }
 
+OAUTH_ID: Final = "4566605f-43a7-400a-946e-89cc9fdb0bd7"
+CLIENT_ID: Final = "09852200-05fd-41f6-8c21-d36d3497dc64"
+
 LINCOLN_REGION_APP_IDS: Final = {
     "north_america":    "45133B88-0671-4AAF-B8D1-99E684ED4E45"
 }
@@ -60,7 +63,7 @@ REGIONS: Final = {
     "lincoln_usa": {
         "app_id": LINCOLN_REGION_APP_IDS["north_america"],
         "locale": "en-US",
-        "locale_url": "https://login.lincoln.com",
+        "login_url": "https://login.lincoln.com",
         "sign_up_addon": "Lincoln_",
         "redirect_schema": "lincolnapp",
         "countrycode": "USA"
@@ -70,70 +73,70 @@ REGIONS: Final = {
     "deu": {
         "app_id": REGION_APP_IDS["europe"],
         "locale": "de-DE",
-        "locale_url": "https://login.ford.de",
+        "login_url": "https://login.ford.de",
         "countrycode": "DEU"
     },
     # checked 2025/06/08 - working fine...
     "fra": {
         "app_id": REGION_APP_IDS["europe"],
         "locale": "fr-FR",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "FRA"
     },
     # checked 2025/06/08 - working fine...
     "ita": {
         "app_id": REGION_APP_IDS["europe"],
         "locale": "it-IT",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "ITA"
     },
     # checked 2025/06/09 - working fine...
     "esp": {
         "app_id": REGION_APP_IDS["europe"],
         "locale": "es-ES",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "ESP"
     },
     # checked 2025/06/08 - working fine...
     "nld": {
         "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19
         "locale": "nl-NL",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "NLD"
     },
     # checked 2025/06/08 - working fine...
     "gbr": {
         "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
         "locale": "en-GB",
-        "locale_url": "https://login.ford.co.uk",
+        "login_url": "https://login.ford.co.uk",
         "countrycode": "GBR"
     },
     # using GBR as our default for the rest of europe...
     "rest_of_europe": {
         "app_id": REGION_APP_IDS["europe"],
         "locale": "en-GB",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "GBR"
     },
     # checked 2025/06/08 - working fine...
     "can": {
         "app_id": REGION_APP_IDS["north_america"],
         "locale": "en-CA",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "CAN"
     },
     # checked 2025/06/08 - working fine...
     "mex": {
         "app_id": REGION_APP_IDS["north_america"],
         "locale": "es-MX",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "MEX"
     },
     # checked 2025/06/08 - working fine...
     "usa": {
         "app_id": REGION_APP_IDS["north_america"], # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
         "locale": "en-US",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "USA"
     },
 
@@ -141,14 +144,14 @@ REGIONS: Final = {
     "bra": {
         "app_id": REGION_APP_IDS["south_america"],
         "locale": "pt-BR",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "BRA"
     },
     # DOES NOT WORK... checked 2025/06/09
     "arg": {
         "app_id": REGION_APP_IDS["south_america"],
         "locale": "es-AR",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "ARG"
     },
 
@@ -156,14 +159,14 @@ REGIONS: Final = {
     "aus": {
         "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
         "locale": "en-AU",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "AUS"
     },
     # NEED AN www.ford.com.au registered account!!!
     "nzl": {
         "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
         "locale": "en-NZ",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "NZL"
     },
 
@@ -171,7 +174,7 @@ REGIONS: Final = {
     "zaf": {
         "app_id": REGION_APP_IDS["africa"],
         "locale": "en-ZA",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "ZAF"
     },
 
@@ -179,17 +182,17 @@ REGIONS: Final = {
     "rest_of_world": {
         "app_id": REGION_APP_IDS["north_america"],
         "locale": "en-US",
-        "locale_url": "https://login.ford.com",
+        "login_url": "https://login.ford.com",
         "countrycode": "USA"
     },
 
 
     # for compatibility, we MUST KEEP the old region keys with the OLD App-IDs!!! - this really sucks!
-    "Netherlands":  {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "nl-NL", "locale_url": "https://login.ford.nl", "countrycode": "NLD"},
-    "UK&Europe":    {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "en-GB", "locale_url": "https://login.ford.co.uk", "countrycode": "GBR"},
-    "Australia":    {"app_id": "5C80A6BB-CF0D-4A30-BDBF-FC804B5C1A98", "locale": "en-AU", "locale_url": "https://login.ford.com", "countrycode": "AUS"},
-    "USA":          {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-US", "locale_url": "https://login.ford.com", "countrycode": "USA"},
-    "Canada":       {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-CA", "locale_url": "https://login.ford.com", "countrycode": "USA"}
+    "Netherlands":  {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "nl-NL", "login_url": "https://login.ford.nl", "countrycode": "NLD"},
+    "UK&Europe":    {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "en-GB", "login_url": "https://login.ford.co.uk", "countrycode": "GBR"},
+    "Australia":    {"app_id": "5C80A6BB-CF0D-4A30-BDBF-FC804B5C1A98", "locale": "en-AU", "login_url": "https://login.ford.com", "countrycode": "AUS"},
+    "USA":          {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-US", "login_url": "https://login.ford.com", "countrycode": "USA"},
+    "Canada":       {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-CA", "login_url": "https://login.ford.com", "countrycode": "USA"}
 }
 
 WINDOW_POSITIONS: Final = {

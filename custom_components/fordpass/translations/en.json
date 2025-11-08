@@ -82,7 +82,7 @@
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
                 }
             },
-            "reauth_token": {
+            "reauth_confirm": {
                 "title": "Re-Authorization required",
                 "description": "Your previous token is invalid - so you must provide anew one:\r\rThe Token setup requires an external browser to get finally the access token.\r\rDetails can be found https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rPlease follow the steps:\r1. Copy the URL below\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass™/The Lincoln Way™ credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue",
                 "data": {
