@@ -180,8 +180,9 @@ Here is a short procedure how to create and connect a second account (for FordPa
 6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.<br/>__This step must be performed on the mobile device where the FordPass™ app is installed!__ (since only on a mobile device with installed FordPass™ you can open the acceptance-link of this eMail)
 7. Finally, you should now have connected your car to the new FordPass™ account.
 8. You can now log out again of the FordPass™ app with your second account and re-login with your original FordPass™ account.
-9. You can double-check with a regular browser, that the car is now accessible with the new account by web.  
+9. You can double-check with a regular browser, that the car is now accessible with the new account by web.
 
+If accepting the invitation doesn't work or results in a blank sceeen in the Ford app, try adding the vehicle by VIN to the new account first then accepting the invite.
 
 ## Multi-Vehicle Support
 
