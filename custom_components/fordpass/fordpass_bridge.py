@@ -1902,9 +1902,9 @@ class ConnectedFordPassVehicle:
         """Issue an unlock command to the doors"""
         return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="unlock")
 
-    def request_update(self):
+    async def request_update(self):
         """Send request to vehicle for update"""
-        status = self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
+        status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
 

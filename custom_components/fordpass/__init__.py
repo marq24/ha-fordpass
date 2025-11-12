@@ -125,17 +125,26 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # SERVICES from here...
     # simple service implementations (might be moved to separate service.py)
     async def async_refresh_status_service(call: ServiceCall):
-        await hass.async_add_executor_job(service_refresh_status, hass, call, coordinator)
-        await asyncio.sleep(15)
-        await coordinator.async_refresh()
+        _LOGGER.debug(f"Running Service 'refresh_status'")
+        status = await coordinator.bridge.request_update()
+        if status == 401:
+            _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Invalid VIN?! (status 401)")
+        elif status in [200, 201, 202]:
+            _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
+
+        await asyncio.sleep(10)
+        await coordinator.async_request_refresh_force_classic_requests()
 
     async def async_clear_tokens_service(call: ServiceCall):
-        await hass.async_add_executor_job(service_clear_tokens, hass, call, coordinator)
+        #await hass.async_add_executor_job(service_clear_tokens, hass, call, coordinator)
+        """Clear the token file in config directory, only use in emergency"""
+        _LOGGER.debug(f"Running Service 'clear_tokens'")
+        await coordinator.bridge.clear_token()
         await asyncio.sleep(5)
-        await coordinator.async_request_refresh()
+        await coordinator.async_request_refresh_force_classic_requests()
 
     async def poll_api_service(call: ServiceCall):
-        await coordinator.async_request_refresh()
+        await coordinator.async_request_refresh_force_classic_requests()
 
     async def handle_reload_service(call: ServiceCall):
         """Handle reload service call."""
@@ -170,22 +179,6 @@ async def async_update_options(hass, config_entry):
         CONF_PRESSURE_UNIT: config_entry.data.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),
     }
     hass.config_entries.async_update_entry(config_entry, options=options)
-
-
-def service_refresh_status(hass, service, coordinator):
-    """Get the latest vehicle status from vehicle, actively polls the car"""
-    _LOGGER.debug(f"Running Service 'refresh_status'")
-    status = coordinator.bridge.request_update()
-    if status == 401:
-        _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Invalid VIN?! (status 401)")
-    elif status == 200:
-        _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
-
-
-def service_clear_tokens(hass, service, coordinator):
-    """Clear the token file in config directory, only use in emergency"""
-    _LOGGER.debug(f"Running Service 'clear_tokens'")
-    coordinator.bridge.clear_token()
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
