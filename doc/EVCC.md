@@ -136,7 +136,7 @@ vehicles:
     capacity: 84.65
     type: template
     template: homeassistant
-    uri: http://http://192.168.10.20:8123
+    uri: http://192.168.10.20:8123
     token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNWVjNzg5M2Y0ZjQ0MzBmYjUwOGEwMmU4N2Q0MzFmNyIsImlhdCI6MTcxNTUwNzYxMCwiZXhwIjoyMDMwODY3NjEwfQ.GMWO8saHpawkjNzk-uokxYeaP0GFKPQSeDoP3lCO488
     soc: sensor.fordpass_wf0tk3r7xpma01234_soc                    # Ladezustand [%]
     range: sensor.fordpass_wf0tk3r7xpma01234_elveh                # Restreichweite [km]
