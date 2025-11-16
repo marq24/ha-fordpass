@@ -1,15 +1,14 @@
 """Fordpass Switch Entities"""
 import logging
-
-from homeassistant.components.number import NumberEntity
-
-from custom_components.fordpass import FordPassEntity, RCC_TAGS, FordPassDataUpdateCoordinator
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
-from custom_components.fordpass.const_tags import Tag, NUMBERS, ExtNumberEntityDescription
-from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 from dataclasses import replace
 
+from homeassistant.components.number import NumberEntity
 from homeassistant.const import UnitOfTemperature
+
+from custom_components.fordpass import FordPassEntity, RCC_TAGS, FordPassDataUpdateCoordinator
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const_tags import NUMBERS, ExtNumberEntityDescription
+from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,10 +42,10 @@ class FordPassNumber(FordPassEntity, NumberEntity):
             self.translate_from_to_fahrenheit = True
             entity_description = replace(
                 entity_description,
-                native_unit_of_measurement = coordinator.units.temperature_unit,
-                native_step = 1,
-                native_max_value = round(entity_description.native_max_value * 1.8 + 32, 0),
-                native_min_value = round(entity_description.native_min_value * 1.8 + 32, 0),
+                native_unit_of_measurement=coordinator.units.temperature_unit,
+                native_step=1,
+                native_max_value=round(entity_description.native_max_value * 1.8 + 32, 0),
+                native_min_value=round(entity_description.native_min_value * 1.8 + 32, 0)
             )
 
         super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)

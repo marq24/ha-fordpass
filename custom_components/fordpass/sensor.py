@@ -63,7 +63,7 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
         if (coordinator.has_ev_soc and entity_description.tag == Tag.SOC) or (not coordinator.has_ev_soc and entity_description.tag == Tag.BATTERY):
             entity_description = replace(
                 entity_description,
-                device_class = SensorDeviceClass.BATTERY
+                device_class=SensorDeviceClass.BATTERY
             )
         super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 

@@ -1,4 +1,5 @@
 import logging
+from dataclasses import replace
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -38,25 +39,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                 a_entity_description.tag in [Tag.RCC_SEAT_FRONT_LEFT, Tag.RCC_SEAT_FRONT_RIGHT, Tag.RCC_SEAT_REAR_LEFT, Tag.RCC_SEAT_REAR_RIGHT]):
 
             # heating-only mode - so we set the corresponding icon and the heating-only options...
-            a_entity_description = ExtSelectEntityDescription(
-                tag=a_entity_description.tag,
-                key=a_entity_description.key,
+            a_entity_description = replace(
+                a_entity_description,
                 icon="mdi:car-seat-heater",
-                options=RCC_SEAT_OPTIONS_HEAT_ONLY,
-                has_entity_name=a_entity_description.has_entity_name
+                options=RCC_SEAT_OPTIONS_HEAT_ONLY
             )
 
         # special handling for the ELVEH_TARGET_CHARGE tags [where we have to add the location name]
         if a_entity_description.tag in ELVEH_TARGET_CHARGE_TAG_TO_INDEX.keys():
             a_location_name = FordpassDataHandler.get_elev_target_charge_name(coordinator.data, ELVEH_TARGET_CHARGE_TAG_TO_INDEX[a_entity_description.tag])
             if a_location_name is not UNSUPPORTED:
-                a_entity_description = ExtSelectEntityDescription(
-                    tag=a_entity_description.tag,
-                    key=a_entity_description.key,
-                    icon=a_entity_description.icon,
-                    options=a_entity_description.options,
-                    has_entity_name=a_entity_description.has_entity_name,
-                    entity_registry_enabled_default=a_entity_description.entity_registry_enabled_default,
+                a_entity_description = replace(
+                    a_entity_description,
                     name_addon=f"{a_location_name}:"
                 )
 
