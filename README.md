@@ -123,16 +123,16 @@ If you have currently your integration configured, then you might be lucky and t
 >
 > While for some countries there is a cross-region support in place (like for European countries and North America), there are other regions where an account registered in a specific country __can't__ be used in another region. E.g. an Ford account registered with the Ford domain in Australia (ford.com.au) can not be used with the USA domain (ford.com).
 >
-> So if your Country is not listed in the integration, and you follow the recommendation to register a sperate account to be used with the integration, then [__register this second account at the ford.com domain__](https://www.ford.com/#$userCreateAccount), since this ensures that you can use the Integration with the 'Rest of the World' Region setting.
+> So if your country is not listed in the integration, and you follow the recommendation to register a sperate account to be used with the integration, then [__register this second account at the ford.com domain__](https://www.ford.com/#$userCreateAccount), since this ensures that you can use the Integration with the 'Rest of the World' Region setting.
 
 ### Step 3. The hard part — the **Token Setup**
 The actual token request requires an external browser to get finally the FordPass™/The Lincoln Way™ access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
 
 Please follow the steps:
 1. Copy the URL listed in the first input field
-2. Open a new browser (with enabled developer tools) and paste the copied URL it into your second browser
+2. Open a new/separate browser (with enabled developer tools) and paste the copied URL it into this second browser instance (you might like to use a private/incognito window for this)
 3. In this second browser: Enter your FordPass™/The Lincoln Way™ credentials (again) and press the login button
-4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but it's not important)
+4. Watch the developer tools Network-tab till you see the `?code=` request (this request will fail, but this error is not important). This `?code=` request contains the required access token as a URL parameter.
 5. Copy the full `Request-URL` from this `?code=` request from the browser's developer tools and paste it in the HA integration setup Token field [you must copy the complete URL - so ist must start with `fordapp://userauthorized/?code= ... ` (or `lincolnapp://userauthorized/?code= ... `)]
 
 More details (how to deal with the browser developer tools) to get your token can be found in the [additional 'obtaining token document'](./doc/OBTAINING_TOKEN.md).

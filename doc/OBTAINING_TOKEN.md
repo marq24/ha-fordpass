@@ -5,9 +5,7 @@
 > Although this has been tested multiple times (in January–June 2025), It can't be guaranteed the method will last as Ford is consistently making changes!
 
 > [!NOTE]
-> This process requires [at least the 1.71 version](https://github.com/marq24/ha-fordpass/releases/tag/1.71-Release) of this fordpass integration.
-> 
-> In the meantime the version number scheme has changed to `year.month.count` format, so don't be confused if you see a version like `2025.6.2` or similar.
+> This process requires [at least the 2025.10.2 version](https://github.com/marq24/ha-fordpass/releases/tag/2025.10.2) of this fordpass integration.
 
 
 ### **Step I:**
@@ -18,7 +16,7 @@
 
 
 ### **Step II:**
-1. Copy the URL that has been generated and paste it in your additional browser. 
+1. Copy the URL that has been generated and paste it in your additional/separate browser. You might like to use a private/incognito window for this.
 
 > [!IMPORTANT]
 > Ensure you have enabled the Developer tools before pressing "log in" as you will be required to capture a header once logged in!  
@@ -27,7 +25,7 @@
 
 ![image](./../images/002.png)
 
-2. In your second browser (where you paste the URL), the Ford Login dialog should be displayed. 
+2. In your second/separate browser (where you paste the URL), the Ford Login dialog should be displayed. 
 
 3. Enter your FordPass credentials and click `Sign In`.
 > [!NOTE]
