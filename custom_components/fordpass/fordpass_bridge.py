@@ -772,6 +772,8 @@ class ConnectedFordPassVehicle:
             return None
         else:
             _LOGGER.debug(f"{self.vli}ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
+            if self.auto_access_token is None:
+                return None
 
         headers_ws = {
             **apiHeaders,
@@ -1298,6 +1300,8 @@ class ConnectedFordPassVehicle:
                 return None
             else:
                 _LOGGER.debug(f"{self.vli}req_status(): - auto_access_token exist? {self.auto_access_token is not None}")
+                if self.auto_access_token is None:
+                    return None
 
             headers_state = {
                 **apiHeaders,
@@ -1372,6 +1376,8 @@ class ConnectedFordPassVehicle:
                 return None
             else:
                 _LOGGER.debug(f"{self.vli}messages() - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             headers_msg = {
                 **apiHeaders,
@@ -1421,6 +1427,8 @@ class ConnectedFordPassVehicle:
                 return None
             else:
                 _LOGGER.debug(f"{self.vli}req_vehicles(): - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             headers_veh = {
                 **apiHeaders,
@@ -1490,6 +1498,8 @@ class ConnectedFordPassVehicle:
                 return None
             else:
                 _LOGGER.debug(f"{self.vli}req_remote_climate(): - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             headers_veh = {
                 **apiHeaders,
@@ -1567,6 +1577,8 @@ class ConnectedFordPassVehicle:
                 return None
             else:
                 _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             # and the 'preferred-charge-times' request will get a 'vin' in the header
             headers_veh = {
@@ -1639,6 +1651,8 @@ class ConnectedFordPassVehicle:
                 return None
             else:
                 _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             # quite funny the energy-transfer-status request will get a 'deviceId' in the header
             # which is actually our VIN...
@@ -1916,6 +1930,8 @@ class ConnectedFordPassVehicle:
                 return False
             else:
                 _LOGGER.debug(f"{self.vli}__request_command(): access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             headers = {
                 **apiHeaders,
@@ -2027,6 +2043,8 @@ class ConnectedFordPassVehicle:
                 return False
             else:
                 _LOGGER.debug(f"{self.vli}__request_and_poll_command_autonomic(): auto_access_token exist? {self.auto_access_token is not None}")
+                if self.auto_access_token is None:
+                    return None
 
             headers = {
                 **apiHeaders,
@@ -2073,6 +2091,8 @@ class ConnectedFordPassVehicle:
                 return False
             else:
                 _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford(): access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
 
             headers = {
                 **apiHeaders,
