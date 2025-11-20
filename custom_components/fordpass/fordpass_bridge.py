@@ -186,13 +186,15 @@ class ConnectedFordPassVehicle:
         self.login_fail_reason = None
         self._HAS_COM_ERROR = False
         global _FOUR_NULL_ONE_COUNTER
-        _FOUR_NULL_ONE_COUNTER[self.vin] = 0
+        if self.vin not in _FOUR_NULL_ONE_COUNTER:
+            _FOUR_NULL_ONE_COUNTER[self.vin] = 0
         self.access_token = None
         self.refresh_token = None
         self.expires_at = None
 
         global _AUTO_FOUR_NULL_ONE_COUNTER
-        _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
+        if self.vin not in _AUTO_FOUR_NULL_ONE_COUNTER:
+            _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
         self.auto_access_token = None
         self.auto_refresh_token = None
         self.auto_expires_at = None
