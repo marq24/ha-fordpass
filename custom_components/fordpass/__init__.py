@@ -100,6 +100,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # I must debug later why this is the case
     await coordinator.async_refresh()  # Get initial data
     if not coordinator.last_update_success or coordinator.data is None:
+        # we should check, if 'reauth' is required... and trigger it when
+        # it's needed...
+        await coordinator._check_for_reauth()
         raise ConfigEntryNotReady
     else:
         await coordinator.read_config_on_startup(hass)
@@ -318,14 +321,17 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info(f"{self.vli}Watchdog: websocket connect task cancel failed: {type(ex).__name__} - {ex}")
             self._a_task = None
 
-    async def _async_watchdog_check(self, *_):
-        """Reconnect the websocket if it fails."""
+    async def _check_for_reauth(self):
         if self.bridge.require_reauth:
             self._available = False  # Mark as unavailable
             if not self._reauth_requested:
                 self._reauth_requested = True
-                _LOGGER.warning(f"{self.vli}_async_watchdog_check: VIN {self._vin} requires re-authentication")
+                _LOGGER.warning(f"{self.vli}_check_for_reauth: VIN {self._vin} requires re-authentication")
                 self.hass.add_job(self._config_entry.async_start_reauth, self.hass)
+
+    async def _async_watchdog_check(self, *_):
+        """Reconnect the websocket if it fails."""
+        await self._check_for_reauth()
 
         if not self.bridge.ws_connected:
             self._check_for_ws_task_and_cancel_if_running()

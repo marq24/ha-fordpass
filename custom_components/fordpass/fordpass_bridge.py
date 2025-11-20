@@ -712,6 +712,11 @@ class ConnectedFordPassVehicle:
             # Run blocking file operation in executor
             token_data = await asyncio.get_running_loop().run_in_executor(None, self.__read_token_int)
             return token_data
+
+            # only for testing reauth stuff...
+            #self.mark_re_auth_required()
+            #return None
+
         except ValueError:
             _LOGGER.warning(f"{self.vli}_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
             self.mark_re_auth_required()
