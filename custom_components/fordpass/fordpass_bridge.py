@@ -152,6 +152,7 @@ class ConnectedFordPassVehicle:
     _last_remote_start_state: str | None = None
     _ws_debounced_full_refresh_task: asyncio.Task | None = None
     _ws_debounced_preferred_charge_times_refresh_task: asyncio.Task | None = None
+    _ws_debounced_update_remote_climate_task: asyncio.Task | None = None
     # when you have multiple vehicles, you need to set the vehicle log id
     # (v)ehicle (l)og (i)d
     vli: str = ""
@@ -234,6 +235,7 @@ class ConnectedFordPassVehicle:
         self._ws_debounced_update_task = None
         self._ws_debounced_full_refresh_task = None
         self._ws_debounced_preferred_charge_times_refresh_task = None
+        self._ws_debounced_update_remote_climate_task = None
         self._ws_in_use_access_token = None
         self.ws_connected = False
         self._ws_LAST_UPDATE = 0
@@ -945,7 +947,9 @@ class ConnectedFordPassVehicle:
             new_remote_start_state = REMOTE_START_STATE_ACTIVE if a_start_val > 0 else REMOTE_START_STATE_INACTIVE
             if self._last_remote_start_state != INTEGRATION_INIT:
                 if REMOTE_START_STATE_ACTIVE == new_remote_start_state and self._last_remote_start_state != new_remote_start_state:
-                    self.update_remote_climate_int()
+                    if self._ws_debounced_update_remote_climate_task is not None and not self._ws_debounced_update_remote_climate_task.done():
+                        self._ws_debounced_update_remote_climate_task.cancel()
+                self._ws_debounced_update_remote_climate_task = asyncio.create_task(self._ws_debounced_update_remote_climate())
 
             self._last_remote_start_state = new_remote_start_state
 
@@ -1159,6 +1163,18 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): was canceled - all good")
         except BaseException as ex:
             _LOGGER.warning(f"{self.vli}_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex).__name__} - {ex}")
+
+    async def _ws_debounced_update_remote_climate(self):
+        try:
+            _LOGGER.debug(f"{self.vli}_ws_debounced_update_remote_climate(): started")
+            await asyncio.sleep(5)
+            await self.update_remote_climate_int()
+            if self.coordinator is not None:
+                self.coordinator.async_set_updated_data(self._data_container)
+        except CancelledError:
+            _LOGGER.debug(f"{self.vli}_ws_debounced_update_remote_climate(): was canceled - all good")
+        except BaseException as ex:
+            _LOGGER.warning(f"{self.vli}_ws_debounced_update_remote_climate(): Error during remote climate data refresh - {type(ex).__name__} - {ex}")
 
     async def ws_close(self, ws):
         """Close the WebSocket connection cleanly."""
