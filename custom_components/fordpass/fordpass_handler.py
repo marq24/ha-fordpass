@@ -20,7 +20,7 @@ from custom_components.fordpass.const import (
     XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
     XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
     VEHICLE_LOCK_STATE_LOCKED, VEHICLE_LOCK_STATE_PARTLY, VEHICLE_LOCK_STATE_UNLOCKED,
-    REMOTE_START_STATE_ACTIVE, REMOTE_START_STATE_INACTIVE
+    REMOTE_START_STATE_ACTIVE, REMOTE_START_STATE_INACTIVE, HONK_AND_FLASH
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1139,6 +1139,15 @@ class FordpassDataHandler:
 
     async def unlock_vehicle(coordinator, vehicle):
         await vehicle.unlock()
+
+    async def honk_and_light_short(coordinator, vehicle):
+        await vehicle.honk_and_light(duration=HONK_AND_FLASH.SHORT)
+
+    async def honk_and_light(coordinator, vehicle):
+        await vehicle.honk_and_light(duration=HONK_AND_FLASH.DEFAULT)
+
+    async def honk_and_light_long(coordinator, vehicle):
+        await vehicle.honk_and_light(duration=HONK_AND_FLASH.LONG)
 
     # just for development purposes...
     async def start_charge_vehicle(coordinator, vehicle):

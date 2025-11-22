@@ -1,5 +1,6 @@
 """Constants for the FordPass integration."""
 import logging
+from enum import Enum
 from typing import Final
 
 _LOGGER = logging.getLogger(__name__)
@@ -231,6 +232,11 @@ ZONE_LIGHTS_VALUE_PASSENGER:    Final = "4"
 ZONE_LIGHTS_VALUE_OFF:          Final = "off"
 ZONE_LIGHTS_OPTIONS: Final = [ZONE_LIGHTS_VALUE_ALL_ON, ZONE_LIGHTS_VALUE_FRONT, ZONE_LIGHTS_VALUE_REAR,
                               ZONE_LIGHTS_VALUE_DRIVER, ZONE_LIGHTS_VALUE_PASSENGER, ZONE_LIGHTS_VALUE_OFF]
+
+class HONK_AND_FLASH(Enum):
+    SHORT = 1
+    DEFAULT = 3
+    LONG = 5
 
 XEVPLUGCHARGER_STATE_CONNECTED:     Final = "CONNECTED"
 XEVPLUGCHARGER_STATE_DISCONNECTED:  Final = "DISCONNECTED"

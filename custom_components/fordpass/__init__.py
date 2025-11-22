@@ -257,6 +257,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_ALARM = None
         self._supports_GEARLEVERPOSITION = None
         self._supports_AUTO_UPDATES = None
+        self._supports_HAF = None
         self._force_REMOTE_CLIMATE_CONTROL = config_entry.options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False)
         self._supports_REMOTE_CLIMATE_CONTROL = None
         self._supports_HEATED_STEERING_WHEEL = None
@@ -366,17 +367,20 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             return ret_val is False
 
         # other vehicle dependant tags...
-        if a_tag in [   Tag.REMOTE_START_STATUS,
-                        Tag.REMOTE_START,
-                        Tag.GUARD_MODE,
-                        Tag.ZONE_LIGHTING,
-                        Tag.ALARM,
-                        Tag.GEARLEVERPOSITION,
-                        Tag.AUTO_UPDATES]:
+        if a_tag in [Tag.REMOTE_START_STATUS,
+                     Tag.REMOTE_START,
+                     Tag.GUARD_MODE,
+                     Tag.ZONE_LIGHTING,
+                     Tag.ALARM,
+                     Tag.GEARLEVERPOSITION,
+                     Tag.AUTO_UPDATES,
+                     Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
             # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
             # share the same 'support_ATTR_NAME'...
             if a_tag == Tag.REMOTE_START_STATUS:
                 support_ATTR_NAME = f"_supports_{Tag.REMOTE_START.name}"
+            elif a_tag in [Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
+                support_ATTR_NAME = f"_supports_HAF"
             else:
                 support_ATTR_NAME = f"_supports_{a_tag.name}"
 
@@ -468,6 +472,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
+                            self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capability_obj)
                             break
                 else:
                     _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data['vehicles']}")

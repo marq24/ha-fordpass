@@ -185,7 +185,10 @@
             "doorunlock":       {"name": "Entriegeln"},
             "evstart":          {"name": "EV Laden starten"},
             "evcancel":         {"name": "EV Laden fortfahren"},
-            "evpause":          {"name": "EV Laden pausieren"}
+            "evpause":          {"name": "EV Laden pausieren"},
+            "hafshort":         {"name": "Hupen & Blinken [1 Sek.]"},
+            "hafdefault":       {"name": "Hupen & Blinken [3 Sek.]"},
+            "haflong":          {"name": "Hupen & Blinken [5 Sek.]"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},

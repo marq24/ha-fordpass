@@ -92,6 +92,12 @@ class Tag(ApiKey, Enum):
                                  press_fn=FordpassDataHandler.cancel_charge_vehicle)
     EV_PAUSE            = ApiKey(key="evpause",
                                  press_fn=FordpassDataHandler.pause_charge_vehicle)
+    HAF_SHORT           = ApiKey(key="hafshort",
+                                 press_fn=FordpassDataHandler.honk_and_light_short)
+    HAF_DEFAULT         = ApiKey(key="hafdefault",
+                                 press_fn=FordpassDataHandler.honk_and_light)
+    HAF_LONG            = ApiKey(key="haflong",
+                                 press_fn=FordpassDataHandler.honk_and_light_long)
 
     # LOCKS
     ##################################################
@@ -766,7 +772,26 @@ BUTTONS = [
         icon="mdi:pause-circle",
         has_entity_name=True,
         entity_registry_enabled_default=False
-    )
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.HAF_SHORT,
+        key=Tag.HAF_SHORT.key,
+        icon="mdi:car-search-outline",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.HAF_DEFAULT,
+        key=Tag.HAF_DEFAULT.key,
+        icon="mdi:car-search",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.HAF_LONG,
+        key=Tag.HAF_LONG.key,
+        icon="mdi:bugle",
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
 ]
 
 SELECTS = [

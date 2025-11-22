@@ -24,7 +24,8 @@ from custom_components.fordpass.const import (
     REGIONS,
     ZONE_LIGHTS_VALUE_OFF,
     REMOTE_START_STATE_ACTIVE,
-    REMOTE_START_STATE_INACTIVE
+    REMOTE_START_STATE_INACTIVE,
+    HONK_AND_FLASH
 )
 from custom_components.fordpass.fordpass_handler import (
     ROOT_STATES,
@@ -949,7 +950,7 @@ class ConnectedFordPassVehicle:
                 if REMOTE_START_STATE_ACTIVE == new_remote_start_state and self._last_remote_start_state != new_remote_start_state:
                     if self._ws_debounced_update_remote_climate_task is not None and not self._ws_debounced_update_remote_climate_task.done():
                         self._ws_debounced_update_remote_climate_task.cancel()
-                self._ws_debounced_update_remote_climate_task = asyncio.create_task(self._ws_debounced_update_remote_climate())
+                    self._ws_debounced_update_remote_climate_task = asyncio.create_task(self._ws_debounced_update_remote_climate())
 
             self._last_remote_start_state = new_remote_start_state
 
@@ -1920,6 +1921,12 @@ class ConnectedFordPassVehicle:
                                                                write_command="publishASUSettingsCommand",
                                                                properties={"ASUState": "OFF"})
 
+    async def honk_and_light(self, duration:HONK_AND_FLASH=HONK_AND_FLASH.DEFAULT):
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL,
+                                                               write_command="startPanicCue",
+                                                               properties={"duration": duration.value},
+                                                               wait_for_state=False)
+
     async def remote_start(self):
         await self.update_remote_climate_int()
         # we already set the new _last_remote_start_state to 'REMOTE_START_STATE_ACTIVE', to avoid a second call
@@ -2057,7 +2064,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}):
+    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}, wait_for_state:bool=True):
         """Send command to the new Command endpoint"""
         try:
             await self.__ensure_valid_tokens()
@@ -2095,7 +2102,8 @@ class ConnectedFordPassVehicle:
 
             return await self.__request_and_poll_comon(request_obj=post_req,
                                                  state_command_str=write_command,
-                                                 use_websocket=self.ws_connected)
+                                                 use_websocket=self.ws_connected,
+                                                 wait_for_state=wait_for_state)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -2106,7 +2114,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, include_vin_in_header=False):
+    async def __request_and_poll_command_ford(self, command_key:str, post_data=None, include_vin_in_header:bool=False):
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -2198,7 +2206,7 @@ class ConnectedFordPassVehicle:
     #         self._HAS_COM_ERROR = True
     #         return False
 
-    async def __request_and_poll_comon(self, request_obj, state_command_str, use_websocket):
+    async def __request_and_poll_comon(self, request_obj, state_command_str, use_websocket, wait_for_state:bool=True):
         _LOGGER.debug(f"{self.vli}__request_and_poll_comon(): Testing command status: {request_obj.status} (check by {'WebSocket' if use_websocket else 'polling'})")
 
         if not (200 <= request_obj.status <= 205):
@@ -2224,7 +2232,10 @@ class ConnectedFordPassVehicle:
             return False
 
         # ok we have our command reference id, now we can/should wait for a positive state change
-        return await self.__wait_for_state(command_id, state_command_str, use_websocket=use_websocket)
+        if wait_for_state:
+            return await self.__wait_for_state(command_id, state_command_str, use_websocket=use_websocket)
+        else:
+            return True
 
     async def __wait_for_state(self, command_id, state_command_str, use_websocket):
         # Wait for backend to process command

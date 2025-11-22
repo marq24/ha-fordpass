@@ -186,7 +186,10 @@
             "doorunlock":       {"name": "Unlock"},
             "evstart":          {"name": "EV Charging start"},
             "evcancel":         {"name": "EV Charging resume"},
-            "evpause":          {"name": "EV Charging pause"}
+            "evpause":          {"name": "EV Charging pause"},
+            "hafshort":         {"name": "Honk & Flash [1 sec.]"},
+            "hafdefault":       {"name": "Honk & Flash [3 sec.]"},
+            "haflong":          {"name": "Honk & Flash [5 sec.]"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
