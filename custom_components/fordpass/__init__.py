@@ -443,9 +443,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 if "remoteClimateControl" in a_vehicle_profile:
                                     self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
                                     _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
-                                elif "remoteHeatingCooling" in a_vehicle_profile:
+
+                                if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in a_vehicle_profile:
                                     self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteHeatingCooling"]
                                     _LOGGER.debug(f"{self.vli}RemoteClimateControl/remoteHeatingCooling support: {self._supports_REMOTE_CLIMATE_CONTROL}")
+
 
                             if "heatedSteeringWheel" in a_vehicle_profile:
                                 self._supports_HEATED_STEERING_WHEEL = a_vehicle_profile["heatedSteeringWheel"]
