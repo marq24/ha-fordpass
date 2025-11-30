@@ -220,7 +220,7 @@ This service will contact the modem in the vehicle and request to sync data betw
 ~~Supports Multiple Regions~~
 
 | Sensor Name                        | Petrol/Diesel | (P)HEV | &nbsp;(B)EV&nbsp; |
-|------------------------------------|---------------|--------|-------------------|
+|:-----------------------------------|:-------------:|:------:|:-----------------:|
 | Odometer                           | X             | X      | X                 |                 
 | Battery (12V)                      | X             | X      | X                 |            
 | Oil                                | X             | X      | X                 |   
@@ -270,7 +270,7 @@ Many sensors provide more detail information as attributes of sensors. These att
 ## Buttons / Switches / Other
 
 | Type          | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
-|---------------|----------------------------------------------------|---------------|------------|
+|:--------------|:---------------------------------------------------|:-------------:|:----------:|
 | Button        | Remote Sync (Car with Ford backend)                | X             | X          |
 | Button        | Local Sync (Ford backend with HA)                  | X             | X          |
 | Lock          | Lock/Unlock Vehicle[^1]                            | X             | X          |
