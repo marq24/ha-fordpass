@@ -221,44 +221,44 @@ This service will contact the modem in the vehicle and request to sync data betw
 
 | Sensor Name                        | Petrol/Diesel | (P)HEV | &nbsp;(B)EV&nbsp; |
 |:-----------------------------------|:-------------:|:------:|:-----------------:|
-| Odometer                           | X             | X      | X                 |                 
-| Battery (12V)                      | X             | X      | X                 |            
-| Oil                                | X             | X      | X                 |   
-| Tire Pressure                      | X             | X      | X                 |            
-| GPS/Location Data (JSON)           | X             | X      | X                 |                 
-| Alarm Status                       | X             | X      | X                 |
-| Status Ignition                    | X             | X      | X                 |          
-| Status Door                        | X             | X      | X                 |              
-| Window Position                    | X             | X      | X                 |    
-| last refresh (timestamp)           | X             | X      | X                 |
-| Speed                              | X             | X      | X                 |
-| Gear Lever Position                | X             | X      | X                 |
-| Indicators/Warnings                | X             | X      | X                 |
-| Temperature Coolant                | X             | X      | X                 |
-| Temperature Outdoors               | X             | X      | X                 |
-| Status Remote Start                | X             | X      | X                 |
-| FordPass Messages                  | X             | X      | X                 |
-| Belt Status                        | X             | X      | X                 |
-| (Deep)Sleep Mode                   | X             | X      | X                 |
-| Revolution / Engine Speed          | X             | X      | ?                 |
-| Fuel Level (can be > 100%)         | X             | X      |                   |
-| Temperature Engine Oil             | X             | X      |                   |
-| Status Diesel System               | X             | X      |                   |
-| AdBlue Level                       | X             | X      |                   |
-| EV-Data collection                 |               | X      | X                 |
-| EV Plug Status                     |               | X      | X                 |
-| EV Charging information            |               | X      | X                 |
-| State of Charge (SOC)              |               | ?      | X                 |
-| EVCC status code ('A', 'B' or 'C') |               | ?      | X                 |
-| Yaw Rate                           | X             | X      | X                 |
-| Acceleration (X-Axis               | X             | X      | X                 |
-| Status Brake Pedal                 | X             | X      | X                 |
-| Brake Torque                       | X             | X      | X                 |
-| Accelerator Pedal Position (%)     | X             | X      | X                 |
-| Status Parking Brake               | X             | X      | X                 |
-| Torque at Transmission             | X             | X      | X                 |  
-| Status Wheel Torque                | X             | X      | X                 |
-| Cabin Temperature                  | X             | X      | X                 |
+| Odometer                           | ✔             | ✔      | ✔                 |                 
+| Battery (12V)                      | ✔             | ✔      | ✔                 |            
+| Oil                                | ✔             | ✔      | ✔                 |   
+| Tire Pressure                      | ✔             | ✔      | ✔                 |            
+| GPS/Location Data (JSON)           | ✔             | ✔      | ✔                 |                 
+| Alarm Status                       | ✔             | ✔      | ✔                 |
+| Status Ignition                    | ✔             | ✔      | ✔                 |          
+| Status Door                        | ✔             | ✔      | ✔                 |              
+| Window Position                    | ✔             | ✔      | ✔                 |    
+| last refresh (timestamp)           | ✔             | ✔      | ✔                 |
+| Speed                              | ✔             | ✔      | ✔                 |
+| Gear Lever Position                | ✔             | ✔      | ✔                 |
+| Indicators/Warnings                | ✔             | ✔      | ✔                 |
+| Temperature Coolant                | ✔             | ✔      | ✔                 |
+| Temperature Outdoors               | ✔             | ✔      | ✔                 |
+| Status Remote Start                | ✔             | ✔      | ✔                 |
+| FordPass Messages                  | ✔             | ✔      | ✔                 |
+| Belt Status                        | ✔             | ✔      | ✔                 |
+| (Deep)Sleep Mode                   | ✔             | ✔      | ✔                 |
+| Revolution / Engine Speed          | ✔             | ✔      | ?                 |
+| Fuel Level (can be > 100%)         | ✔             | ✔      |                   |
+| Temperature Engine Oil             | ✔             | ✔      |                   |
+| Status Diesel System               | ✔             | ✔      |                   |
+| AdBlue Level                       | ✔             | ✔      |                   |
+| EV-Data collection                 |               | ✔      | ✔                 |
+| EV Plug Status                     |               | ✔      | ✔                 |
+| EV Charging information            |               | ✔      | ✔                 |
+| State of Charge (SOC)              |               | ?      | ✔                 |
+| EVCC status code ('A', 'B' or 'C') |               | ?      | ✔                 |
+| Yaw Rate                           | ✔             | ✔      | ✔                 |
+| Acceleration (X-Axis               | ✔             | ✔      | ✔                 |
+| Status Brake Pedal                 | ✔             | ✔      | ✔                 |
+| Brake Torque                       | ✔             | ✔      | ✔                 |
+| Accelerator Pedal Position (%)     | ✔             | ✔      | ✔                 |
+| Status Parking Brake               | ✔             | ✔      | ✔                 |
+| Torque at Transmission             | ✔             | ✔      | ✔                 |  
+| Status Wheel Torque                | ✔             | ✔      | ✔                 |
+| Cabin Temperature                  | ✔             | ✔      | ✔                 |
 
 Many sensors provide more detail information as attributes of sensors. These attributes are available by expanding the panel at the bottom of sensor view (marked by green border).
 
@@ -271,22 +271,22 @@ Many sensors provide more detail information as attributes of sensors. These att
 
 | Type          | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
 |:--------------|:---------------------------------------------------|:-------------:|:----------:|
-| Button        | Remote Sync (Car with Ford backend)                | X             | X          |
-| Button        | Local Sync (Ford backend with HA)                  | X             | X          |
-| Lock          | Lock/Unlock Vehicle[^1]                            | X             | X          |
+| Button        | Remote Sync (Car with Ford backend)                | ✔             | ✔          |
+| Button        | Local Sync (Ford backend with HA)                  | ✔             | ✔          |
+| Lock          | Lock/Unlock Vehicle[^1]                            | ✔             | ✔          |
 | Switch        | ~~Guard Mode (Only supported cars)~~               |               |            |
-| Button        | Start charging[^4]                                 |               | X          |
-| Switch        | PAUSE/UNPAUSE charging[^5]                         |               | X          |
-| Switch        | Auto SoftwareUpdates[^1]                           | X             | X          |
-| DeviceTracker | Vehicle Tracker[^1]                                | X             | X          |
-| Select        | Zone Lighting (experimental)[^1]                   | X             | X          |
-| Switch        | RC: Start (❄/☀)[^1][^2]                            | X             | X          |
-| Number        | RC: Climate Temperature (❄/☀)[^1][^2]              | X             | X          |
-| Switch        | RC: Steering Wheel Heating[^1][^2]                 | X             | X          |
-| Select        | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | X             | X          |
-| Switch        | RC: Rear Defrost[^1][^2]                           | X             | X          |
-| Switch        | RC: Windshield Heating[^1][^2]                     | X             | X          |
-| Select        | Target charge level(s)[^6]                         |               | X          |
+| Button        | Start charging[^4]                                 |               | ✔          |
+| Switch        | PAUSE/UNPAUSE charging[^5]                         |               | ✔          |
+| Switch        | Auto SoftwareUpdates[^1]                           | ✔             | ✔          |
+| DeviceTracker | Vehicle Tracker[^1]                                | ✔             | ✔          |
+| Select        | Zone Lighting (experimental)[^1]                   | ✔             | ✔          |
+| Switch        | RC: Start (❄/☀)[^1][^2]                            | ✔             | ✔          |
+| Number        | RC: Climate Temperature (❄/☀)[^1][^2]              | ✔             | ✔          |
+| Switch        | RC: Steering Wheel Heating[^1][^2]                 | ✔             | ✔          |
+| Select        | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | ✔             | ✔          |
+| Switch        | RC: Rear Defrost[^1][^2]                           | ✔             | ✔          |
+| Switch        | RC: Windshield Heating[^1][^2]                     | ✔             | ✔          |
+| Select        | Target charge level(s)[^6]                         |               | ✔          |
 
 [^1]: Must be supported by the vehicle. If not supported, the entity will not be available in the UI.
 [^2]: _RC_ stands for 'Remote Control'.
