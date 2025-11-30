@@ -260,6 +260,13 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Status Wheel Torque                | X             | X      | X                 |
 | Cabin Temperature                  | X             | X      | X                 |
 
+Many sensors provide more detail information as attributes of sensors. These attributes are available by expanding the panel at the bottom of sensor view (marked by green border).
+
+<img width="300" alt="sensor-attributes-expanded" src="https://github.com/user-attachments/assets/656938d2-90e2-4af4-a962-e98d44e3cf78" />
+
+
+
+
 ## Buttons / Switches / Other
 
 | Type          | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
