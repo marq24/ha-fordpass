@@ -7,7 +7,7 @@ from homeassistant.const import UnitOfTemperature
 
 from custom_components.fordpass import FordPassEntity, RCC_TAGS, FordPassDataUpdateCoordinator
 from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
-from custom_components.fordpass.const_tags import NUMBERS, ExtNumberEntityDescription
+from custom_components.fordpass.const_tags import Tag, NUMBERS, ExtNumberEntityDescription
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,13 +61,23 @@ class FordPassNumber(FordPassEntity, NumberEntity):
         try:
             value = self._tag.get_state(self.coordinator.data)
             if value is not None and str(value) != UNSUPPORTED:
-                if self.translate_from_to_fahrenheit:
-                    return round(value * 1.8 + 32, 0)
-                else:
-                    return value
+                if self._tag == Tag.RCC_TEMPERATURE:
+                    # the latest fordPass App also support "HI" and "LO"
+                    # as 'valid' values for the remote temperature...
+                    # which sucks some sort of - since we must MAP this
+                    # to our number Field
+                    if str(value).upper() == "HI":
+                        value = 30.5
+                    elif str(value).upper() == "LO":
+                        value = 15.5
+
+                    if self.translate_from_to_fahrenheit:
+                        value = round(value * 1.8 + 32, 0)
+
+            return value
 
         except ValueError:
-            _LOGGER.debug(f"{self.coordinator.vli}NUMBER '{self._tag}' get_state failed with ValueError")
+            _LOGGER.debug(f"{self.coordinator.vli}NUMBER '{self._tag}' native_value() [or internal get_state()] failed with ValueError")
 
         return None
 
@@ -76,10 +86,17 @@ class FordPassNumber(FordPassEntity, NumberEntity):
             if value is None or str(value) == "null" or str(value).lower() == "none":
                 await self._tag.async_set_value(self.coordinator.data, self.coordinator.bridge, None)
             else:
-                if self.translate_from_to_fahrenheit:
-                    # we want the value in Celsius, but the user provided Fahrenheit... and we want it
-                    # in steps of 0.5 °C
-                    value = round(((float(value) - 32) / 1.8) * 2, 0) / 2
+                if self._tag == Tag.RCC_TEMPERATURE:
+                    if self.translate_from_to_fahrenheit:
+                        # we want the value in Celsius, but the user provided Fahrenheit... and we want it
+                        # in steps of 0.5 °C
+                        value = round(((float(value) - 32) / 1.8) * 2, 0) / 2
+
+                    # we use 15.5°C as LO and 30.5°C as HI
+                    if value < 16:
+                        value = "LO"
+                    elif value > 30:
+                        value = "HI"
 
                 await self._tag.async_set_value(self.coordinator.data, self.coordinator.bridge, str(value))
 

@@ -1010,7 +1010,8 @@ class FordpassDataHandler:
                 value = a_list_entry.get("preferenceValue", UNSUPPORTED)
                 if value != UNSUPPORTED:
                     if rcc_key == "SetPointTemp_Rq":
-                        value = float(value.replace("_", "."))
+                        if value.lower() != "hi" and value.lower() != "lo":
+                            value = float(value.replace("_", "."))
                     elif rcc_key in ["RccLeftRearClimateSeat_Rq", "RccLeftFrontClimateSeat_Rq", "RccRightRearClimateSeat_Rq", "RccRightFrontClimateSeat_Rq"]:
                         value = value.lower()
                 return value
@@ -1018,9 +1019,10 @@ class FordpassDataHandler:
 
     # number(s) for the RCC
     async def set_rcc_SetPointTemp_Rq(data, vehicle, target_value: str, current_value:str):
-        if not (target_value.endswith("0") or target_value.endswith("5")):
-            _LOGGER.info(f"RCC SetPointTemp_Rq: target_value {target_value} is not a valid value, must end with 0 or 5")
-            return False
+        if target_value.lower() != "hi" and target_value.lower() != "lo":
+            if not (target_value.endswith("0") or target_value.endswith("5")):
+                _LOGGER.info(f"RCC SetPointTemp_Rq: target_value {target_value} is not a valid value, must end with 0 or 5")
+                return False
         return await FordpassDataHandler.set_rcc_int("SetPointTemp_Rq", data, vehicle, target_value.replace('.', '_'))
 
     # switches for the RCC
