@@ -2,14 +2,12 @@
 import asyncio
 import hashlib
 import logging
-import random
 import re
-import string
 from base64 import urlsafe_b64encode
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Final
 from secrets import token_urlsafe
+from typing import Any, Final
 
 import aiohttp
 import voluptuous as vol
@@ -136,15 +134,18 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             a_username = entry.data.get(CONF_USERNAME)
             a_region = entry.data.get(CONF_REGION)
             if a_username is not None and a_region is not None:
-                a_key = f"{a_username}µ@µ{a_region}"
-                if a_key not in accounts:
-                    accounts[a_key] = []
+                if a_region in REGIONS:
+                    a_key = f"{a_username}µ@µ{a_region}"
+                    if a_key not in accounts:
+                        accounts[a_key] = []
 
-                accounts[a_key].append({
-                    "username": a_username,
-                    "region": a_region,
-                    "vehicle_id": entry.data.get(CONF_VIN),
-                })
+                    accounts[a_key].append({
+                        "username": a_username,
+                        "region": a_region,
+                        "vehicle_id": entry.data.get(CONF_VIN),
+                    })
+                else:
+                    _LOGGER.warning(f"configured_accounts: UNKNOWN REGION! user:'{a_username}' region:'{a_region}' from: {entry}")
         return accounts
 
     async def validate_token(self, data, token:str, code_verifier:str):
