@@ -3,13 +3,14 @@ from dataclasses import replace
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.fordpass.const import (
     DOMAIN,
     COORDINATOR_KEY,
-    RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_OPTIONS_HEAT_ONLY
+    RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_OPTIONS_HEAT_ONLY, RCC_TEMPERATURES_CELSIUS
 )
 from custom_components.fordpass.const_tags import SELECTS, ExtSelectEntityDescription, Tag, RCC_TAGS
 from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED, FordpassDataHandler
@@ -66,6 +67,39 @@ class FordPassSelect(FordPassEntity, SelectEntity):
 
 
     async def add_to_platform_finish(self) -> None:
+        if self._tag == Tag.RCC_TEMPERATURE:
+            has_pf_data = hasattr(self.platform, "platform_data")
+            has_pf_trans = hasattr(self.platform.platform_data, "platform_translations") if has_pf_data else hasattr(self.platform, "platform_translations")
+            has_pf_default_lang_trans = hasattr(self.platform.platform_data, "default_language_platform_translations") if has_pf_data else hasattr(self.platform, "default_language_platform_translations")
+
+            for a_key in RCC_TEMPERATURES_CELSIUS:
+                a_trans_key = f"component.{DOMAIN}.entity.select.{Tag.RCC_TEMPERATURE.key.lower()}.state.{a_key.lower()}"
+
+                if a_key.lower() == "hi":
+                    a_value = "☀|MAX"
+                elif a_key.lower() == "lo":
+                    a_value = "❄|MIN"
+                else:
+                    a_temperature = float(a_key.replace('_', '.'))
+                    if self.coordinator.units.temperature_unit == UnitOfTemperature.FAHRENHEIT:
+                        # C * 9/5 + 32 = F
+                        a_temperature = a_temperature * 1.8 + 32
+                        a_value = f"{a_temperature:.1f} °F"
+                    else:
+                        a_value = f"{a_temperature:.1f} °C"
+
+                if has_pf_data:
+                    if has_pf_trans:
+                        self.platform.platform_data.platform_translations[a_trans_key] = a_value
+                    if has_pf_default_lang_trans:
+                        self.platform.platform_data.default_language_platform_translations[a_trans_key] = a_value
+                else:
+                    # old HA compatible version...
+                    if has_pf_trans:
+                        self.platform.platform_translations[a_trans_key] = a_value
+                    if has_pf_default_lang_trans:
+                        self.platform.default_language_platform_translations[a_trans_key] = a_value
+
         await super().add_to_platform_finish()
 
     @property
@@ -82,6 +116,14 @@ class FordPassSelect(FordPassEntity, SelectEntity):
             if isinstance(value, (int, float)):
                 value = str(value)
 
+            if self._tag == Tag.RCC_TEMPERATURE:
+                # our option keys are all lower case...
+                value = str(value).lower()
+                # our option keys have _ instead of .
+                value = value.replace('.', '_')
+                # the full numbers of our option keys are just the plain number (no '_0' suffix)
+                value = value.replace('_0', '')
+
         except KeyError as kerr:
             _LOGGER.debug(f"SELECT KeyError: '{self._tag}' - {kerr}")
             value = None
@@ -95,6 +137,8 @@ class FordPassSelect(FordPassEntity, SelectEntity):
             if option is None or option=="" or str(option).lower() == "null" or str(option).lower() == "none":
                 await self._tag.async_select_option(self.coordinator.data, self.coordinator.bridge, None)
             else:
+                if self._tag == Tag.RCC_TEMPERATURE:
+                    option = option.upper()
                 await self._tag.async_select_option(self.coordinator.data, self.coordinator.bridge, option)
 
         except ValueError:

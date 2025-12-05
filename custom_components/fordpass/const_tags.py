@@ -12,7 +12,8 @@ from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PE
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import ZONE_LIGHTS_OPTIONS, RCC_SEAT_OPTIONS_FULL, ELVEH_TARGET_CHARGE_OPTIONS
+from custom_components.fordpass.const import RCC_TEMPERATURES_CELSIUS, ZONE_LIGHTS_OPTIONS, RCC_SEAT_OPTIONS_FULL, \
+    ELVEH_TARGET_CHARGE_OPTIONS
 from custom_components.fordpass.fordpass_handler import FordpassDataHandler, UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
@@ -853,7 +854,14 @@ SELECTS = [
         has_entity_name=True,
         entity_registry_enabled_default=False,
     ),
-
+    ExtSelectEntityDescription(
+        tag=Tag.RCC_TEMPERATURE,
+        key=Tag.RCC_TEMPERATURE.key,
+        device_class=NumberDeviceClass.TEMPERATURE,
+        icon="mdi:thermometer",
+        options=RCC_TEMPERATURES_CELSIUS,
+        has_entity_name=True
+    ),
 ]
 NUMBERS = [
     ExtNumberEntityDescription(
@@ -867,5 +875,6 @@ NUMBERS = [
         native_step=0.5,
         mode=NumberMode.BOX,
         has_entity_name=True,
+        entity_registry_enabled_default=False
     )
 ]

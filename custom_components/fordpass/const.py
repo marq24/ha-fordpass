@@ -218,6 +218,12 @@ RCC_SEAT_MODE_NONE: Final = "NONE"
 RCC_SEAT_OPTIONS_FULL: Final = ["off", "heated1", "heated2", "heated3", "cooled1", "cooled2", "cooled3"]
 RCC_SEAT_OPTIONS_HEAT_ONLY: Final = ["off", "heated1", "heated2", "heated3"]
 
+RCC_TEMPERATURES_CELSIUS:    Final = ["lo",
+                                      "16", "16_5", "17", "17_5", "18", "18_5", "19", "19_5", "20", "20_5",
+                                      "21", "21_5", "22", "22_5", "23", "23_5", "24", "24_5", "25", "25_5",
+                                      "26", "26_5", "27", "27_5", "28", "28_5", "29", "30",
+                                      "hi"]
+
 ELVEH_TARGET_CHARGE_OPTIONS: Final = ["50", "60", "70", "80", "85", "90", "95", "100"]
 
 VEHICLE_LOCK_STATE_LOCKED:      Final = "LOCKED"
