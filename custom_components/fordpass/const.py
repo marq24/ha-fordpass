@@ -20,6 +20,10 @@ If you have any issues with this you need to open an issue here:
 -------------------------------------------------------------------
 """
 
+CONFIG_VERSION: Final = 2
+CONFIG_MINOR_VERSION: Final = 0
+
+CONF_MARQ24BUILD: Final = "is_marq24build"
 CONF_BRAND: Final = "brand"
 CONF_VIN: Final = "vin"
 

@@ -23,6 +23,9 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
+    CONFIG_VERSION,
+    CONFIG_MINOR_VERSION,
+    CONF_MARQ24BUILD,
     CONF_PRESSURE_UNIT,
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
@@ -57,9 +60,23 @@ async def async_setup(hass: HomeAssistant, config: dict):
     hass.data.setdefault(DOMAIN, {})
     return True
 
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+    if config_entry.version < CONFIG_VERSION:
+        if config_entry.data is not None and len(config_entry.data) > 0:
+            _LOGGER.debug(f"async_migrate_entry(): Migrating configuration from version {config_entry.version}.{config_entry.minor_version}")
+            # we mark the configuration entry as 'marq24' version
+            # so the config_flow can check for 'our' config entries only
+            new_config_entry_data = {**config_entry.data, **{CONF_MARQ24BUILD: True}}
+            hass.config_entries.async_update_entry(config_entry, data=new_config_entry_data, options=config_entry.options, version=CONFIG_VERSION, minor_version=CONFIG_MINOR_VERSION)
+            _LOGGER.debug(f"async_migrate_entry(): Migration to configuration version {config_entry.version}.{config_entry.minor_version} successful")
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up FordPass from a config entry."""
+    if CONF_MARQ24BUILD not in config_entry.data:
+        _LOGGER.info(f"async_setup_entry(): ConfigEntry will raise 'ConfigEntryNotReady' since config_entry.data {CONF_MARQ24BUILD} not specified in entry {config_entry}")
+        raise ConfigEntryNotReady
+
     if DOMAIN not in hass.data:
         the_integration = await async_get_integration(hass, DOMAIN)
         intg_version = the_integration.version if the_integration is not None else "UNKNOWN"
