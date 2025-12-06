@@ -62,13 +62,15 @@ If you have currently your integration configured, then you might be lucky and t
 ---
 
 > [!NOTE]
-> My main motivation comes from the fact that I own a Ford Mustang Mach-E 2023, and I wanted to have a Home Assistant integration that just works with my car. I will focus on the features that are available for electrical vehicles, but of course I will try not to mess up the features for petrol or diesel vehicles. [If you like to support me with this challange: Please see also the _I need you_ section](https://github.com/marq24/ha-fordpass#i-need-you)
+> My main motivation comes from the fact that I own a Ford Mustang Mach-E 2023, and I wanted to have a Home Assistant integration that just works with my car. I will focus on the features that are available for electrical vehicles, but of course I will try not to mess up the features for petrol or diesel vehicles.
+
+<!-- [If you like to support me with this challange: Please see also the _I need you_ section](https://github.com/marq24/ha-fordpass#i-need-you) -->
 
 ---
 
 > [!IMPORTANT]
 > ## Unusual Integration Setup 
-> Status Quo in spring/summer 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is because Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
+> Status Quo in spring/summer/end 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is because Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
 > 
 > The current implementation is based on API calls the original FordPass™/The Lincoln Way™ App (for Android & iOS) performs, and it's some sort of reverse engineered.
 > 
@@ -86,9 +88,9 @@ If you have currently your integration configured, then you might be lucky and t
 ---
 
 ## Requirements
-1. Your car must have the latest onboard modem functionality and have been registered/authorized with the FordPass™/The Lincoln Way™ application.
-2. You need a Home Assistant instance (v2024.12 or higher) with the [HACS](https://hacs.xyz) custom integration installed.
-3. You __must have removed any previous FordPass integration from your Home Assistant instance__ (especially the original FordPass integration from @itchannel and @SquidBytes) before you can use this fork of the integration. Please be aware that it's quite likely that a configuration can be disabled! [see also the incompatibility information](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#this-fork-is-not-compatible-with-the-original-fordpass-integration-from-itchannel-and-squidbytes)
+1. Your car must have the latest onboard modem functionality and have been registered/authorized with the FordPass™/The Lincoln Way™ application.<br/><br/>
+2. You need a Home Assistant instance (v2024.12 or higher) with the [HACS](https://hacs.xyz/docs/use/#getting-started-with-hacs) custom integration installed.<br/><br/>
+3. You __must have removed any other previously installed FordPass integration from your Home Assistant instance__, especially the original FordPass integration from @itchannel and @SquidBytes, __before you can use this fork of the integration__. [See also the '_incompatibility_' information](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#this-fork-is-not-compatible-with-the-original-fordpass-integration-from-itchannel-and-squidbytes).
 
 > [!IMPORTANT]
 > This is a HACS custom integration — not a Home Assistant Add-on. Don't try to add this repository as an add-on in Home Assistant.
@@ -269,24 +271,24 @@ Many sensors provide more detail information as attributes of sensors. These att
 
 ## Buttons / Switches / Other
 
-| Type          | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
-|:--------------|:---------------------------------------------------|:-------------:|:----------:|
-| Button        | Remote Sync (Car with Ford backend)                | ✔             | ✔          |
-| Button        | Local Sync (Ford backend with HA)                  | ✔             | ✔          |
-| Lock          | Lock/Unlock Vehicle[^1]                            | ✔             | ✔          |
-| Switch        | ~~Guard Mode (Only supported cars)~~               |               |            |
-| Button        | Start charging[^4]                                 |               | ✔          |
-| Switch        | PAUSE/UNPAUSE charging[^5]                         |               | ✔          |
-| Switch        | Auto SoftwareUpdates[^1]                           | ✔             | ✔          |
-| DeviceTracker | Vehicle Tracker[^1]                                | ✔             | ✔          |
-| Select        | Zone Lighting (experimental)[^1]                   | ✔             | ✔          |
-| Switch        | RC: Start (❄/☀)[^1][^2]                            | ✔             | ✔          |
-| Number        | RC: Climate Temperature (❄/☀)[^1][^2]              | ✔             | ✔          |
-| Switch        | RC: Steering Wheel Heating[^1][^2]                 | ✔             | ✔          |
-| Select        | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | ✔             | ✔          |
-| Switch        | RC: Rear Defrost[^1][^2]                           | ✔             | ✔          |
-| Switch        | RC: Windshield Heating[^1][^2]                     | ✔             | ✔          |
-| Select        | Target charge level(s)[^6]                         |               | ✔          |
+| Type                | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
+|:--------------------|:---------------------------------------------------|:-------------:|:----------:|
+| Button              | Remote Sync (Car with Ford backend)                | ✔             | ✔          |
+| Button              | Local Sync (Ford backend with HA)                  | ✔             | ✔          |
+| Lock                | Lock/Unlock Vehicle[^1]                            | ✔             | ✔          |
+| Switch              | ~~Guard Mode (Only supported cars)~~               |               |            |
+| Button              | Start charging[^4]                                 |               | ✔          |
+| Switch              | PAUSE/UNPAUSE charging[^5]                         |               | ✔          |
+| Switch              | Auto SoftwareUpdates[^1]                           | ✔             | ✔          |
+| DeviceTracker       | Vehicle Tracker[^1]                                | ✔             | ✔          |
+| Select              | Zone Lighting (experimental)[^1]                   | ✔             | ✔          |
+| Switch              | RC: Start (❄/☀)[^1][^2]                            | ✔             | ✔          |
+| Select (was Number) | RC: Climate Temperature (❄/☀)[^1][^2]              | ✔             | ✔          |
+| Switch              | RC: Steering Wheel Heating[^1][^2]                 | ✔             | ✔          |
+| Select              | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | ✔             | ✔          |
+| Switch              | RC: Rear Defrost[^1][^2]                           | ✔             | ✔          |
+| Switch              | RC: Windshield Heating[^1][^2]                     | ✔             | ✔          |
+| Select              | Target charge level(s)[^6]                         |               | ✔          |
 
 [^1]: Must be supported by the vehicle. If not supported, the entity will not be available in the UI.
 [^2]: _RC_ stands for 'Remote Control'.
@@ -345,12 +347,13 @@ If you like this integration and want to support the development, please conside
 
 > [!WARNING]
 > ## This fork is **not compatible** with the original FordPass integration from @itchannel and @SquidBytes
-> Before you can use this fork with your vehicle, you must have removed the original FordPass integration from HA and must have deleted all configuration entries. Please be aware that it's quite likely that a configuration can be disabled!
+> Before you can use this fork with your vehicle, you must have removed the original FordPass integration from HA and you should delete all configuration entries. Please be aware that it's quite likely that a configuration can be disabled!
 >
+> When the integration detect a configuration entry that was not generated by this fork you might get additional warnings in your HA log.
 > ### Incompatible changes:
 > - The VIN has been added to all the entity names, to ensure that names stay unique in HA when you have multiple vehicles.
 > - The sensor attribute names do not contain spaces anymore to make post-processing easier. Additionally, all the attribute names are now using camelcase. This means that all attributes start with a lower-case character (don't let you fool by the HA user interface, which always will show the first character as upper-case).
-> - The access-token(s) is stored outside the custom integration
+> - The access-token(s) is stored outside the custom integration folder
 >
 > ### Additional enhancements:
 > - This is now a cloud __push__ integration, which means that the data is pushed to Home Assistant via a websocket connection. This is a major improvement over the original integration, which was a cloud __pull__ integration.

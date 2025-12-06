@@ -20,6 +20,10 @@ If you have any issues with this you need to open an issue here:
 -------------------------------------------------------------------
 """
 
+CONFIG_VERSION: Final = 2
+CONFIG_MINOR_VERSION: Final = 0
+
+CONF_IS_SUPPORTED: Final = "is_supported"
 CONF_BRAND: Final = "brand"
 CONF_VIN: Final = "vin"
 
@@ -135,7 +139,7 @@ REGIONS: Final = {
     },
     # checked 2025/06/08 - working fine...
     "usa": {
-        "app_id": REGION_APP_IDS["north_america"], # 71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592
+        "app_id": REGION_APP_IDS["north_america"],
         "locale": "en-US",
         "login_url": "https://login.ford.com",
         "countrycode": "USA"
@@ -158,14 +162,14 @@ REGIONS: Final = {
 
     # NEED AN www.ford.com.au registered account!!!
     "aus": {
-        "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
+        "app_id": REGION_APP_IDS["asia_pacific"],
         "locale": "en-AU",
         "login_url": "https://login.ford.com",
         "countrycode": "AUS"
     },
     # NEED AN www.ford.com.au registered account!!!
     "nzl": {
-        "app_id": REGION_APP_IDS["asia_pacific"], # "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260",
+        "app_id": REGION_APP_IDS["asia_pacific"],
         "locale": "en-NZ",
         "login_url": "https://login.ford.com",
         "countrycode": "NZL"
@@ -187,7 +191,6 @@ REGIONS: Final = {
         "countrycode": "USA"
     },
 
-
     # for compatibility, we MUST KEEP the old region keys with the OLD App-IDs!!! - this really sucks!
     "Netherlands":  {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "nl-NL", "login_url": "https://login.ford.nl", "countrycode": "NLD"},
     "UK&Europe":    {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "en-GB", "login_url": "https://login.ford.co.uk", "countrycode": "GBR"},
@@ -195,6 +198,10 @@ REGIONS: Final = {
     "USA":          {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-US", "login_url": "https://login.ford.com", "countrycode": "USA"},
     "Canada":       {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-CA", "login_url": "https://login.ford.com", "countrycode": "USA"}
 }
+
+REGIONS_STRICT = REGIONS.copy()
+for a_key in LEGACY_REGION_KEYS:
+    REGIONS_STRICT.pop(a_key)
 
 WINDOW_POSITIONS: Final = {
     "CLOSED": {

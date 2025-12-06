@@ -1,7 +1,5 @@
-"""The FordPass integration."""
 import asyncio
 import logging
-# import threading
 from datetime import timedelta
 from pathlib import Path
 from typing import Final, Any
@@ -23,13 +21,17 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
+    DOMAIN,
+    STARTUP_MESSAGE,
+    CONFIG_VERSION,
+    CONFIG_MINOR_VERSION,
+    CONF_IS_SUPPORTED,
     CONF_PRESSURE_UNIT,
     CONF_VIN,
     CONF_LOG_TO_FILESYSTEM,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
     DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION_FORD,
-    DOMAIN,
     MANUFACTURER_FORD,
     MANUFACTURER_LINCOLN,
     REGION_OPTIONS_LINCOLN,
@@ -37,13 +39,20 @@ from custom_components.fordpass.const import (
     UPDATE_INTERVAL_DEFAULT,
     COORDINATOR_KEY,
     PRESSURE_UNITS,
+    REGIONS,
+    REGIONS_STRICT,
     LEGACY_REGION_KEYS,
-    RCC_SEAT_MODE_NONE, RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_MODE_HEAT_AND_COOL, STARTUP_MESSAGE
+    RCC_SEAT_MODE_NONE, RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_MODE_HEAT_AND_COOL
 )
 from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
-from custom_components.fordpass.fordpass_handler import UNSUPPORTED, ROOT_METRICS, ROOT_MESSAGES, ROOT_VEHICLES, \
+from custom_components.fordpass.fordpass_handler import (
+    UNSUPPORTED,
+    ROOT_METRICS,
+    ROOT_MESSAGES,
+    ROOT_VEHICLES,
     FordpassDataHandler
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,9 +66,43 @@ async def async_setup(hass: HomeAssistant, config: dict):
     hass.data.setdefault(DOMAIN, {})
     return True
 
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+    if config_entry.version < CONFIG_VERSION:
+        if config_entry.data is not None and len(config_entry.data) > 0:
+            a_config_region = config_entry.data.get(CONF_REGION, UNDEFINED)
+            if a_config_region in REGIONS_STRICT:
+                _LOGGER.debug(f"async_migrate_entry(): Migrating configuration from version {config_entry.version}.{config_entry.minor_version}")
+                # we mark the configuration entry as 'marq24' version
+                # so the config_flow can check for 'our' config entries only
+                new_config_entry_data = {**config_entry.data, **{CONF_IS_SUPPORTED: True}}
+                hass.config_entries.async_update_entry(config_entry, data=new_config_entry_data, options=config_entry.options, version=CONFIG_VERSION, minor_version=CONFIG_MINOR_VERSION)
+                _LOGGER.debug(f"async_migrate_entry(): Migration to configuration version {config_entry.version}.{config_entry.minor_version} successful")
+            else:
+                if a_config_region in LEGACY_REGION_KEYS:
+                    _LOGGER.warning(f"async_migrate_entry(): LEGACY_REGION entry found '{a_config_region}' - a new configuration is required - see https://github.com/marq24/ha-fordpass/discussions/144 for further details.")
+                else:
+                    _LOGGER.warning(f"async_migrate_entry(): Incompatible config_entry found - this configuration should be removed from your HA - will not migrate {config_entry}")
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up FordPass from a config entry."""
+    if CONF_IS_SUPPORTED not in config_entry.data:
+        a_config_region = config_entry.data.get(CONF_REGION, UNDEFINED)
+
+        # in the future we will check for REGIONS_STRICT here...
+        if a_config_region in REGIONS:
+            #_LOGGER.warning(f"async_setup_entry(): config_entry.data {CONF_IS_SUPPORTED} not specified in entry {config_entry} - but {a_config_region} is a supported region?! - will continue with startup...")
+            if a_config_region in LEGACY_REGION_KEYS:
+                _LOGGER.warning(f"async_setup_entry(): current configuration contains LEGACY region-key: {a_config_region} -> please create a new ha-config entry to avoid this message in the future! See https://github.com/marq24/ha-fordpass/discussions/144 for further details.")
+            else:
+                _LOGGER.warning(f"async_setup_entry(): config_entry.data '{CONF_IS_SUPPORTED}' not specified in entry {config_entry} - but {a_config_region} is a supported region?! - will continue with startup...")
+        else:
+            _LOGGER.warning(f"async_setup_entry(): ConfigEntry will raise 'ConfigEntryNotReady' since config_entry.data {CONF_IS_SUPPORTED} not specified in entry {config_entry}")
+            if a_config_region in LEGACY_REGION_KEYS:
+                raise ConfigEntryNotReady(f"The configuration entry use a legacy region key: `{a_config_region}` which is no longer supported by this integration. Please remove this configuration and setup this integration again for your vehicle.")
+            else:
+                raise ConfigEntryNotReady(f"The configuration entry is NOT SUPPORTED by this Integration. Please remove this configuration and setup this integration again for your vehicle.")
+
     if DOMAIN not in hass.data:
         the_integration = await async_get_integration(hass, DOMAIN)
         intg_version = the_integration.version if the_integration is not None else "UNKNOWN"
@@ -87,7 +130,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # this should not be required... but to be as compatible as possible with existing installations
     # if there is a user out there who has initially set the region to "UK&Europe", we must patch the region key
     # to the new format!
-    region_key = check_for_deprecated_region_keys(region_key)
+    # 2025/12/06: removed, since if the region_key is in the list of deprecated regions, then the
+    # config-entry migration code WILL NOT migrate the entry and so the integration does not start
+    # anylonger!
+    # region_key = check_for_deprecated_region_keys(region_key)
 
     coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key, update_interval_as_int=update_interval_as_int, save_token=True)
     await coordinator.bridge._rename_token_file_if_needed(user)
@@ -170,10 +216,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     return True
 
 
-def check_for_deprecated_region_keys(region_key):
-    if region_key in LEGACY_REGION_KEYS:
-        _LOGGER.info(f"current configuration contains LEGACY region-key: {region_key} -> please create a new ha-config entry to avoid this message in the future!")
-    return region_key
+# def check_for_deprecated_region_keys(region_key):
+#     if region_key in LEGACY_REGION_KEYS:
+#         _LOGGER.info(f"current configuration contains LEGACY region-key: {region_key} -> please create a new ha-config entry to avoid this message in the future!")
+#     return region_key
 
 
 async def async_update_options(hass, config_entry):

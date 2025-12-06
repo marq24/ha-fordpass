@@ -29,9 +29,12 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     REGION_OPTIONS_LINCOLN,
     DEFAULT_REGION_LINCOLN,
 
-    CONF_PRESSURE_UNIT,
+    CONFIG_VERSION,
+    CONFIG_MINOR_VERSION,
+    CONF_IS_SUPPORTED,
     CONF_BRAND,
     CONF_VIN,
+    CONF_PRESSURE_UNIT,
     CONF_LOG_TO_FILESYSTEM,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
     PRESSURE_UNITS,
@@ -80,9 +83,8 @@ class InvalidMobile(exceptions.HomeAssistantError):
 
 class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for FordPass."""
-
-    VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+    VERSION = CONFIG_VERSION
+    MINOR_VERSION = CONFIG_MINOR_VERSION
     region_key = DEFAULT_REGION_FORD
     username = None
     code_verifier = None
@@ -121,31 +123,48 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     @callback
     def configured_vehicles(self, hass: HomeAssistant) -> set[str]:
         """Return a list of configured vehicles"""
-        return {
-            entry.data[CONF_VIN]
-            for entry in hass.config_entries.async_entries(DOMAIN)
-        }
+        # return {
+        #     entry.data[CONF_VIN]
+        #     for entry in hass.config_entries.async_entries(DOMAIN)
+        # }
+        vehicles = []
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if CONF_IS_SUPPORTED in entry.data:
+                a_vin = entry.data[CONF_VIN]
+                a_region = entry.data.get(CONF_REGION)
+                if a_vin is not None and a_region is not None:
+                    if a_region in REGIONS:
+                        if a_vin not in vehicles:
+                            vehicles.append(a_vin)
+                    else:
+                        _LOGGER.warning(f"configured_vehicles(): UNKNOWN REGION! vin:'{a_vin}' region:'{a_region}' from: {entry}")
+            else:
+                _LOGGER.warning(f"configured_vehicles(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
+        return vehicles
 
     @callback
     def configured_accounts(self, hass: HomeAssistant):
         """Return a dict of configured accounts and their entry data"""
         accounts = {}
         for entry in hass.config_entries.async_entries(DOMAIN):
-            a_username = entry.data.get(CONF_USERNAME)
-            a_region = entry.data.get(CONF_REGION)
-            if a_username is not None and a_region is not None:
-                if a_region in REGIONS:
-                    a_key = f"{a_username}µ@µ{a_region}"
-                    if a_key not in accounts:
-                        accounts[a_key] = []
+            if CONF_IS_SUPPORTED in entry.data:
+                a_username = entry.data.get(CONF_USERNAME)
+                a_region = entry.data.get(CONF_REGION)
+                if a_username is not None and a_region is not None:
+                    if a_region in REGIONS:
+                        a_key = f"{a_username}µ@µ{a_region}"
+                        if a_key not in accounts:
+                            accounts[a_key] = []
 
-                    accounts[a_key].append({
-                        "username": a_username,
-                        "region": a_region,
-                        "vehicle_id": entry.data.get(CONF_VIN),
-                    })
-                else:
-                    _LOGGER.warning(f"configured_accounts: UNKNOWN REGION! user:'{a_username}' region:'{a_region}' from: {entry}")
+                        accounts[a_key].append({
+                            "username": a_username,
+                            "region": a_region,
+                            "vehicle_id": entry.data.get(CONF_VIN),
+                        })
+                    else:
+                        _LOGGER.warning(f"configured_accounts(): UNKNOWN REGION! user:'{a_username}' region:'{a_region}' from: {entry}")
+            else:
+                _LOGGER.warning(f"configured_accounts(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
         return accounts
 
     async def validate_token(self, data, token:str, code_verifier:str):
@@ -535,7 +554,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"cached_login_input: {self.cached_login_input} vin_input: {user_input}")
 
             # add the vin to the cached_login_input (so we store this in the config entry)
-            self.cached_login_input["vin"] = user_input["vin"]
+            self.cached_login_input[CONF_VIN] = user_input[CONF_VIN]
             vehicle = None
             try:
                 vehicle = await self.validate_vin(self.cached_login_input)
@@ -545,6 +564,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
 
             if vehicle:
+                self.cached_login_input[CONF_IS_SUPPORTED] = True
                 # create the config entry without the vehicle type/name...
                 return self.async_create_entry(title=f"VIN: {user_input[CONF_VIN]}", data=self.cached_login_input)
 
@@ -563,17 +583,19 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             else:
                 a_title = f"VIN: {user_input[CONF_VIN]}"
 
+            self.cached_login_input[CONF_IS_SUPPORTED] = True
             return self.async_create_entry(title=a_title, data=self.cached_login_input)
 
-        _LOGGER.debug(f"async_step_vehicle with vehicles: {self._vehicles}")
+        _LOGGER.debug(f"async_step_vehicle(): with vehicles: {self._vehicles}")
 
-        configured = self.configured_vehicles(self.hass)
-        _LOGGER.debug(f"configured: {configured}")
+        already_configured_vins = self.configured_vehicles(self.hass)
+        _LOGGER.debug(f"async_step_vehicle(): configured VINs: {already_configured_vins}")
+
         available_vehicles = {}
         for a_vehicle in self._vehicles:
-            _LOGGER.debug(f"a vehicle: {a_vehicle}")
+            _LOGGER.debug(f"async_step_vehicle(): a vehicle from backend response: {a_vehicle}")
             a_veh_vin = a_vehicle["VIN"]
-            if a_veh_vin not in configured:
+            if a_veh_vin not in already_configured_vins:
                 if a_veh_vin in self._vehicle_name:
                     available_vehicles[a_veh_vin] = f"{self._vehicle_name[a_veh_vin]} - {a_veh_vin}"
                 elif "nickName" in a_vehicle:
@@ -583,7 +605,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
 
         if not available_vehicles:
-            _LOGGER.debug("No Vehicles?")
+            _LOGGER.debug("async_step_vehicle(): No Vehicles (or all already configured)?")
             return self.async_abort(reason="no_vehicles")
 
         return self.async_show_form(
@@ -625,7 +647,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     info = await self.validate_token_only(user_input, token_fragment, self.code_verifier)
                     if info:
                         # do we want to check, if the VIN is still accessible?!
-                        # for now we just will reload the config entry...
+                        # for now, we just will reload the config entry...
                         await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                         return self.async_abort(reason="reauth_successful")
                     else:
