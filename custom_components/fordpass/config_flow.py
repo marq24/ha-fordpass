@@ -139,7 +139,10 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     else:
                         _LOGGER.warning(f"configured_vehicles(): UNKNOWN REGION! vin:'{a_vin}' region:'{a_region}' from: {entry}")
             else:
-                _LOGGER.warning(f"configured_vehicles(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
+                if entry.data.get(CONF_REGION) in REGIONS:
+                    _LOGGER.info(f"configured_vehicles(): LEGACY REGION configuration entry {entry} found")
+                else:
+                    _LOGGER.warning(f"configured_vehicles(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
         return vehicles
 
     @callback
@@ -164,7 +167,10 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     else:
                         _LOGGER.warning(f"configured_accounts(): UNKNOWN REGION! user:'{a_username}' region:'{a_region}' from: {entry}")
             else:
-                _LOGGER.warning(f"configured_accounts(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
+                if entry.data.get(CONF_REGION) in REGIONS:
+                    _LOGGER.info(f"configured_accounts(): LEGACY REGION configuration entry {entry} found")
+                else:
+                    _LOGGER.warning(f"configured_accounts(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
         return accounts
 
     async def validate_token(self, data, token:str, code_verifier:str):
