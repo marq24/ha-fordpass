@@ -91,8 +91,24 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         a_config_region = config_entry.data.get(CONF_REGION, UNDEFINED)
         if a_config_region in REGIONS_STRICT:
             _LOGGER.warning(f"async_setup_entry(): config_entry.data '{CONF_IS_SUPPORTED}' not specified in configuration entry {config_entry} - but {a_config_region} is a supported region?!")
+
         elif a_config_region in LEGACY_REGION_KEYS:
+            # we must/want check, if there are other config_entries with the same VIN but with a NONE LEGACY region-key
+            # if this is the case, we are going to ignore this LEGACY_REGION key
+            this_config_entry_vin = config_entry.data.get(CONF_VIN, None)
+            if this_config_entry_vin is not None:
+                for entry in hass.config_entries.async_entries(DOMAIN):
+                    if entry.entry_id != config_entry.entry_id:
+                        if CONF_IS_SUPPORTED in entry.data:
+                            other_config_entry_vin = entry.data[CONF_VIN]
+                            if other_config_entry_vin.lower() == this_config_entry_vin.lower():
+                                _LOGGER.warning(f"async_setup_entry(): current configuration contains a LEGACY region-key: {a_config_region} -> Remove this configuration entry {config_entry} since there is another valid config-entry with the same VIN.")
+                                raise ConfigEntryNotReady(f"The configuration entry contains a LEGACY region-key: {a_config_region} and another entry exist for this VIN {this_config_entry_vin}. -> Remove this configuration entry, since it is obsolete.")
+
+            # if we reach this point in the code, then this is a LEGACY region-key, but we don't find any other
+            # config entry that have this vin too - so we can/should use this configuration entry
             _LOGGER.info(f"async_setup_entry(): current configuration contains LEGACY region-key: {a_config_region} -> please create a new ha-config entry to avoid this message in the future! See https://github.com/marq24/ha-fordpass/discussions/144 for further details.")
+
         else:
             _LOGGER.warning(f"async_setup_entry(): current configuration contains UNKNOWN region-key: {a_config_region} -> Remove this configuration entry {config_entry} and setup this integration again for your vehicle.")
             raise ConfigEntryNotReady(f"The configuration entry is NOT SUPPORTED by this Integration. -> Remove this configuration entry and setup this integration again for your vehicle.")

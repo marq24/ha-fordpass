@@ -1884,6 +1884,42 @@ class ConnectedFordPassVehicle:
             _LOGGER.info(f"{self.vli}set_charge_target() - setting target charge failed: data that was sent: {data}")
         return result
 
+    async def set_charge_settings(self, key, value):
+        # {
+        #     "properties": {
+        #         "chargeSettings": {
+        #             "autoChargePortUnlock": "PERMANENT",
+        #             "chargeMode": "VALUE_CHARGE",
+        #             "globalCurrentLimit": 48,
+        #             "globalDCPowerLimit": 160,
+        #             "globalDCTargetSoc": 50,
+        #             "globalReserveSoc": 50,
+        #             "globalTargetSoc": 50
+        #         }
+        #     },
+        #     "tags": {},
+        #     "type": "updateChargeSettingsCommand",
+        #     "version": "1.0.1",
+        #     "wakeUp": true
+        # }
+
+        # only accept the given keys...
+        if key.lower() in ["autochargeportunlock", "chargemode", "globalcurrentlimit", "globaldcpowerlimit", "globaldctargetsoc", "globalreservesoc", "globaltargetsoc"]:
+
+            # convert the data we have into plain INTEGERS...
+            if key.lower() in ["globalcurrentlimit", "globaldcpowerlimit", "globaldctargetsoc", "globalreservesoc", "globaltargetsoc"]:
+                try:
+                    value = int(float(value))
+                except BaseException as e:
+                    _LOGGER.info(f"set_charge_settings wtf? {value} caused {e}")
+
+            return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
+                                                                   write_command="updateChargeSettingsCommand",
+                                                                   properties={"chargeSettings": {key: int(value)}},
+                                                                   data_version="1.0.1",
+                                                                   wait_for_state=True)
+        return False
+
     async def set_rcc(self, data:dict, result_list:dict):
         _LOGGER.debug(f"{self.vli}set_rcc() - Attempting to set RCC with VIN: {data.get('vin')}, crccStateFlag: {data.get('crccStateFlag')}, preferences count: {len(data.get('userPreferences', []))}")
 
@@ -2064,7 +2100,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return False
 
-    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}, wait_for_state:bool=True):
+    async def __request_and_poll_command_autonomic(self, baseurl, write_command, properties={}, data_version:str="1.0.0", wait_for_state:bool=True):
         """Send command to the new Command endpoint"""
         try:
             await self.__ensure_valid_tokens()
@@ -2086,13 +2122,15 @@ class ConnectedFordPassVehicle:
                 "properties": properties,
                 "tags": {},
                 "type": write_command,
-                "version": "1.0.0",
+                "version": data_version,
                 "wakeUp": True
             }
 
             # currently only the beta autonomic endpoint supports/needs the version tag
             if baseurl != AUTONOMIC_BETA_URL:
                 del data["version"]
+
+            _LOGGER.debug(f"__request_and_poll_command_autonomic(): POST DATA: {json.dumps(data)}")
 
             post_req = await self.session.post(f"{baseurl}/command/vehicles/{self.vin}/commands",
                                     data=json.dumps(data),

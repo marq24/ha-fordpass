@@ -203,8 +203,10 @@
             "rccsteeringwheel":         {"name": "RC: Steering Wheel Heating [RemoteControl]"}
         },
         "number": {
-            "rcctemperature":    {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"},
-            "elvehtargetcharge": {"name": "Target charge level"}
+            "rcctemperature":       {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"},
+            "elvehtargetcharge":    {"name": "Target charge level"},
+            "globalaccurrentlimit": {"name": "AC Current Limit"},
+            "globaldcpowerlimit":   {"name": "DC Power Limit"}
         },
         "sensor": {
             "odometer":                 {"name": "Odometer"},

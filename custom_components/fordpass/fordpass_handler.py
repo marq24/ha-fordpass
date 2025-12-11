@@ -688,6 +688,36 @@ class FordpassDataHandler:
                 if "custom:charge-power-kw" in key:
                     attrs["chargePowerKw"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
+                if "custom:global-ac-current-limit" in key:
+                    attrs["globalAcCurrentLimit"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:max-ac-current-display" in key:
+                    attrs["maxAcCurrent"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:global-ac-target-soc" in key:
+                    attrs["globalAcTargetSoc"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:current-charging-current-display" in key:
+                    attrs["currentChargingCurrent"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:global-dc-power-limit" in key:
+                    attrs["globalDcPowerLimit"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:max-dc-power-display" in key:
+                    attrs["maxDcPower"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:global-dc-target-soc" in key:
+                    attrs["globalDcTargetSoc"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:current-charging-power-display" in key:
+                    attrs["currentChargingPower"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:fast-charge-bulk" in key:
+                    attrs["fastChargeBulk"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+                if "custom:fast-charge-complete" in key:
+                    attrs["fastChargeComplete"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
         return attrs
 
 
@@ -998,6 +1028,42 @@ class FordpassDataHandler:
                     attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
         return attrs or None
 
+    # GLOBAL_AC_CURRENT_LIMIT
+    def get_global_ac_current_limit_state(data):
+        cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
+        if cm_data is not None:
+            for key in cm_data:
+                if "custom:global-ac-current-limit" in key:
+                    return cm_data.get(key, {}).get("value")
+        return None
+
+    async def set_global_ac_current_limit(data, vehicle, target_value: str, current_value:str):
+        # we don't need the data here - since we do not fetch additional info from it
+        # - instead we try to set the value directly...
+        return await vehicle.set_charge_settings("globalCurrentLimit", target_value)
+
+    # GLOBAL_DC_POWER_LIMIT
+    def get_global_dc_power_limit_state(data):
+        cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
+        if cm_data is not None:
+            for key in cm_data:
+                if "custom:global-dc-power-limit" in key:
+                    return cm_data.get(key, {}).get("value")
+        return None
+
+    async def set_global_dc_power_limit(data, vehicle, target_value: str, current_value:str):
+        # we don't need the data here - since we do not fetch additional info from it
+        # - instead we try to set the value directly...
+        return await vehicle.set_charge_settings("globalDCPowerLimit", target_value)
+
+    # GLOBAL_DC_POWER_LIMIT
+    def get_global_dc_power_limit_state(data):
+        cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
+        if cm_data is not None:
+            for key in cm_data:
+                if "custom:global-dc-power-limit" in key:
+                    return cm_data.get(key, {}).get("value")
+        return None
 
     # RCC (remote climate control) state
     def get_rcc_state(data, rcc_key):

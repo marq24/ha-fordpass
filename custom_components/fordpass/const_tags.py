@@ -8,7 +8,8 @@ from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.components.number import NumberEntityDescription, NumberMode, NumberDeviceClass
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
-from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory
+from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory, \
+    UnitOfElectricCurrent, UnitOfPower
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
@@ -166,9 +167,17 @@ class Tag(ApiKey, Enum):
                                  select_fn=FordpassDataHandler.set_elev_target_charge_alt2)
 
     # NUMBERS
-    RCC_TEMPERATURE     = ApiKey(key="rccTemperature",
+    RCC_TEMPERATURE = ApiKey(key="rccTemperature",
                                  state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_SetPointTemp_Rq)
+
+    GLOBAL_AC_CURRENT_LIMIT = ApiKey(key="globalAcCurrentLimit",
+                                state_fn=FordpassDataHandler.get_global_ac_current_limit_state,
+                                select_fn=FordpassDataHandler.set_global_ac_current_limit)
+
+    GLOBAL_DC_POWER_LIMIT = ApiKey(key="globalDcPowerLimit",
+                                     state_fn=FordpassDataHandler.get_global_dc_power_limit_state,
+                                     select_fn=FordpassDataHandler.set_global_dc_power_limit)
 
     # SENSORS
     ##################################################
@@ -256,7 +265,7 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "yawRate", None))
     ACCELERATION        = ApiKey(key="acceleration",
                                  state_fn=lambda data: FordpassDataHandler.get_attr_of_metrics_value_dict(data, "acceleration", "x", None),
-                                 attrs_fn=lambda data, units: FordpassDataHandler.get_value_for_metrics_key(data, "acceleration"))
+                                 attrs_fn=lambda data, units: FordpassDataHandler.get_value_for_metrics_key(data, "acceleration", None))
     BRAKE_PEDAL_STATUS  = ApiKey(key="brakePedalStatus",
                                  state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakePedalStatus"))
     BRAKE_TORQUE        = ApiKey(key="brakeTorque",
@@ -347,6 +356,7 @@ class ExtSelectEntityDescription(SelectEntityDescription):
 @dataclass(frozen=True)
 class ExtNumberEntityDescription(NumberEntityDescription):
     tag: Tag | None = None
+    skip_existence_check: bool | None = None
     name_addon: str | None = None
 
 
@@ -867,12 +877,36 @@ NUMBERS = [
     ExtNumberEntityDescription(
         tag=Tag.RCC_TEMPERATURE,
         key=Tag.RCC_TEMPERATURE.key,
+        skip_existence_check=True,
         icon="mdi:thermometer",
         device_class=NumberDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         native_min_value=15.5,
         native_max_value=30.5,
         native_step=0.5,
+        mode=NumberMode.BOX,
+        has_entity_name=True,
+        entity_registry_enabled_default=False
+    ),
+    ExtNumberEntityDescription(
+        tag=Tag.GLOBAL_AC_CURRENT_LIMIT,
+        key=Tag.GLOBAL_AC_CURRENT_LIMIT.key,
+        icon="mdi:current-ac",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_min_value=5,
+        native_max_value=48,
+        native_step=1,
+        mode=NumberMode.BOX,
+        has_entity_name=True,
+    ),
+    ExtNumberEntityDescription(
+        tag=Tag.GLOBAL_DC_POWER_LIMIT,
+        key=Tag.GLOBAL_DC_POWER_LIMIT.key,
+        icon="mdi:current-dc",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_min_value=10,
+        native_max_value=160,
+        native_step=1,
         mode=NumberMode.BOX,
         has_entity_name=True,
         entity_registry_enabled_default=False
