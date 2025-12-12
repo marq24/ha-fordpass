@@ -204,9 +204,9 @@
         "number": {
             "rcctemperature":       {"name": "RC: Temperatur [RemoteControl]"},
             "elvehtargetcharge":    {"name": "Ziel-Ladestand EV"},
+            "globaltargetsoc":      {"name": "Allgemein: Ziel-Ladestand EV"},
             "globalaccurrentlimit": {"name": "Stromstärkenlimit (AC)"},
-            "globaldcpowerlimit":   {"name": "Leistungslimit (DC)"},
-            "globaltargetsoc":      {"name": "Allgemein: Ziel-Ladestand EV"}
+            "globaldcpowerlimit":   {"name": "Leistungslimit (DC)"}
         },
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},
@@ -311,6 +311,10 @@
             },
             "elvehtargetchargealt2": {
                 "name": "Ziel-Ladestand EV [alternativer Ort 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "globaltargetsoc": {
+                "name": "Allgemein: Ziel-Ladestand EV",
                 "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
             }
         }

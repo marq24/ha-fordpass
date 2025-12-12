@@ -205,9 +205,9 @@
         "number": {
             "rcctemperature":       {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"},
             "elvehtargetcharge":    {"name": "Target charge level"},
+            "globaltargetsoc":      {"name": "General: Target charge level"},
             "globalaccurrentlimit": {"name": "AC Current Limit"},
-            "globaldcpowerlimit":   {"name": "DC Power Limit"},
-            "globaltargetsoc":      {"name": "General: Target charge level"}
+            "globaldcpowerlimit":   {"name": "DC Power Limit"}
         },
         "sensor": {
             "odometer":                 {"name": "Odometer"},
@@ -312,6 +312,10 @@
             },
             "elvehtargetchargealt2": {
                 "name": "Target charge level [alt location 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "globaltargetsoc": {
+                "name": "General: Target charge level",
                 "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
             }
         }

@@ -9,7 +9,7 @@ from homeassistant.components.number import NumberEntityDescription, NumberMode,
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory, \
-    UnitOfElectricCurrent, UnitOfPower
+    UnitOfElectricCurrent
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
@@ -166,6 +166,10 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 2),
                                  select_fn=FordpassDataHandler.set_elev_target_charge_alt2)
 
+    GLOBAL_TARGET_SOC = ApiKey(key="globalTargetSoc",
+                               state_fn=FordpassDataHandler.get_global_target_soc_state,
+                               select_fn=FordpassDataHandler.set_global_target_soc)
+
     # NUMBERS
     RCC_TEMPERATURE = ApiKey(key="rccTemperature",
                                  state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
@@ -178,10 +182,6 @@ class Tag(ApiKey, Enum):
     GLOBAL_DC_POWER_LIMIT = ApiKey(key="globalDcPowerLimit",
                                      state_fn=FordpassDataHandler.get_global_dc_power_limit_state,
                                      select_fn=FordpassDataHandler.set_global_dc_power_limit)
-
-    GLOBAL_TARGET_SOC = ApiKey(key="globalTargetSoc",
-                                   state_fn=FordpassDataHandler.get_global_target_soc_state,
-                                   select_fn=FordpassDataHandler.set_global_target_soc)
 
     # SENSORS
     ##################################################
@@ -358,6 +358,7 @@ class ExtSensorEntityDescription(SensorEntityDescription):
 @dataclass(frozen=True)
 class ExtSelectEntityDescription(SelectEntityDescription):
     tag: Tag | None = None
+    skip_existence_check: bool | None = None
     name_addon: str | None = None
 
 @dataclass(frozen=True)
@@ -879,6 +880,13 @@ SELECTS = [
         options=RCC_TEMPERATURES_CELSIUS,
         has_entity_name=True
     ),
+    ExtSelectEntityDescription(
+        tag=Tag.GLOBAL_TARGET_SOC,
+        key=Tag.GLOBAL_TARGET_SOC.key,
+        icon="mdi:battery-charging-high",
+        options=ELVEH_TARGET_CHARGE_OPTIONS,
+        has_entity_name=True,
+    )
 ]
 NUMBERS = [
     ExtNumberEntityDescription(
@@ -906,27 +914,17 @@ NUMBERS = [
         mode=NumberMode.BOX,
         has_entity_name=True,
     ),
-    ExtNumberEntityDescription(
-        tag=Tag.GLOBAL_DC_POWER_LIMIT,
-        key=Tag.GLOBAL_DC_POWER_LIMIT.key,
-        icon="mdi:current-dc",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        native_min_value=10,
-        native_max_value=160,
-        native_step=1,
-        mode=NumberMode.BOX,
-        has_entity_name=True,
-        entity_registry_enabled_default=False
-    ),
-    ExtNumberEntityDescription(
-        tag=Tag.GLOBAL_TARGET_SOC,
-        key=Tag.GLOBAL_TARGET_SOC.key,
-        icon="mdi:battery-charging-high",
-        native_unit_of_measurement=PERCENTAGE,
-        native_min_value=50,
-        native_max_value=100,
-        native_step=10,
-        mode=NumberMode.SLIDER,
-        has_entity_name=True
-    )
+    # IS NOW A SELECT cause values are 50, 60, 70, 80, 85, 90, 95 & 100
+    # ExtNumberEntityDescription(
+    #     tag=Tag.GLOBAL_DC_POWER_LIMIT,
+    #     key=Tag.GLOBAL_DC_POWER_LIMIT.key,
+    #     icon="mdi:current-dc",
+    #     native_unit_of_measurement=UnitOfPower.WATT,
+    #     native_min_value=10,
+    #     native_max_value=160,
+    #     native_step=1,
+    #     mode=NumberMode.BOX,
+    #     has_entity_name=True,
+    #     entity_registry_enabled_default=False
+    # )
 ]

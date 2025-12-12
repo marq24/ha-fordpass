@@ -1948,6 +1948,11 @@ class ConnectedFordPassVehicle:
                     _LOGGER.info(f"set_charge_settings wtf? {value} caused {e}")
 
                 if key.lower() in ["globaldctargetsoc", "globalreservesoc", "globaltargetsoc"]:
+                    if value < 80:
+                        # for values below 80 percent, ford only accepts 50,60 or 70 percent
+                        # round down to the nearest 10 percent
+                        value = int(float(value)/10) * 10
+
                     properties_to_set = {"chargeSettings": {
                         "globalDCTargetSoc": value,
                         "globalReserveSoc": value,

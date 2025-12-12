@@ -762,100 +762,6 @@ class FordpassDataHandler:
                 return "UNKNOWN"
         return val
 
-    # ELVEH_TARGET_CHARGE name + state + set_value
-    def get_elev_target_charge_name(data, index:int = 0):
-        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
-        if len(all_pct_data) > index:
-            ets_data_at_idx = list(all_pct_data.values())[index]
-            return ets_data_at_idx.get("location", {}).get("name", UNSUPPORTED)
-        else:
-            return UNSUPPORTED
-
-    def is_elev_target_charge_supported(data, index:int = 0):
-        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
-        if len(all_pct_data) > index:
-            ets_data_at_idx = list(all_pct_data.values())[index]
-            if "chargeProfile" in ets_data_at_idx and "location" in ets_data_at_idx:
-                if all(key in ets_data_at_idx["chargeProfile"] for key in ["chargeMode", "schedules"]):
-                    if all(key in ets_data_at_idx["location"] for key in ["address", "id", "latitude", "longitude", "name", "type"]):
-                        return True
-        return False
-
-    def get_elev_target_charge_state(data, index:int = 0):
-        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
-        if len(all_pct_data) > index:
-            pct_data_at_idx = list(all_pct_data.values())[index]
-            return pct_data_at_idx.get("chargeProfile", {}).get("targetSoc", UNSUPPORTED)
-        else:
-            #_LOGGER.debug(f"get_elev_target_charge_state(): No 'preferred_charge_times' data found for index: {index} in: {len(all_pct_data)}")
-            return UNSUPPORTED
-
-    async def set_elev_target_charge(data, vehicle, target_value, current_value:str):
-        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
-        if len(all_pct_data) > 0:
-            pct_data_at_idx_0 = next(iter(all_pct_data.values()))
-            return await FordpassDataHandler.set_elev_target_charge_int(vehicle, target_value, pct_data_at_idx_0)
-        else:
-            return False
-
-    async def set_elev_target_charge_alt1(data, vehicle, target_value, current_value:str):
-        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
-        if len(all_pct_data) > 1:
-            pct_data_at_idx = list(all_pct_data.values())[1]
-            return await FordpassDataHandler.set_elev_target_charge_int(vehicle, target_value, pct_data_at_idx)
-        else:
-            return False
-
-    async def set_elev_target_charge_alt2(data, vehicle, target_value, current_value:str):
-        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
-        if len(all_pct_data) > 2:
-            pct_data_at_idx = list(all_pct_data.values())[2]
-            return await FordpassDataHandler.set_elev_target_charge_int(vehicle, target_value, pct_data_at_idx)
-        else:
-            return False
-
-    async def set_elev_target_charge_int(vehicle, target_value, pct_data) -> bool:
-
-        if pct_data is not None and len(pct_data) > 0:
-            if "chargeProfile" in pct_data and "location" in pct_data:
-                if not all(key in pct_data["chargeProfile"] for key in ["chargeMode", "schedules"]):
-                    _LOGGER.info(f"set_elev_target_charge(): {pct_data} does not contain all required chargeProfile data")
-                    return False
-                if not all(key in pct_data["location"] for key in ["address", "id", "latitude", "longitude", "name", "type"]):
-                    _LOGGER.info(f"set_elev_target_charge(): {pct_data} does not contain required location data")
-                    return False
-
-            target_value = int(float(target_value))
-            if 50 <= target_value <= 100:
-                if target_value < 80:
-                    # for values below 80 percent, ford only accepts 50,60 or 70 percent
-                    # round down to the nearest 10 percent
-                    target_value = int(float(target_value)/10) * 10
-
-                # the value we want to set from is the 'targetSoc'
-                # and it can go from 20 to 100 percent... lower makes
-                # little sense...
-                post_data = {
-                    "chargeProfile": {
-                        "chargeMode":pct_data["chargeProfile"]["chargeMode"],
-                        "schedules": pct_data["chargeProfile"]["schedules"],
-                        "targetSoc": target_value
-                    },
-                    "location": {
-                        "address":  pct_data["location"]["address"],
-                        "id":       pct_data["location"]["id"],
-                        "latitude": pct_data["location"]["latitude"],
-                        "longitude":pct_data["location"]["longitude"],
-                        "name":     pct_data["location"]["name"],
-                        "type":     pct_data["location"]["type"],
-                    },
-                    "vin": vehicle.vin
-                }
-                return await vehicle.set_charge_target(post_data)
-
-        _LOGGER.info(f"set_elev_target_charge(): target_value {target_value} is not in the valid range (50-100)")
-        return False
-
 
     # ZONE_LIGHTING state + attributes
     def get_zone_lighting_state(data):
@@ -1052,7 +958,8 @@ class FordpassDataHandler:
                     attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
         return attrs or None
 
-    # GLOBAL_AC_CURRENT_LIMIT
+
+    # GLOBAL_AC_CURRENT_LIMIT state + set_value
     def get_global_ac_current_limit_state(data):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
@@ -1066,7 +973,8 @@ class FordpassDataHandler:
         # - instead we try to set the value directly...
         return await vehicle.set_charge_settings("globalCurrentLimit", target_value)
 
-    # GLOBAL_DC_POWER_LIMIT
+
+    # GLOBAL_DC_POWER_LIMIT state + set_value
     def get_global_dc_power_limit_state(data):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
@@ -1081,7 +989,7 @@ class FordpassDataHandler:
         return await vehicle.set_charge_settings("globalDCPowerLimit", target_value)
 
 
-    # GLOBAL_TARGET_SOC
+    # GLOBAL_TARGET_SOC state + set_value
     def get_global_target_soc_state(data):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
@@ -1098,6 +1006,101 @@ class FordpassDataHandler:
         # we don't need the data here - since we do not fetch additional info from it
         # - instead we try to set the value directly...
         return await vehicle.set_charge_settings("globalTargetSoc", target_value)
+
+
+    # ELVEH_TARGET_CHARGE name + state + set_value
+    def get_elev_target_charge_name(data, index:int = 0):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > index:
+            ets_data_at_idx = list(all_pct_data.values())[index]
+            return ets_data_at_idx.get("location", {}).get("name", UNSUPPORTED)
+        else:
+            return UNSUPPORTED
+
+    def is_elev_target_charge_supported(data, index:int = 0):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > index:
+            ets_data_at_idx = list(all_pct_data.values())[index]
+            if "chargeProfile" in ets_data_at_idx and "location" in ets_data_at_idx:
+                if all(key in ets_data_at_idx["chargeProfile"] for key in ["chargeMode", "schedules"]):
+                    if all(key in ets_data_at_idx["location"] for key in ["address", "id", "latitude", "longitude", "name", "type"]):
+                        return True
+        return False
+
+    def get_elev_target_charge_state(data, index:int = 0):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > index:
+            pct_data_at_idx = list(all_pct_data.values())[index]
+            return pct_data_at_idx.get("chargeProfile", {}).get("targetSoc", UNSUPPORTED)
+        else:
+            #_LOGGER.debug(f"get_elev_target_charge_state(): No 'preferred_charge_times' data found for index: {index} in: {len(all_pct_data)}")
+            return UNSUPPORTED
+
+    async def set_elev_target_charge(data, vehicle, target_value, current_value:str):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > 0:
+            pct_data_at_idx_0 = next(iter(all_pct_data.values()))
+            return await FordpassDataHandler.set_elev_target_charge_int(vehicle, target_value, pct_data_at_idx_0)
+        else:
+            return False
+
+    async def set_elev_target_charge_alt1(data, vehicle, target_value, current_value:str):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > 1:
+            pct_data_at_idx = list(all_pct_data.values())[1]
+            return await FordpassDataHandler.set_elev_target_charge_int(vehicle, target_value, pct_data_at_idx)
+        else:
+            return False
+
+    async def set_elev_target_charge_alt2(data, vehicle, target_value, current_value:str):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > 2:
+            pct_data_at_idx = list(all_pct_data.values())[2]
+            return await FordpassDataHandler.set_elev_target_charge_int(vehicle, target_value, pct_data_at_idx)
+        else:
+            return False
+
+    async def set_elev_target_charge_int(vehicle, target_value, pct_data) -> bool:
+        if pct_data is not None and len(pct_data) > 0:
+            if "chargeProfile" in pct_data and "location" in pct_data:
+                if not all(key in pct_data["chargeProfile"] for key in ["chargeMode", "schedules"]):
+                    _LOGGER.info(f"set_elev_target_charge(): {pct_data} does not contain all required chargeProfile data")
+                    return False
+                if not all(key in pct_data["location"] for key in ["address", "id", "latitude", "longitude", "name", "type"]):
+                    _LOGGER.info(f"set_elev_target_charge(): {pct_data} does not contain required location data")
+                    return False
+
+            target_value = int(float(target_value))
+            if 50 <= target_value <= 100:
+                if target_value < 80:
+                    # for values below 80 percent, ford only accepts 50,60 or 70 percent
+                    # round down to the nearest 10 percent
+                    target_value = int(float(target_value)/10) * 10
+
+                # the value we want to set from is the 'targetSoc'
+                # and it can go from 20 to 100 percent... lower makes
+                # little sense...
+                post_data = {
+                    "chargeProfile": {
+                        "chargeMode":pct_data["chargeProfile"]["chargeMode"],
+                        "schedules": pct_data["chargeProfile"]["schedules"],
+                        "targetSoc": target_value
+                    },
+                    "location": {
+                        "address":  pct_data["location"]["address"],
+                        "id":       pct_data["location"]["id"],
+                        "latitude": pct_data["location"]["latitude"],
+                        "longitude":pct_data["location"]["longitude"],
+                        "name":     pct_data["location"]["name"],
+                        "type":     pct_data["location"]["type"],
+                    },
+                    "vin": vehicle.vin
+                }
+                return await vehicle.set_charge_target(post_data)
+
+        _LOGGER.info(f"set_elev_target_charge(): target_value {target_value} is not in the valid range (50-100)")
+        return False
+
 
     # RCC (remote climate control) state
     def get_rcc_state(data, rcc_key):

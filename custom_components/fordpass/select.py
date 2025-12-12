@@ -1,5 +1,6 @@
 import logging
 from dataclasses import replace
+from numbers import Number
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -13,7 +14,7 @@ from custom_components.fordpass.const import (
     RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_OPTIONS_HEAT_ONLY, RCC_TEMPERATURES_CELSIUS
 )
 from custom_components.fordpass.const_tags import SELECTS, ExtSelectEntityDescription, Tag, RCC_TAGS
-from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED, FordpassDataHandler
+from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED, FordpassDataHandler, ROOT_METRICS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     _LOGGER.debug(f"{coordinator.vli}SELECT async_setup_entry")
 
     entities = []
+    check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0
     for a_entity_description in SELECTS:
         a_entity_description: ExtSelectEntityDescription
 
@@ -60,7 +62,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                 continue
 
         entity = FordPassSelect(coordinator, a_entity_description)
-        entities.append(entity)
+        if a_entity_description.skip_existence_check or not check_data_availability:
+            entities.append(entity)
+        else:
+            # calling the state reading function to check if the entity should be added (if there is any data)
+            value = a_entity_description.tag.state_fn(coordinator.data)
+            if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
+                                      (isinstance(value, (dict, list)) and len(value) != 0) ):
+                entities.append(entity)
+            else:
+                _LOGGER.debug(f"{coordinator.vli}SELECT '{a_entity_description.tag}' skipping cause no data available: type: {type(value).__name__} - value:'{value}'")
 
     async_add_entities(entities, True)
 
