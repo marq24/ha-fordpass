@@ -206,7 +206,8 @@
             "rcctemperature":       {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"},
             "elvehtargetcharge":    {"name": "Target charge level"},
             "globalaccurrentlimit": {"name": "AC Current Limit"},
-            "globaldcpowerlimit":   {"name": "DC Power Limit"}
+            "globaldcpowerlimit":   {"name": "DC Power Limit"},
+            "globaltargetsoc":      {"name": "General: Target charge level"}
         },
         "sensor": {
             "odometer":                 {"name": "Odometer"},

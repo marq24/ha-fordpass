@@ -35,6 +35,7 @@ from custom_components.fordpass.fordpass_handler import (
     ROOT_VEHICLES,
     ROOT_REMOTE_CLIMATE_CONTROL,
     ROOT_PREFERRED_CHARGE_TIMES,
+    ROOT_ENERGY_TRANSFER_STATUS,
     ROOT_UPDTIME
 )
 
@@ -231,6 +232,8 @@ class ConnectedFordPassVehicle:
         self._cached_rcc_data = {}
         self._preferred_charge_times_supported = None
         self._cached_pct_data = {}
+        self._energy_transfer_status_supported = None
+        self._cached_ets_data = {}
 
         # websocket connection related variables
         self._ws_debounced_update_task = None
@@ -1239,8 +1242,10 @@ class ConnectedFordPassVehicle:
 
                                 if "showEVBatteryLevel" in a_vehicle_profile:
                                     self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
+                                    #self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
                                 else:
                                     self._preferred_charge_times_supported = False
+                                    self._energy_transfer_status_supported = False
 
                                 # ok record that we do not read the vehicle profile data again - since the init for this
                                 # VIN is completed...
@@ -1265,6 +1270,13 @@ class ConnectedFordPassVehicle:
                 if self._cached_pct_data is not None and len(self._cached_pct_data) > 0:
                     data[ROOT_PREFERRED_CHARGE_TIMES] = self._cached_pct_data
 
+            if self._energy_transfer_status_supported:
+                if self._cached_ets_data is None or len(self._cached_ets_data) == 0:
+                    _LOGGER.debug(f"{self.vli}update_all(): request 'energy_transfer_status' data...")
+                    self._cached_ets_data = await self.req_energy_transfer_status()
+
+                if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
+                    data[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
 
             # ok finally store the data in our main data container...
             self._data_container = data
@@ -1285,7 +1297,7 @@ class ConnectedFordPassVehicle:
     async def update_preferred_charge_times_int(self):
         # only update remote climate data if not present yet
         if self._preferred_charge_times_supported:
-            _LOGGER.debug(f"{self.vli}update_preferred_charge_times_int(): request 'energy transfer status' data...")
+            _LOGGER.debug(f"{self.vli}update_preferred_charge_times_int(): request 'preferred_charge_times' data...")
             self._cached_pct_data = await self.req_preferred_charge_times()
 
             if self._cached_pct_data is not None and len(self._cached_pct_data) > 0:
@@ -1294,14 +1306,36 @@ class ConnectedFordPassVehicle:
 
         return False
 
+    async def update_energy_transfer_status_int(self):
+        # only update remote climate data if not present yet
+        if self._energy_transfer_status_supported:
+            _LOGGER.debug(f"{self.vli}update_energy_transfer_status_int(): request 'energy_transfer_status' data...")
+            self._cached_ets_data = await self.req_energy_transfer_status()
+
+            if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
+                self._data_container[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
+                return True
+
+        return False
+
     async def _ws_debounce_update_preferred_charge_times(self):
-        if self._preferred_charge_times_supported:
+        if self._preferred_charge_times_supported or self._energy_transfer_status_supported:
             try:
                 _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): started")
                 await asyncio.sleep(30)
-                _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): starting the 'update_preferred_charge_times_int()' update now")
-                success = await self.update_preferred_charge_times_int()
-                if success and self.coordinator is not None:
+                if self._preferred_charge_times_supported:
+                    _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): starting the 'update_preferred_charge_times_int()' update now")
+                    success_times = await self.update_preferred_charge_times_int()
+                else:
+                    success_times = True
+
+                if self._energy_transfer_status_supported:
+                    _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): starting the 'update_energy_transfer_status_int()' update now")
+                    success_energy = (await self.update_energy_transfer_status_int())
+                else:
+                    success_energy = True
+
+                if success_times and success_energy and self.coordinator is not None:
                     self.coordinator.async_set_updated_data(self._data_container)
 
             except CancelledError:
@@ -1878,8 +1912,7 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}set_charge_target() - target charge set successfully")
             # WE WILL NOT trigger an update here, since we have a special handling when the websocket receive a
             # SUCCESS (COMMAND_SUCCEEDED_ON_DEVICE) state update for the 'updateChargeProfilesCommand' there we will
-            # trigger an 'asyncio.create_task(self.update_energy_transfer_status_int())'
-            # await self.update_energy_transfer_status_int()
+            # do all the rest...
         else:
             _LOGGER.info(f"{self.vli}set_charge_target() - setting target charge failed: data that was sent: {data}")
         return result
@@ -1908,14 +1941,26 @@ class ConnectedFordPassVehicle:
 
             # convert the data we have into plain INTEGERS...
             if key.lower() in ["globalcurrentlimit", "globaldcpowerlimit", "globaldctargetsoc", "globalreservesoc", "globaltargetsoc"]:
+                # need to make sure that we have integers
                 try:
                     value = int(float(value))
                 except BaseException as e:
                     _LOGGER.info(f"set_charge_settings wtf? {value} caused {e}")
 
+                if key.lower() in ["globaldctargetsoc", "globalreservesoc", "globaltargetsoc"]:
+                    properties_to_set = {"chargeSettings": {
+                        "globalDCTargetSoc": value,
+                        "globalReserveSoc": value,
+                        "globalTargetSoc": value
+                    }}
+                else:
+                    properties_to_set = {"chargeSettings": {key: value}}
+            else:
+                properties_to_set = {"chargeSettings": {key: str(value)}}
+
             return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
                                                                    write_command="updateChargeSettingsCommand",
-                                                                   properties={"chargeSettings": {key: int(value)}},
+                                                                   properties=properties_to_set,
                                                                    data_version="1.0.1",
                                                                    wait_for_state=True)
         return False

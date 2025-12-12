@@ -48,12 +48,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
         # special handling for the ELVEH_TARGET_CHARGE tags [where we have to add the location name]
         if a_entity_description.tag in ELVEH_TARGET_CHARGE_TAG_TO_INDEX.keys():
-            a_location_name = FordpassDataHandler.get_elev_target_charge_name(coordinator.data, ELVEH_TARGET_CHARGE_TAG_TO_INDEX[a_entity_description.tag])
-            if a_location_name is not UNSUPPORTED:
-                a_entity_description = replace(
-                    a_entity_description,
-                    name_addon=f"{a_location_name}:"
-                )
+            if FordpassDataHandler.is_elev_target_charge_supported(coordinator.data, ELVEH_TARGET_CHARGE_TAG_TO_INDEX[a_entity_description.tag]):
+                a_location_name = FordpassDataHandler.get_elev_target_charge_name(coordinator.data, ELVEH_TARGET_CHARGE_TAG_TO_INDEX[a_entity_description.tag])
+                if a_location_name is not UNSUPPORTED:
+                    a_entity_description = replace(
+                        a_entity_description,
+                        name_addon=f"{a_location_name}:"
+                    )
+            else:
+                _LOGGER.debug(f"{coordinator.vli}SELECT '{a_entity_description.tag}' not supported/no valid data present")
+                continue
 
         entity = FordPassSelect(coordinator, a_entity_description)
         entities.append(entity)

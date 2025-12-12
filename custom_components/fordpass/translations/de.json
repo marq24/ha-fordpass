@@ -205,7 +205,8 @@
             "rcctemperature":       {"name": "RC: Temperatur [RemoteControl]"},
             "elvehtargetcharge":    {"name": "Ziel-Ladestand EV"},
             "globalaccurrentlimit": {"name": "Stromstärkenlimit (AC)"},
-            "globaldcpowerlimit":   {"name": "Leistungslimit (DC)"}
+            "globaldcpowerlimit":   {"name": "Leistungslimit (DC)"},
+            "globaltargetsoc":      {"name": "Allgemein: Ziel-Ladestand EV"}
         },
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},

@@ -179,6 +179,10 @@ class Tag(ApiKey, Enum):
                                      state_fn=FordpassDataHandler.get_global_dc_power_limit_state,
                                      select_fn=FordpassDataHandler.set_global_dc_power_limit)
 
+    GLOBAL_TARGET_SOC = ApiKey(key="globalTargetSoc",
+                                   state_fn=FordpassDataHandler.get_global_target_soc_state,
+                                   select_fn=FordpassDataHandler.set_global_target_soc)
+
     # SENSORS
     ##################################################
     ODOMETER            = ApiKey(key="odometer",
@@ -323,7 +327,10 @@ EV_ONLY_TAGS: Final = [
     Tag.ELVEH_CHARGE,
     Tag.EV_START,
     Tag.EV_CANCEL,
-    Tag.EV_PAUSE
+    Tag.EV_PAUSE,
+    Tag.ELVEH_TARGET_CHARGE,
+    Tag.ELVEH_TARGET_CHARGE_ALT1,
+    Tag.ELVEH_TARGET_CHARGE_ALT1,
 ]
 
 RCC_TAGS: Final = [
@@ -910,5 +917,16 @@ NUMBERS = [
         mode=NumberMode.BOX,
         has_entity_name=True,
         entity_registry_enabled_default=False
+    ),
+    ExtNumberEntityDescription(
+        tag=Tag.GLOBAL_TARGET_SOC,
+        key=Tag.GLOBAL_TARGET_SOC.key,
+        icon="mdi:battery-charging-high",
+        native_unit_of_measurement=PERCENTAGE,
+        native_min_value=50,
+        native_max_value=100,
+        native_step=10,
+        mode=NumberMode.SLIDER,
+        has_entity_name=True
     )
 ]

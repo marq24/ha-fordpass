@@ -32,6 +32,7 @@ ROOT_VEHICLES: Final = "vehicles"
 ROOT_MESSAGES: Final = "messages"
 ROOT_REMOTE_CLIMATE_CONTROL: Final = "rcc"
 ROOT_PREFERRED_CHARGE_TIMES: Final = "pct"
+ROOT_ENERGY_TRANSFER_STATUS: Final = "ets"
 ROOT_UPDTIME: Final = "updateTime"
 
 UNSUPPORTED: Final = str("Unsupported")
@@ -71,6 +72,11 @@ class FordpassDataHandler:
     def get_preferred_charge_times(data):
         """Get the metrics dictionary."""
         return data.get(ROOT_PREFERRED_CHARGE_TIMES, {})
+
+    @staticmethod
+    def get_energy_transfer_status(data):
+        """Get the metrics dictionary."""
+        return data.get(ROOT_ENERGY_TRANSFER_STATUS, {})
 
     @staticmethod
     def get_value_for_metrics_key(data, metrics_key, default=UNSUPPORTED):
@@ -765,6 +771,16 @@ class FordpassDataHandler:
         else:
             return UNSUPPORTED
 
+    def is_elev_target_charge_supported(data, index:int = 0):
+        all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
+        if len(all_pct_data) > index:
+            ets_data_at_idx = list(all_pct_data.values())[index]
+            if "chargeProfile" in ets_data_at_idx and "location" in ets_data_at_idx:
+                if all(key in ets_data_at_idx["chargeProfile"] for key in ["chargeMode", "schedules"]):
+                    if all(key in ets_data_at_idx["location"] for key in ["address", "id", "latitude", "longitude", "name", "type"]):
+                        return True
+        return False
+
     def get_elev_target_charge_state(data, index:int = 0):
         all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
         if len(all_pct_data) > index:
@@ -801,6 +817,14 @@ class FordpassDataHandler:
     async def set_elev_target_charge_int(vehicle, target_value, pct_data) -> bool:
 
         if pct_data is not None and len(pct_data) > 0:
+            if "chargeProfile" in pct_data and "location" in pct_data:
+                if not all(key in pct_data["chargeProfile"] for key in ["chargeMode", "schedules"]):
+                    _LOGGER.info(f"set_elev_target_charge(): {pct_data} does not contain all required chargeProfile data")
+                    return False
+                if not all(key in pct_data["location"] for key in ["address", "id", "latitude", "longitude", "name", "type"]):
+                    _LOGGER.info(f"set_elev_target_charge(): {pct_data} does not contain required location data")
+                    return False
+
             target_value = int(float(target_value))
             if 50 <= target_value <= 100:
                 if target_value < 80:
@@ -814,8 +838,8 @@ class FordpassDataHandler:
                 post_data = {
                     "chargeProfile": {
                         "chargeMode":pct_data["chargeProfile"]["chargeMode"],
-                        "schedules":pct_data["chargeProfile"]["schedules"],
-                        "targetSoc":target_value
+                        "schedules": pct_data["chargeProfile"]["schedules"],
+                        "targetSoc": target_value
                     },
                     "location": {
                         "address":  pct_data["location"]["address"],
@@ -1056,14 +1080,24 @@ class FordpassDataHandler:
         # - instead we try to set the value directly...
         return await vehicle.set_charge_settings("globalDCPowerLimit", target_value)
 
-    # GLOBAL_DC_POWER_LIMIT
-    def get_global_dc_power_limit_state(data):
+
+    # GLOBAL_TARGET_SOC
+    def get_global_target_soc_state(data):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
             for key in cm_data:
-                if "custom:global-dc-power-limit" in key:
-                    return cm_data.get(key, {}).get("value")
+                # ONLY if 'custom:global-ac-target-soc' or 'custom:global-dc-target-soc' is in the customMetrics,
+                # then the vehicle supports setting the global target SOC!
+                if "custom:global-ac-target-soc" in key or "custom:global-dc-target-soc" in key:
+                    ce_data = FordpassDataHandler.get_events(data).get("customEvents", {}).get("xev-hv-battery-monitoring", {}).get("oemData", {})
+                    if ce_data is not None and "target_soc" in ce_data:
+                        return ce_data.get("target_soc", {}).get("longValue", None)
         return None
+
+    async def set_global_target_soc(data, vehicle, target_value: str, current_value:str):
+        # we don't need the data here - since we do not fetch additional info from it
+        # - instead we try to set the value directly...
+        return await vehicle.set_charge_settings("globalTargetSoc", target_value)
 
     # RCC (remote climate control) state
     def get_rcc_state(data, rcc_key):
