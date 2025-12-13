@@ -8,8 +8,14 @@ from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.components.number import NumberEntityDescription, NumberMode, NumberDeviceClass
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
-from homeassistant.const import UnitOfSpeed, UnitOfLength, UnitOfTemperature, PERCENTAGE, EntityCategory, \
-    UnitOfElectricCurrent
+from homeassistant.const import (
+    UnitOfPower,
+    UnitOfSpeed,
+    UnitOfLength,
+    UnitOfTemperature,
+    UnitOfElectricCurrent,
+    PERCENTAGE, EntityCategory
+)
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
@@ -286,14 +292,24 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_cabin_temperature_state,
                                  attrs_fn=FordpassDataHandler.get_cabin_temperature_attrs)
 
-    DEVICECONNECTIVITY  =  ApiKey(key="deviceConnectivity",
-                                  state_fn=FordpassDataHandler.get_device_connectivity_state)
+    DEVICECONNECTIVITY  = ApiKey(key="deviceConnectivity",
+                                 state_fn=FordpassDataHandler.get_device_connectivity_state)
 
     DEEPSLEEP_IN_PROGRESS   = ApiKey(key="deepSleepInProgress",
-                                     state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
     FIRMWAREUPG_IN_PROGRESS = ApiKey(key="firmwareUpgInProgress",
-                                     state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "firmwareUpgradeInProgress"),
-                                     attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "firmwareUpgradeInProgress"))
+                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "firmwareUpgradeInProgress"),
+                                 attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "firmwareUpgradeInProgress"))
+
+
+    LAST_ENERGY_CONSUMED= ApiKey(key="lastEnergyConsumed",
+                                 state_fn=FordpassDataHandler.get_last_energy_consumed_state,
+                                 attrs_fn=FordpassDataHandler.get_last_energy_consumed_attrs)
+
+    LAST_ENERGY_TRANSFER_LOG_ENTRY  = ApiKey(key="energyTransferLogEntry",
+                                 state_fn=FordpassDataHandler.get_energy_transfer_log_state,
+                                 attrs_fn=FordpassDataHandler.get_energy_transfer_log_attrs)
+
 
     # Debug Sensors (Disabled by default)
     EVENTS = ApiKey(key="events",
@@ -331,6 +347,8 @@ EV_ONLY_TAGS: Final = [
     Tag.ELVEH_TARGET_CHARGE,
     Tag.ELVEH_TARGET_CHARGE_ALT1,
     Tag.ELVEH_TARGET_CHARGE_ALT1,
+    Tag.LAST_ENERGY_CONSUMED,
+    Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY
 ]
 
 RCC_TAGS: Final = [
@@ -678,6 +696,24 @@ SENSORS = [
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    ExtSensorEntityDescription(
+        tag=Tag.LAST_ENERGY_CONSUMED,
+        key=Tag.LAST_ENERGY_CONSUMED.key,
+        icon="mdi:counter",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY,
+        key=Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY.key,
+        skip_existence_check=True,
+        icon="mdi:ev-station",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        has_entity_name=True,
+    ),
+
 
     # Debug sensors (disabled by default)
     # Tag.EVENTS: {"icon": "mdi:calendar", "api_key": "events", "skip_existence_check": True, "debug": True},

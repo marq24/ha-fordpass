@@ -6,7 +6,7 @@ from numbers import Number
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.restore_state import RestoreEntity, async_get  # , RestoreStateData
+from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, RestoreStateData
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
@@ -23,7 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     sensors = []
 
     check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0
-    storage = async_get(hass)
+    #storage = async_get(hass)
 
     for a_entity_description in SENSORS:
         a_entity_description: ExtSensorEntityDescription
@@ -33,23 +33,21 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
             continue
 
         sensor = FordPassSensor(coordinator, a_entity_description)
-
-        # we want to restore the last known 'id' of the energyTransferLogs
-        if a_entity_description.tag == Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY:
-            #restored_value = storage.last_states.get(sensor.entity_id, None)
-            restored_entity = storage.entities.get(sensor.entity_id, None)
-            if restored_entity is not None:
-                restored_extra_data = await restored_entity.async_get_last_extra_data()
-                if restored_extra_data is not None and "id" in restored_extra_data and restored_extra_data["id"] is not None:
-                    coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_extra_data["id"]
-
-            # if restored_value is not None or restored_value != UNSUPPORTED:
-            #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_value
-            #     _LOGGER.debug(f"{a_entity_description.tag} -> RESTORED value {restored_value}")
-            # else:
-            #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
-            #     _LOGGER.debug(f"{a_entity_description.tag} no VALUE to RESTORE {restored_value}")
-
+        # # we want to restore the last known 'id' of the energyTransferLogs
+        # if a_entity_description.tag == Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY:
+        #     #restored_value = storage.last_states.get(sensor.entity_id, None)
+        #     restored_entity = storage.entities.get(sensor.entity_id, None)
+        #     if restored_entity is not None:
+        #         restored_extra_data = await restored_entity.async_get_last_extra_data()
+        #         if restored_extra_data is not None and "id" in restored_extra_data and restored_extra_data["id"] is not None:
+        #             coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_extra_data["id"]
+        #
+        #     # if restored_value is not None or restored_value != UNSUPPORTED:
+        #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_value
+        #     #     _LOGGER.debug(f"{a_entity_description.tag} -> RESTORED value {restored_value}")
+        #     # else:
+        #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
+        #     #     _LOGGER.debug(f"{a_entity_description.tag} no VALUE to RESTORE {restored_value}")
 
         if a_entity_description.skip_existence_check or not check_data_availability:
             sensors.append(sensor)

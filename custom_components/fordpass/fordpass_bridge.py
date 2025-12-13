@@ -1264,9 +1264,26 @@ class ConnectedFordPassVehicle:
                                 if "showEVBatteryLevel" in a_vehicle_profile:
                                     self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
                                     #self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
+
+                                    # I would like to have a more specific check here...
+                                    self._energy_transfer_logs_supported = a_vehicle_profile["showEVBatteryLevel"]
                                 else:
                                     self._preferred_charge_times_supported = False
                                     self._energy_transfer_status_supported = False
+                                    self._energy_transfer_logs_supported = True
+
+                                # tripAndChargeLogs is not present in the 'a_vehicle_profile'
+                                # if "tripAndChargeLogs" in a_vehicle_profile:
+                                #     val = a_vehicle_profile["tripAndChargeLogs"]
+                                #     if (isinstance(val, bool) and val) or val.upper() == "DISPLAY":
+                                #         _LOGGER.warning(f"AAA: {val}")
+                                #         self._energy_transfer_logs_supported = True
+                                #     else:
+                                #         _LOGGER.warning(f"BBB: {val}")
+                                #         self._energy_transfer_logs_supported = False
+                                # else:
+                                #     _LOGGER.warning(f"CCC: {a_vehicle_profile}")
+                                #     self._energy_transfer_logs_supported = False
 
                                 # ok record that we do not read the vehicle profile data again - since the init for this
                                 # VIN is completed...
@@ -1401,6 +1418,38 @@ class ConnectedFordPassVehicle:
                 _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): was canceled - all good")
             except BaseException as ex:
                 _LOGGER.warning(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): Error during 'energy_transfer_logs' data refresh - {type(ex).__name__} - {ex}")
+
+    # async def req_handle_energy_transfer_logs_result_async(self, list_data:list):
+    #     try:
+    #         if self.coordinator is not None:
+    #             _LOGGER.debug(f"{self.vli}req_handle_energy_transfer_logs_result_async(): started")
+    #             prev_last_id = self.coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID
+    #             new_last_id = None
+    #             for item in list_data:
+    #                 _LOGGER.info(f"{item}")
+    #                 a_item_id = item["id"]
+    #
+    #                 # for the first entry in the list we store it for later...
+    #                 if new_last_id is None:
+    #                     new_last_id == a_item_id
+    #
+    #                 # when we have reached an entry, that is already the last handled log entry, then we
+    #                 # can skipp the handling...
+    #                 if prev_last_id == a_item_id:
+    #                     break
+    #                 else:
+    #                     # for the given entry we must create a "log" entry for the corresponding sensor in HA
+    #                     if hasattr(self.coordinator, 'create_energy_transfer_log_entry'):
+    #                         await self.coordinator.create_energy_transfer_log_entry(item)
+    #
+    #             # all energy_transfer items are processed...
+    #             if new_last_id is not None and new_last_id != prev_last_id:
+    #                 self.coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = new_last_id
+    #
+    #     except CancelledError:
+    #         _LOGGER.debug(f"{self.vli}req_handle_energy_transfer_logs_result_async(): was canceled - all good")
+    #     except BaseException as ex:
+    #         _LOGGER.warning(f"{self.vli}req_handle_energy_transfer_logs_result_async(): Error during processing list_data {list_data} - {type(ex).__name__} - {ex}")
 
 
     async def req_status(self):
@@ -1842,7 +1891,7 @@ class ConnectedFordPassVehicle:
                 # we hard code 'maxRecords=20' here - since that's what the app is requesting AND
                 # the backend will anyhow return a max of 21 records... which is still some sort
                 # of odd - but batter 20 then nothing...
-                f"{FORD_VEHICLE_API}/electrification/experiences/v2/devices/energy-transfer-logs?maxRecords=20",
+                f"{FORD_VEHICLE_API}/electrification/experiences/v2/devices/energy-transfer-logs?maxRecords=1",
                 headers=headers_veh,
                 timeout=self.timeout
             )
@@ -1853,6 +1902,11 @@ class ConnectedFordPassVehicle:
                 result_etl = await response_etl.json()
                 if self._LOCAL_LOGGING:
                     await self._local_logging("etl", result_etl)
+
+                # # if we have a energy transfer_log then we need to process all entries...
+                # if result_etl is not None and result_etl.get("energyTransferLogs", None) is not None:
+                #     list_data = result_etl["energyTransferLogs"]
+                #     asyncio.create_task(self.req_handle_energy_transfer_logs_result_async(list_data))
 
                 return result_etl
 

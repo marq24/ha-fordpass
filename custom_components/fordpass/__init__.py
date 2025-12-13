@@ -310,7 +310,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_REMOTE_CLIMATE_CONTROL = None
         self._supports_HEATED_STEERING_WHEEL = None
         self._supports_HEATED_HEATED_SEAT_MODE = None
-        self._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
+        #self._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units
@@ -442,6 +442,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._check_for_ws_task_and_cancel_if_running()
         self.bridge.clear_data()
         self.data.clear()
+
+    # async def create_energy_transfer_log_entry(self, a_entry:dict):
+    #     _LOGGER.info(f"{self.vli}create_energy_transfer_log_entry called with {a_entry}")
+    #     pass
 
     @property
     def has_ev_soc(self) -> bool:

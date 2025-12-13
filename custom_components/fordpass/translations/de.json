@@ -255,7 +255,9 @@
             "parkingbrakestatus":       {"name": "Status Feststellbremse"},
             "torqueattransmission":     {"name": "Drehmoment am Getriebe"},
             "wheeltorquestatus":        {"name": "Status Drehmoment am Rad"},
-            "cabintemperature":         {"name": "Innenraumtemperatur"}
+            "cabintemperature":         {"name": "Innenraumtemperatur"},
+            "lastenergyconsumed":       {"name": "EV Energieverbrauch (letzte Fahrt)"},
+            "energytransferlogentry":   {"name": "EV Letzter Ladevorgang"}
         },
         "select": {
             "zonelighting": {

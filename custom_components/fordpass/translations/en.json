@@ -256,7 +256,9 @@
             "parkingbrakestatus":       {"name": "Status Parking Brake"},
             "torqueattransmission":     {"name": "Torque at Transmission"},
             "wheeltorquestatus":        {"name": "Status Wheel Torque"},
-            "cabintemperature":         {"name": "Cabin Temperature"}
+            "cabintemperature":         {"name": "Cabin Temperature"},
+            "lastenergyconsumed":       {"name": "EV Energy Consumption (last trip)"},
+            "energytransferlogentry":   {"name": "EV Last Charging Session"}
         },
         "select": {
             "zonelighting": {

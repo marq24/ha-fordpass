@@ -80,6 +80,11 @@ class FordpassDataHandler:
         return data.get(ROOT_ENERGY_TRANSFER_STATUS, {})
 
     @staticmethod
+    def get_energy_transfer_logs_list(data):
+        """Get the metrics dictionary."""
+        return data.get(ROOT_ENERGY_TRANSFER_LOGS, {}).get("energyTransferLogs", [])
+
+    @staticmethod
     def get_value_for_metrics_key(data, metrics_key, default=UNSUPPORTED):
         """Get a value from metrics with default fallback."""
         return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", default)
@@ -562,8 +567,8 @@ class FordpassDataHandler:
 
         data_events = FordpassDataHandler.get_events(data)
         if "customEvents" in data_events:
-            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
-            for dataStr in tripDataStr:
+            trip_data_str = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in trip_data_str:
                 tripData = json.loads(dataStr)
                 if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
                     attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
@@ -939,8 +944,8 @@ class FordpassDataHandler:
     def get_cabin_temperature_state(data):
         data_events = FordpassDataHandler.get_events(data)
         if "customEvents" in data_events:
-            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
-            for dataStr in tripDataStr:
+            trip_data_str = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in trip_data_str:
                 tripData = json.loads(dataStr)
                 if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
                     return tripData["cabin_temperature"]
@@ -950,8 +955,8 @@ class FordpassDataHandler:
         data_events = FordpassDataHandler.get_events(data)
         attrs = {}
         if "customEvents" in data_events:
-            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
-            for dataStr in tripDataStr:
+            trip_data_str = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in trip_data_str:
                 tripData = json.loads(dataStr)
                 if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
                     attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
@@ -964,24 +969,105 @@ class FordpassDataHandler:
     def get_last_energy_consumed_state(data):
         data_events = FordpassDataHandler.get_events(data)
         if "customEvents" in data_events:
-            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
-            for dataStr in tripDataStr:
+            trip_data_str = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in trip_data_str:
                 tripData = json.loads(dataStr)
                 if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number):
-                    return tripData["energy_consumed"]
+                    return round(float(tripData["energy_consumed"]), 3)
         return None
 
     def get_last_energy_consumed_attrs(data, units:UnitSystem):
         data_events = FordpassDataHandler.get_events(data)
         attrs = {}
         if "customEvents" in data_events:
-            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
-            for dataStr in tripDataStr:
+            root = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {})
+            attrs["tripUpdateTime"] = root.get("updateTime", None)
+            trip_data_str = root.get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in trip_data_str:
                 tripData = json.loads(dataStr)
                 if "trip_duration" in tripData and isinstance(tripData["trip_duration"], Number):
                     attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
                 if "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
                     attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
+        return attrs or None
+
+
+    # LAST_ENERGY_TRANSFER_LOG_ENTRY state + attributes (from energy_transfer_logs)
+    def get_energy_transfer_log_state(data):
+        # {
+        #     "id": "a_entry_id_here",
+        #     "deviceId": "VIN-HERE",
+        #     "eventType": "ChargeData",
+        #     "chargerType": "AC_BASIC",
+        #     "energyConsumed": 60.19749,
+        #     "timeStamp": "2025-11-28T07:58:23Z",
+        #     "preferredChargeAmount": 0,
+        #     "targetSoc": 100,
+        #     "plugDetails": {
+        #         "plugInTime": "2025-11-27T16:03:54Z",
+        #         "plugOutTime": "2025-11-28T07:57:20Z",
+        #         "totalPluggedInTime": 57206,
+        #         "plugInDte": 100.0,
+        #         "totalDistanceAdded": 367.5
+        #     },
+        #     "power": {
+        #         "min": 601.2,
+        #         "max": 10405.2,
+        #         "median": 0.0,
+        #         "average": 5261.678141145299,
+        #         "weightedAverage": 6781.453876504839
+        #     },
+        #     "stateOfCharge": {
+        #         "firstSOC": 28,
+        #         "lastSOC": 100,
+        #         "socDifference": 72
+        #     },
+        #     "energyTransferDuration": {
+        #         "begin": "2025-11-27T16:05:09Z",
+        #         "end": "2025-11-28T04:33:05Z",
+        #         "totalTime": 21138
+        #     },
+        #     "location": {
+        #         "id": 1,
+        #         "type": "SAVED",
+        #         "name": "HH7",
+        #         "address": {
+        #             "address1": "[STREET]",
+        #             "address2": None,
+        #             "city": "[CITY]",
+        #             "state": "North-Rhine-Westphalia",
+        #             "country": "DEU",
+        #             "postalCode": "[POSTAL-CODE]"
+        #         },
+        #         "geoHash": "anyHashHere",
+        #         "tags": None,
+        #         "latitude": 22.123456,
+        #         "longitude": 4.12345,
+        #         "timeZoneOffset": "UTC+01:00",
+        #         "network": "UNKNOWN"
+        #     }
+        # }
+        log_list = FordpassDataHandler.get_energy_transfer_logs_list(data)
+        if len(log_list) > 0:
+            entry = log_list[0]
+            if entry is not None and "energyConsumed" in entry and isinstance(entry["energyConsumed"], Number):
+                return round(float(entry["energyConsumed"]), 3)
+        return None
+
+    def get_energy_transfer_log_attrs(data, units:UnitSystem):
+        log_list = FordpassDataHandler.get_energy_transfer_logs_list(data)
+        attrs = {}
+        if len(log_list) > 0:
+            energy_transfer_log_list_entry = log_list[0]
+            attrs = energy_transfer_log_list_entry.copy()
+            attrs.pop("id")
+            attrs.pop("deviceId")
+
+            # we need to convert the 'totalDistanceAdded' to possible miles
+            if "plugDetails" in attrs and "totalDistanceAdded" in attrs["plugDetails"]:
+                org_val_in_km = attrs["plugDetails"]["totalDistanceAdded"]
+                attrs["plugDetails"]["totalDistanceAdded"] = FordpassDataHandler.localize_distance(org_val_in_km, units)
+
         return attrs or None
 
 
