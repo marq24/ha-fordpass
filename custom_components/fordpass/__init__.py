@@ -310,6 +310,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_REMOTE_CLIMATE_CONTROL = None
         self._supports_HEATED_STEERING_WHEEL = None
         self._supports_HEATED_HEATED_SEAT_MODE = None
+        self._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
 
         # we need to make a clone of the unit system, so that we can change the pressure unit (for our tire types)
         self.units:UnitSystem = hass.config.units

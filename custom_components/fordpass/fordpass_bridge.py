@@ -36,6 +36,7 @@ from custom_components.fordpass.fordpass_handler import (
     ROOT_REMOTE_CLIMATE_CONTROL,
     ROOT_PREFERRED_CHARGE_TIMES,
     ROOT_ENERGY_TRANSFER_STATUS,
+    ROOT_ENERGY_TRANSFER_LOGS,
     ROOT_UPDTIME
 )
 
@@ -43,33 +44,39 @@ _LOGGER = logging.getLogger(__name__)
 
 INTEGRATION_INIT: Final = "INTG_INIT"
 
-defaultHeaders = {
-    "Accept": "*/*",
-    "Accept-Language": "en-US",
-    "User-Agent": "FordPass/23 CFNetwork/1408.0.4 Darwin/22.5.0",
-    "Accept-Encoding": "gzip, deflate, br",
+# defaultHeaders = {
+#     "Accept": "*/*",
+#     "Accept-Language": "en-US",
+#     "User-Agent": "FordPass/23 CFNetwork/1408.0.4 Darwin/22.5.0",
+#     "Accept-Encoding": "gzip, deflate, br",
+# }
+
+defaultHeadersDec2025 = {
+    "Accept-Encoding": "gzip",
+    "Connection": "Keep-Alive",
+    "User-Agent": "okhttp/4.12.0",
 }
 
 apiHeaders = {
-    **defaultHeaders,
+    **defaultHeadersDec2025,
     "Content-Type": "application/json",
 }
 
 # with this 'old' headers the request to get the final token is not working any longer
 # reported 22 October 2025
-loginHeaders = {
-    "Accept": "application/json, text/javascript, */*; q=0.01",
-    "Accept-Language": "en-US,en;q=0.5",
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
-    "Accept-Encoding": "gzip, deflate, br",
-}
+# loginHeaders = {
+#     "Accept": "application/json, text/javascript, */*; q=0.01",
+#     "Accept-Language": "en-US,en;q=0.5",
+#     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
+#     "Accept-Encoding": "gzip, deflate, br",
+# }
 
 # Kudos to Rik for providing this info
 loginHeadersOct2025 = {
     "Accept-Encoding": "gzip",
     "Connection": "Keep-Alive",
     "Content-Type": "application/x-www-form-urlencoded",
-    "User-Agent": "okhttp/4.12",
+    "User-Agent": "okhttp/4.12.0",
     #"Host": "login.ford.com" # looks like that this info is not required (which makes my live easier)
 }
 
@@ -154,6 +161,7 @@ class ConnectedFordPassVehicle:
     _last_remote_start_state: str | None = None
     _ws_debounced_full_refresh_task: asyncio.Task | None = None
     _ws_debounced_preferred_charge_times_refresh_task: asyncio.Task | None = None
+    _ws_debounced_energy_transfer_logs_refresh_task: asyncio.Task | None = None
     _ws_debounced_update_remote_climate_task: asyncio.Task | None = None
     # when you have multiple vehicles, you need to set the vehicle log id
     # (v)ehicle (l)og (i)d
@@ -234,11 +242,14 @@ class ConnectedFordPassVehicle:
         self._cached_pct_data = {}
         self._energy_transfer_status_supported = None
         self._cached_ets_data = {}
+        self._energy_transfer_logs_supported = None
+        self._cached_etl_data = {}
 
         # websocket connection related variables
         self._ws_debounced_update_task = None
         self._ws_debounced_full_refresh_task = None
         self._ws_debounced_preferred_charge_times_refresh_task = None
+        self._ws_debounced_energy_transfer_logs_refresh_task = None
         self._ws_debounced_update_remote_climate_task = None
         self._ws_in_use_access_token = None
         self.ws_connected = False
@@ -990,8 +1001,18 @@ class ConnectedFordPassVehicle:
                         a_value_obj = a_state_obj["value"]
                         if "toState" in a_value_obj:
                             _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj['toState']}")
-                            to_state_value = a_value_obj["toState"].upper()
-                            if to_state_value in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
+                            to_state_value_upper = a_value_obj["toState"].upper()
+
+                            # when we detect, that the car is disconnected from a charger...
+                            # we want to update the 'energy_transfer_logs'
+                            if to_state_value_upper == "DISCONNECTED" and a_state_name == "deviceConnectivity":
+                                if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
+                                    self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
+                                _LOGGER.debug(f"{self.vli}ws(): deviceConnectivity went to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 5min)")
+                                self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
+
+                            # other checks for 'state changes'... but only if the to_state is known
+                            if to_state_value_upper in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                 if ROOT_METRICS in a_value_obj:
                                     self._ws_update_key(a_value_obj, ROOT_METRICS, collected_keys)
                                     _LOGGER.debug(f"{self.vli}ws(): extracted '{ROOT_METRICS}' update from new 'success' state: {a_value_obj[ROOT_METRICS]}")
@@ -1278,6 +1299,15 @@ class ConnectedFordPassVehicle:
                 if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
                     data[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
 
+            # when we are e EV vehicle, then we get the last 20 entries from the energy_transfer_logs
+            if self._energy_transfer_logs_supported:
+                if self._cached_etl_data is None or len(self._cached_etl_data) == 0:
+                    _LOGGER.debug(f"{self.vli}update_all(): request 'energy_transfer_logs' data...")
+                    self._cached_etl_data = await self.req_energy_transfer_logs()
+
+                if self._cached_etl_data is not None and len(self._cached_etl_data) > 0:
+                    data[ROOT_ENERGY_TRANSFER_LOGS] = self._cached_etl_data
+
             # ok finally store the data in our main data container...
             self._data_container = data
 
@@ -1318,6 +1348,18 @@ class ConnectedFordPassVehicle:
 
         return False
 
+    async def update_energy_transfer_logs_int(self):
+        # only update remote climate data if not present yet
+        if self._energy_transfer_logs_supported:
+            _LOGGER.debug(f"{self.vli}update_energy_transfer_logs_int(): request 'energy_transfer_logs' data...")
+            self._cached_etl_data = await self.req_energy_transfer_logs()
+
+            if self._cached_etl_data is not None and len(self._cached_etl_data) > 0:
+                self._data_container[ROOT_ENERGY_TRANSFER_LOGS] = self._cached_etl_data
+                return True
+
+        return False
+
     async def _ws_debounce_update_preferred_charge_times(self):
         if self._preferred_charge_times_supported or self._energy_transfer_status_supported:
             try:
@@ -1342,6 +1384,23 @@ class ConnectedFordPassVehicle:
                 _LOGGER.debug(f"{self.vli}_ws_debounce_update_preferred_charge_times(): was canceled - all good")
             except BaseException as ex:
                 _LOGGER.warning(f"{self.vli}_ws_debounce_update_preferred_charge_times(): Error during 'preferred_charge_times' data refresh - {type(ex).__name__} - {ex}")
+
+    async def _ws_debounce_update_energy_transfer_logs(self):
+        if self._energy_transfer_logs_supported or self._energy_transfer_logs_supported:
+            try:
+                _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): started")
+                # we will wait 2.5 minutes before we request the new energy_transfer_logs!
+                await asyncio.sleep(180)
+                if self._energy_transfer_logs_supported:
+                    _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): starting the 'update_energy_transfer_logs_int()' update now")
+                    success = await self.update_energy_transfer_logs_int()
+                    if success:
+                        self.coordinator.async_set_updated_data(self._data_container)
+
+            except CancelledError:
+                _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): was canceled - all good")
+            except BaseException as ex:
+                _LOGGER.warning(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): Error during 'energy_transfer_logs' data refresh - {type(ex).__name__} - {ex}")
 
 
     async def req_status(self):
@@ -1757,6 +1816,70 @@ class ConnectedFordPassVehicle:
                 _LOGGER.info(f"{self.vli}req_energy_transfer_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
+
+    async def req_energy_transfer_logs(self):
+        # this function will only return a valid object if the vehicle is located at a KNOWN charging location
+        global _FOUR_NULL_ONE_COUNTER
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_logs(): - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_logs(): - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
+
+            # quite funny the energy-transfer-status request will get a 'deviceId' in the header
+            # which is actually our VIN...
+            headers_veh = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+                "deviceId": self.vin
+            }
+            response_etl = await self.session.get(
+                # we hard code 'maxRecords=20' here - since that's what the app is requesting AND
+                # the backend will anyhow return a max of 21 records... which is still some sort
+                # of odd - but batter 20 then nothing...
+                f"{FORD_VEHICLE_API}/electrification/experiences/v2/devices/energy-transfer-logs?maxRecords=20",
+                headers=headers_veh,
+                timeout=self.timeout
+            )
+            if response_etl.status == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
+
+                result_etl = await response_etl.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("etl", result_etl)
+
+                return result_etl
+
+            elif response_etl.status == 401:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.error(f"{self.vli}req_energy_transfer_logs(): status_code: 401 - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_energy_transfer_logs(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
+
+                return None
+            else:
+                _LOGGER.info(f"{self.vli}req_energy_transfer_logs(): status_code: {response_etl.status} - {response_etl.real_url} - Received response: {await response_etl.text()}")
+                self._HAS_COM_ERROR = True
+                return None
+
+        except BaseException as e:
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}req_energy_transfer_logs(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}req_energy_transfer_logs(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+            self._HAS_COM_ERROR = True
+            return None
+
+
 
     # ***********************************************************
     # ***********************************************************

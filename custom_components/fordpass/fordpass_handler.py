@@ -33,6 +33,7 @@ ROOT_MESSAGES: Final = "messages"
 ROOT_REMOTE_CLIMATE_CONTROL: Final = "rcc"
 ROOT_PREFERRED_CHARGE_TIMES: Final = "pct"
 ROOT_ENERGY_TRANSFER_STATUS: Final = "ets"
+ROOT_ENERGY_TRANSFER_LOGS: Final = "etl"
 ROOT_UPDTIME: Final = "updateTime"
 
 UNSUPPORTED: Final = str("Unsupported")
@@ -956,6 +957,31 @@ class FordpassDataHandler:
                     attrs["tripAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
                 if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
                     attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+        return attrs or None
+
+
+    # LAST_ENERGY_CONSUMED state + attributes (from trip data)
+    def get_last_energy_consumed_state(data):
+        data_events = FordpassDataHandler.get_events(data)
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number):
+                    return tripData["energy_consumed"]
+        return None
+
+    def get_last_energy_consumed_attrs(data, units:UnitSystem):
+        data_events = FordpassDataHandler.get_events(data)
+        attrs = {}
+        if "customEvents" in data_events:
+            tripDataStr = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
+            for dataStr in tripDataStr:
+                tripData = json.loads(dataStr)
+                if "trip_duration" in tripData and isinstance(tripData["trip_duration"], Number):
+                    attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
+                if "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
+                    attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
         return attrs or None
 
 
