@@ -19,9 +19,12 @@
 1. Copy the URL that has been generated and paste it in your additional/separate browser. You might like to use a private/incognito window for this.
 
 > [!IMPORTANT]
-> Ensure you have enabled the Developer tools before pressing "log in" as you will be required to capture a header once logged in!  
-[:link: Chromium based dev tools helper (Chrome / Edge)](./DEV-TOOLS.md)  
-[:link: Firefox dev tools helper](./DEV-TOOLS.md#firefox)
+> Ensure you have enabled the Developer tools before pressing "log in" as you will be required to capture a header once logged in!
+> - [:link: Chromium based dev tools helper (Chrome / Edge)](./DEV-TOOLS.md)
+>
+> As _alternative_, you might also like to use Firefox (but I __can not recommend__ this, since plenty of users have issues when using Firefox):
+> - [:link: Firefox dev tools helper](./DEV-TOOLS.md#firefox)
+
 
 ![image](./../images/002.png)
 

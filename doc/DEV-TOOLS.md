@@ -37,18 +37,28 @@ Alternatively, you can use a private window.
 
 ## Firefox
 
+> [!WARNING]
+> Even if Firefox support developer tools by pressing F12 on the keyboard, for some reason the logging of request URL's does not work in a similar way then with chrome based browsers.
+> 
+> Technically it is also possible to make use of Firefox to capture the _required_ token URL via the developer tools - but for your mental safety please consider using a different browser for this operation.
+
+__I will keep the instructions for Firefox here as reference - but let me repeat, that I recommend to use a chrome based browser to perform this operation.__
+
+---
+### Just as reference, if you really want to give it a try with Firefox 
+
 > [!NOTE]
 > It is recommended to disable any ad-blockers or extension that might interfere with this process. Alternatively, you can use a private window.  
 Users have also reported issues using Firefox specifically.  
 **If you're having trouble using Firefox it is recommended to try using a Chromium based browser.**
 
-### **Step 1:**
+#### **Step 1:**
 1. Open developer tools by pressing F12 on the keyboard
 2. Navigate to the URL provided through HomeAssistant
 
 ![image](./../images/008.png)
 
-### **Step 2:**
+#### **Step 2:**
 1. Enter your credentials to login to Ford with the developer tools opened
 2. Press *Sign In*
 3. Select the item populated under Network (Item 1 in the photo below)
@@ -62,4 +72,3 @@ Users have also reported issues using Firefox specifically.
 ![image](./../images/010.png)
 
 6. Proceed with installation
-
