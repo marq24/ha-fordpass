@@ -327,7 +327,8 @@ class ConnectedFordPassVehicle:
             f"{self.login_url}/{OAUTH_ID}/{sign_up}{self.locale_code}/oauth2/v2.0/token",
             headers=headers,
             data=data,
-            ssl=True
+            ssl=True,
+            timeout=self.timeout
         )
 
         # do not check the status code here - since it's not always return http 200!
@@ -353,7 +354,8 @@ class ConnectedFordPassVehicle:
             f"{FORD_FOUNDATIONAL_API}/token/v2/cat-with-b2c-access-token",
             data=json.dumps(data),
             headers=headers,
-            ssl=True
+            ssl=True,
+            timeout=self.timeout
         )
 
         # do not check the status code here - since it's not always return http 200!
