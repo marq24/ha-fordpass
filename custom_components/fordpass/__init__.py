@@ -417,7 +417,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         # other vehicle dependant tags...
         if a_tag in [Tag.REMOTE_START_STATUS,
+                     Tag.REMOTE_START_COUNTDOWN,
                      Tag.REMOTE_START,
+                     Tag.EXTEND_REMOTE_START,
                      Tag.GUARD_MODE,
                      Tag.ZONE_LIGHTING,
                      Tag.ALARM,
@@ -426,7 +428,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                      Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
             # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
             # share the same 'support_ATTR_NAME'...
-            if a_tag == Tag.REMOTE_START_STATUS:
+            if a_tag == Tag.REMOTE_START_STATUS or a_tag == Tag.REMOTE_START_COUNTDOWN or a_tag == Tag.EXTEND_REMOTE_START:
                 support_ATTR_NAME = f"_supports_{Tag.REMOTE_START.name}"
             elif a_tag in [Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
                 support_ATTR_NAME = f"_supports_HAF"

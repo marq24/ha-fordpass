@@ -188,18 +188,19 @@
             "evpause":          {"name": "EV Laden pausieren"},
             "hafshort":         {"name": "Hupen & Blinken [1 Sek.]"},
             "hafdefault":       {"name": "Hupen & Blinken [3 Sek.]"},
-            "haflong":          {"name": "Hupen & Blinken [5 Sek.]"}
+            "haflong":          {"name": "Hupen & Blinken [5 Sek.]"},
+            "extendremotestart":{"name": "RC (❄|☀): Laufzeit verlängern"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {
-            "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
+            "ignition":                 {"name": "RC (❄|☀): Start [RemoteControl]"},
             "elvehcharge":              {"name": "EV Laden (Pause)"},
             "guardmode":                {"name": "Alarmanlage"},
             "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"},
-            "rccdefrostrear":           {"name": "RC: Heckscheibenheizung [RemoteControl]"},
-            "rccdefrostfront":          {"name": "RC: Frontscheibenheizung [RemoteControl]"},
-            "rccsteeringwheel":         {"name": "RC: Lenkradheizung [RemoteControl]"}
+            "rccdefrostrear":           {"name": "RC (❄|☀): Heckscheibenheizung [RemoteControl]"},
+            "rccdefrostfront":          {"name": "RC (❄|☀): Frontscheibenheizung [RemoteControl]"},
+            "rccsteeringwheel":         {"name": "RC (❄|☀): Lenkradheizung [RemoteControl]"}
         },
         "number": {
             "rcctemperature":       {"name": "RC: Temperatur [RemoteControl]"},
@@ -232,7 +233,7 @@
             "engineoiltemp":            {"name": "Temperatur Motoröl"},
             "deepsleep":                {"name": "Tiefschlaf"},
             "firmwareupginprogress":    {"name": "Firmware Update wird durchfeführt"},
-            "remotestartstatus":        {"name": "Status Fernstart"},
+            "remotestartstatus":        {"name": "RC (❄|☀): Status Fernstart"},
             "zonelighting":             {"name": "Zonenbeleuchtung"},
             "messages":                 {"name": "Nachrichten"},
             "dieselsystemstatus":       {"name": "Status Diesel System"},
@@ -257,7 +258,8 @@
             "wheeltorquestatus":        {"name": "Status Drehmoment am Rad"},
             "cabintemperature":         {"name": "Innenraumtemperatur"},
             "lastenergyconsumed":       {"name": "EV Energieverbrauch (letzte Fahrt)"},
-            "energytransferlogentry":   {"name": "EV Letzter Ladevorgang"}
+            "energytransferlogentry":   {"name": "EV Letzter Ladevorgang"},
+            "remotestartcountdown":     {"name": "RC (❄|☀): Verbleibende Zeit"}
         },
         "select": {
             "zonelighting": {
@@ -272,23 +274,23 @@
                 }
             },
             "rccseatrearleft": {
-                "name": "RC: Sitz(❄|☀) hinten links [RemoteControl]",
+                "name": "RC (❄|☀): Sitz hinten links [RemoteControl]",
                 "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rccseatrearright": {
-                "name": "RC: Sitz(❄|☀) hinten rechts [RemoteControl]",
+                "name": "RC (❄|☀): Sitz hinten rechts [RemoteControl]",
                 "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rccseatfrontleft": {
-                "name": "RC: Sitz(❄|☀) vorne links [RemoteControl]",
+                "name": "RC (❄|☀): Sitz vorne links [RemoteControl]",
                 "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rccseatfrontright": {
-                "name": "RC: Sitz(❄|☀) vorne rechts [RemoteControl]",
+                "name": "RC (❄|☀): Sitz vorne rechts [RemoteControl]",
                 "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "rcctemperature": {
-              "name": "RC: Temperatur [RemoteControl]",
+              "name": "RC (❄|☀): Temperatur [RemoteControl]",
               "state": {"lo": "LOW",
                         "16": "16.0°C", "16_5": "16.5°C", "17": "17.0°C", "17_5": "17.5°C", "18": "18.0°C", "18_5": "18.5°C", "19": "19.0°C", "19_5": "19.5°C", "20": "20.0°C", "20_5": "20.5°C",
                         "21": "21.0°C", "21_5": "21.5°C", "22": "22.0°C", "22_5": "22.5°C", "23": "23.0°C", "23_5": "23.5°C", "24": "24.0°C", "24_5": "24.5°C", "25": "25.0°C", "25_5": "25.5°C",
@@ -296,7 +298,7 @@
                         "hi": "HIGH"}
             },
             "rcctemperaturefahrenheit": {
-              "name": "RC: Temperatur [RemoteControl]",
+              "name": "RC (❄|☀): Temperatur [RemoteControl]",
               "state": {"lo": "LOW",
                         "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
                         "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",

@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, RestoreStateData
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
 from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
@@ -88,3 +88,12 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
     def native_value(self):
         """Return Native Value"""
         return self._tag.get_state(self.coordinator.data)
+
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        state = super().available
+        if self._tag == Tag.REMOTE_START_COUNTDOWN:
+            return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
+
+        return state

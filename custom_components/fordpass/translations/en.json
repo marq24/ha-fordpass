@@ -189,21 +189,22 @@
             "evpause":          {"name": "EV Charging pause"},
             "hafshort":         {"name": "Honk & Flash [1 sec.]"},
             "hafdefault":       {"name": "Honk & Flash [3 sec.]"},
-            "haflong":          {"name": "Honk & Flash [5 sec.]"}
+            "haflong":          {"name": "Honk & Flash [5 sec.]"},
+            "extendremotestart":{"name": "RC (❄|☀): Extend Time"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
-            "ignition":                 {"name": "RC: Start (❄|☀) [RemoteControl]"},
+            "ignition":                 {"name": "RC (❄|☀): Start [RemoteControl]"},
             "elvehcharge":              {"name": "EV Charging (Pause)"},
             "guardmode":                {"name": "Guard Mode"},
             "autosoftwareupdates":      {"name": "Automatic Software Updates"},
-            "rccdefrostrear":           {"name": "RC: Rear Defrost [RemoteControl]"},
-            "rccdefrostfront":          {"name": "RC: Heated Windshield [RemoteControl]"},
-            "rccsteeringwheel":         {"name": "RC: Steering Wheel Heating [RemoteControl]"}
+            "rccdefrostrear":           {"name": "RC (❄|☀): Rear Defrost [RemoteControl]"},
+            "rccdefrostfront":          {"name": "RC (❄|☀): Heated Windshield [RemoteControl]"},
+            "rccsteeringwheel":         {"name": "RC (❄|☀): Steering Wheel Heating [RemoteControl]"}
         },
         "number": {
-            "rcctemperature":       {"name": "RC: Climate Temperature (❄|☀) [RemoteControl]"},
+            "rcctemperature":       {"name": "RC (❄|☀): Climate Temperature [RemoteControl]"},
             "elvehtargetcharge":    {"name": "Target charge level"},
             "globaltargetsoc":      {"name": "General: Target charge level"},
             "globalaccurrentlimit": {"name": "AC Current Limit"},
@@ -233,7 +234,7 @@
             "engineoiltemp":            {"name": "Temperature Engine Oil"},
             "deepsleep":                {"name": "Sleep Mode"},
             "firmwareupginprogress":    {"name": "Firmware Update In Progress"},
-            "remotestartstatus":        {"name": "Status Remote Start"},
+            "remotestartstatus":        {"name": "RC (❄|☀): Status Remote Start"},
             "zonelighting":             {"name": "Zone Lighting"},
             "messages":                 {"name": "Messages"},
             "dieselsystemstatus":       {"name": "Status Diesel System"},
@@ -258,7 +259,8 @@
             "wheeltorquestatus":        {"name": "Status Wheel Torque"},
             "cabintemperature":         {"name": "Cabin Temperature"},
             "lastenergyconsumed":       {"name": "EV Energy Consumption (last trip)"},
-            "energytransferlogentry":   {"name": "EV Last Charging Session"}
+            "energytransferlogentry":   {"name": "EV Last Charging Session"},
+            "remotestartcountdown":     {"name": "RC (❄|☀): Remaining Time"}
         },
         "select": {
             "zonelighting": {
@@ -273,7 +275,7 @@
                 }
             },
             "rcctemperature": {
-              "name": "RC: Temperatur [RemoteControl]",
+              "name": "RC (❄|☀): Temperatur [RemoteControl]",
               "state": {"lo": "LOW",
                         "16": "16.0°C", "16_5": "16.5°C", "17": "17.0°C", "17_5": "17.5°C", "18": "18.0°C", "18_5": "18.5°C", "19": "19.0°C", "19_5": "19.5°C", "20": "20.0°C", "20_5": "20.5°C",
                         "21": "21.0°C", "21_5": "21.5°C", "22": "22.0°C", "22_5": "22.5°C", "23": "23.0°C", "23_5": "23.5°C", "24": "24.0°C", "24_5": "24.5°C", "25": "25.0°C", "25_5": "25.5°C",
@@ -281,7 +283,7 @@
                         "hi": "HIGH"}
             },
             "rcctemperaturefahrenheit": {
-                "name": "RC: Temperatur [RemoteControl]",
+                "name": "RC (❄|☀): Temperatur [RemoteControl]",
                 "state": {"lo": "LOW",
                           "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
                           "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",
@@ -289,19 +291,19 @@
                           "hi": "HIGH"}
             },
             "rccseatrearleft": {
-                "name": "RC: Seat(❄|☀) rear left [RemoteControl]",
+                "name": "RC (❄|☀): Seat rear left [RemoteControl]",
                 "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "rccseatrearright": {
-                "name": "RC: Seat(❄|☀) rear right [RemoteControl]",
+                "name": "RC (❄|☀): Seat rear right [RemoteControl]",
                 "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "rccseatfrontleft": {
-                "name": "RC: Seat(❄|☀) front left [RemoteControl]",
+                "name": "RC (❄|☀): Seat front left [RemoteControl]",
                 "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "rccseatfrontright": {
-                "name": "RC: Seat(❄|☀) front right [RemoteControl]",
+                "name": "RC (❄|☀): Seat front right [RemoteControl]",
                 "state": { "off": "Off", "cooled1": "Cooling I", "cooled2": "Cooling II", "cooled3": "Cooling III", "heated1": "Heating I", "heated2": "Heating II", "heated3": "Heating III"}
             },
             "elvehtargetcharge": {

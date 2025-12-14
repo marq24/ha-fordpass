@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
 from custom_components.fordpass.const_tags import BUTTONS, Tag, ExtButtonEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,6 +46,8 @@ class FordpassButton(FordPassEntity, ButtonEntity):
         state = super().available
         if self._tag in [Tag.EV_START, Tag.EV_CANCEL, Tag.EV_PAUSE]:
             return state and Tag.EVCC_STATUS.get_state(self.coordinator.data) in ["B", "C"]
+        elif self._tag == Tag.EXTEND_REMOTE_START:
+            return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
 
         # elif self._tag == Tag.DOOR_LOCK:
         #     return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED"

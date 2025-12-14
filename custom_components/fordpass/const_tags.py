@@ -9,6 +9,7 @@ from homeassistant.components.number import NumberEntityDescription, NumberMode,
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import (
+    UnitOfTime,
     UnitOfPower,
     UnitOfSpeed,
     UnitOfLength,
@@ -107,6 +108,8 @@ class Tag(ApiKey, Enum):
     HAF_LONG            = ApiKey(key="haflong",
                                  press_fn=FordpassDataHandler.honk_and_light_long)
 
+    EXTEND_REMOTE_START = ApiKey(key="extendRemoteStart",
+                                 press_fn=FordpassDataHandler.extend_remote_start)
     # LOCKS
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
@@ -242,6 +245,8 @@ class Tag(ApiKey, Enum):
     REMOTE_START_STATUS = ApiKey(key="remoteStartStatus",
                                  state_fn=FordpassDataHandler.get_remote_start_status_state,
                                  attrs_fn=FordpassDataHandler.get_remote_start_status_attrs)
+    REMOTE_START_COUNTDOWN = ApiKey(key="remoteStartCountdown",
+                                 state_fn=FordpassDataHandler.get_remote_start_countdown_state)
     MESSAGES            = ApiKey(key="messages",
                                  state_fn=FordpassDataHandler.get_messages_state,
                                  attrs_fn=FordpassDataHandler.get_messages_attrs)
@@ -639,6 +644,17 @@ SENSORS = [
         icon="mdi:remote",
         has_entity_name=True,
     ),
+    ExtSensorEntityDescription(
+        tag=Tag.REMOTE_START_COUNTDOWN,
+        key=Tag.REMOTE_START_COUNTDOWN.key,
+        icon="mdi:counter",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        suggested_display_precision=0,
+        has_entity_name=True,
+    ),
     # Tag.MESSAGES: {"icon": "mdi:message-text", "api_key": "messages", "measurement": "messages", "skip_existence_check": True},
     ExtSensorEntityDescription(
         tag=Tag.MESSAGES,
@@ -847,6 +863,12 @@ BUTTONS = [
         has_entity_name=True,
         entity_registry_enabled_default=False
     ),
+    ExtButtonEntityDescription(
+        tag=Tag.EXTEND_REMOTE_START,
+        key=Tag.EXTEND_REMOTE_START.key,
+        icon="mdi:air-conditioner",
+        has_entity_name=True,
+    )
 ]
 
 SELECTS = [
@@ -924,6 +946,7 @@ SELECTS = [
         has_entity_name=True,
     )
 ]
+
 NUMBERS = [
     ExtNumberEntityDescription(
         tag=Tag.RCC_TEMPERATURE,

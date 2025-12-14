@@ -834,6 +834,7 @@ class FordpassDataHandler:
         else:
             return await vehicle.cancel_remote_start()
 
+
     # REMOTE_START_STATUS state + attributes
     def get_remote_start_status_state(data):
         val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
@@ -841,6 +842,11 @@ class FordpassDataHandler:
 
     def get_remote_start_status_attrs(data, units:UnitSystem):
         return {"countdown": FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)}
+
+
+    # REMOTE_START_COUNTDOWN state
+    def get_remote_start_countdown_state(data):
+        return FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
 
 
     # MESSAGES state + attributes
@@ -1365,6 +1371,9 @@ class FordpassDataHandler:
 
     async def honk_and_light_long(coordinator, vehicle):
         await vehicle.honk_and_light(duration=HONK_AND_FLASH.LONG)
+
+    async def extend_remote_start(coordinator, vehicle):
+        await vehicle.remote_start()
 
     # just for development purposes...
     async def start_charge_vehicle(coordinator, vehicle):
