@@ -159,6 +159,7 @@ class ConnectedFordPassVehicle:
     _LAST_MESSAGES_UPDATE: float = 0.0
     _last_ignition_state: str | None = None
     _last_remote_start_state: str | None = None
+    _last_ev_connect_state: str | None = None
     _ws_debounced_full_refresh_task: asyncio.Task | None = None
     _ws_debounced_preferred_charge_times_refresh_task: asyncio.Task | None = None
     _ws_debounced_energy_transfer_logs_refresh_task: asyncio.Task | None = None
@@ -256,6 +257,7 @@ class ConnectedFordPassVehicle:
         self._ws_LAST_UPDATE = 0
         self._last_ignition_state = INTEGRATION_INIT
         self._last_remote_start_state = INTEGRATION_INIT
+        self._last_ev_connect_state = INTEGRATION_INIT
 
         _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
 
@@ -939,9 +941,9 @@ class ConnectedFordPassVehicle:
         # check, if the 'ignitionStatus' has changed cause of the data that was received via the websocket...
         # IF the state goes to 'OFF', we will trigger a complete integration data update
         if ROOT_METRICS not in data_obj:
+
             # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
             new_ignition_state = self._data_container.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
-
             #_LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
             if self._last_ignition_state != INTEGRATION_INIT:
                 if "OFF" == new_ignition_state and new_ignition_state != self._last_ignition_state:
@@ -969,6 +971,22 @@ class ConnectedFordPassVehicle:
                     self._ws_debounced_update_remote_climate_task = asyncio.create_task(self._ws_debounced_update_remote_climate())
 
             self._last_remote_start_state = new_remote_start_state
+
+
+            # listening for EV connect/disconnect state changes...
+            new_ev_connect_state = self._data_container.get(ROOT_METRICS, {}).get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
+            #_LOGGER.info(f"{self.vli}ws(): NEW EV connect state '{new_ev_connect_state}' | LAST EV connect state: '{self._last_ev_connect_state}'")
+            if self._last_ev_connect_state != INTEGRATION_INIT:
+                if "DISCONNECTED" == new_ev_connect_state and new_ev_connect_state != self._last_ev_connect_state:
+                    if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
+                        self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
+                    _LOGGER.debug(f"{self.vli}ws(): EV connect state changed to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 2.5min)")
+                    self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
+
+                elif "CONNECTED" == new_ev_connect_state:
+                    pass
+
+            self._last_ev_connect_state = new_ev_connect_state
 
         return new_metrics or new_states or new_events or new_msg
 
@@ -1005,13 +1023,15 @@ class ConnectedFordPassVehicle:
                             _LOGGER.debug(f"{self.vli}ws(): new state '{a_state_name}' arrived -> toState: {a_value_obj['toState']}")
                             to_state_value_upper = a_value_obj["toState"].upper()
 
-                            # when we detect, that the car is disconnected from a charger...
-                            # we want to update the 'energy_transfer_logs'
-                            if to_state_value_upper == "DISCONNECTED" and a_state_name == "deviceConnectivity":
-                                if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
-                                    self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
-                                _LOGGER.debug(f"{self.vli}ws(): deviceConnectivity went to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 5min)")
-                                self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
+                            # # when we detect, that the car is disconnected from a charger...
+                            # # we want to update the 'energy_transfer_logs'
+                            # _LOGGER.warning(f"--------------------------------------------> {a_state_name} {to_state_value_upper}")
+                            # if to_state_value_upper == "DISCONNECTED" and a_state_name == "deviceConnectivity":
+                            #     if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
+                            #         self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
+                            #     _LOGGER.error(f"{self.vli}ws(): deviceConnectivity went to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 5min)")
+                            #     _LOGGER.debug(f"{self.vli}ws(): deviceConnectivity went to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 5min)")
+                            #     self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
 
                             # other checks for 'state changes'... but only if the to_state is known
                             if to_state_value_upper in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
@@ -1405,7 +1425,7 @@ class ConnectedFordPassVehicle:
                 _LOGGER.warning(f"{self.vli}_ws_debounce_update_preferred_charge_times(): Error during 'preferred_charge_times' data refresh - {type(ex).__name__} - {ex}")
 
     async def _ws_debounce_update_energy_transfer_logs(self):
-        if self._energy_transfer_logs_supported or self._energy_transfer_logs_supported:
+        if self._energy_transfer_logs_supported:
             try:
                 _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): started")
                 # we will wait 2.5 minutes before we request the new energy_transfer_logs!

@@ -203,7 +203,7 @@
             "rccsteeringwheel":         {"name": "RC (❄|☀): Lenkradheizung [RemoteControl]"}
         },
         "number": {
-            "rcctemperature":       {"name": "RC: Temperatur [RemoteControl]"},
+            "rcctemperature":       {"name": "RC (❄|☀): Temperatur [RemoteControl]"},
             "elvehtargetcharge":    {"name": "Ziel-Ladestand EV"},
             "globaltargetsoc":      {"name": "Allgemein: Ziel-Ladestand EV"},
             "globalaccurrentlimit": {"name": "Stromstärkenlimit (AC)"},
