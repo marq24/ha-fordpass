@@ -223,72 +223,78 @@ This service will contact the modem in the vehicle and request to sync data betw
 
 | Sensor Name                        | Petrol/Diesel | (P)HEV | &nbsp;(B)EV&nbsp; |
 |:-----------------------------------|:-------------:|:------:|:-----------------:|
-| Odometer                           | ✔             | ✔      | ✔                 |                 
-| Battery (12V)                      | ✔             | ✔      | ✔                 |            
-| Oil                                | ✔             | ✔      | ✔                 |   
-| Tire Pressure                      | ✔             | ✔      | ✔                 |            
-| GPS/Location Data (JSON)           | ✔             | ✔      | ✔                 |                 
-| Alarm Status                       | ✔             | ✔      | ✔                 |
-| Status Ignition                    | ✔             | ✔      | ✔                 |          
-| Status Door                        | ✔             | ✔      | ✔                 |              
-| Window Position                    | ✔             | ✔      | ✔                 |    
-| last refresh (timestamp)           | ✔             | ✔      | ✔                 |
-| Speed                              | ✔             | ✔      | ✔                 |
-| Gear Lever Position                | ✔             | ✔      | ✔                 |
-| Indicators/Warnings                | ✔             | ✔      | ✔                 |
-| Temperature Coolant                | ✔             | ✔      | ✔                 |
-| Temperature Outdoors               | ✔             | ✔      | ✔                 |
-| Status Remote Start                | ✔             | ✔      | ✔                 |
-| FordPass Messages                  | ✔             | ✔      | ✔                 |
-| Belt Status                        | ✔             | ✔      | ✔                 |
-| (Deep)Sleep Mode                   | ✔             | ✔      | ✔                 |
-| Revolution / Engine Speed          | ✔             | ✔      | ?                 |
-| Fuel Level (can be > 100%)         | ✔             | ✔      |                   |
-| Temperature Engine Oil             | ✔             | ✔      |                   |
-| Status Diesel System               | ✔             | ✔      |                   |
-| AdBlue Level                       | ✔             | ✔      |                   |
-| EV-Data collection                 |               | ✔      | ✔                 |
-| EV Plug Status                     |               | ✔      | ✔                 |
-| EV Charging information            |               | ✔      | ✔                 |
-| State of Charge (SOC)              |               | ?      | ✔                 |
-| EVCC status code ('A', 'B' or 'C') |               | ?      | ✔                 |
-| Yaw Rate                           | ✔             | ✔      | ✔                 |
-| Acceleration (X-Axis               | ✔             | ✔      | ✔                 |
-| Status Brake Pedal                 | ✔             | ✔      | ✔                 |
-| Brake Torque                       | ✔             | ✔      | ✔                 |
-| Accelerator Pedal Position (%)     | ✔             | ✔      | ✔                 |
-| Status Parking Brake               | ✔             | ✔      | ✔                 |
-| Torque at Transmission             | ✔             | ✔      | ✔                 |  
-| Status Wheel Torque                | ✔             | ✔      | ✔                 |
-| Cabin Temperature                  | ✔             | ✔      | ✔                 |
+| Odometer                           |       ✔       |   ✔    |         ✔         |                 
+| Battery (12V)                      |       ✔       |   ✔    |         ✔         |            
+| Oil                                |       ✔       |   ✔    |         ✔         |   
+| Tire Pressure                      |       ✔       |   ✔    |         ✔         |            
+| GPS/Location Data (JSON)           |       ✔       |   ✔    |         ✔         |                 
+| Alarm Status                       |       ✔       |   ✔    |         ✔         |
+| Status Ignition                    |       ✔       |   ✔    |         ✔         |          
+| Status Door                        |       ✔       |   ✔    |         ✔         |              
+| Window Position                    |       ✔       |   ✔    |         ✔         |    
+| last refresh (timestamp)           |       ✔       |   ✔    |         ✔         |
+| Speed                              |       ✔       |   ✔    |         ✔         |
+| Gear Lever Position                |       ✔       |   ✔    |         ✔         |
+| Indicators/Warnings                |       ✔       |   ✔    |         ✔         |
+| Temperature Coolant                |       ✔       |   ✔    |         ✔         |
+| Temperature Outdoors               |       ✔       |   ✔    |         ✔         |
+| RC: Status Remote Start[^1][^2]    |       ✔       |   ✔    |         ✔         |
+| RC: Remaining Duration[^1][^2]     |       ✔       |   ✔    |         ✔         |
+| FordPass Messages                  |       ✔       |   ✔    |         ✔         |
+| Belt Status                        |       ✔       |   ✔    |         ✔         |
+| (Deep)Sleep Mode                   |       ✔       |   ✔    |         ✔         |
+| Revolution / Engine Speed          |       ✔       |   ✔    |         ?         |
+| Fuel Level (can be > 100%)         |       ✔       |   ✔    |                   |
+| Temperature Engine Oil             |       ✔       |   ✔    |                   |
+| Status Diesel System               |       ✔       |   ✔    |                   |
+| AdBlue Level                       |       ✔       |   ✔    |                   |
+| EV-Data collection                 |               |   ✔    |         ✔         |
+| EV Plug Status                     |               |   ✔    |         ✔         |
+| EV Charging information            |               |   ✔    |         ✔         |
+| State of Charge (SOC)              |               |   ?    |         ✔         |
+| EV Energy Consumption (last trip)  |              |   ?    |         ✔         |
+| EV Last Charging Session           |              |   ?    |         ✔         |
+| EVCC status code ('A', 'B' or 'C') |               |   ?    |         ✔         |
+| Yaw Rate                           |       ✔       |   ✔    |         ✔         |
+| Acceleration (X-Axis               |       ✔       |   ✔    |         ✔         |
+| Status Brake Pedal                 |       ✔       |   ✔    |         ✔         |
+| Brake Torque                       |       ✔       |   ✔    |         ✔         |
+| Accelerator Pedal Position (%)     |       ✔       |   ✔    |         ✔         |
+| Status Parking Brake               |       ✔       |   ✔    |         ✔         |
+| Torque at Transmission             |       ✔       |   ✔    |         ✔         |  
+| Status Wheel Torque                |       ✔       |   ✔    |         ✔         |
+| Cabin Temperature                  |       ✔       |   ✔    |         ✔         |
 
 Many sensors provide more detail information as attributes of sensors. These attributes are available by expanding the panel at the bottom of sensor view (marked by green border).
 
 ![image](./images/012.png)
 
+You can find more details about the individual sensors when accessing your HA via `http://[your-ha-ip-here]/developer-tools/state` and then selecting the individual sensor from the dropdown list, then you can see all the attributes of the sensor.
 
+Based on these attributes you can create your own template sensors or automations in Home Assistant.
 
 
 ## Buttons / Switches / Other
 
-| Type                | Sensor Name                                        | Petrol/Diesel | (P)HEV/BEV |
-|:--------------------|:---------------------------------------------------|:-------------:|:----------:|
-| Button              | Remote Sync (Car with Ford backend)                | ✔             | ✔          |
-| Button              | Local Sync (Ford backend with HA)                  | ✔             | ✔          |
-| Lock                | Lock/Unlock Vehicle[^1]                            | ✔             | ✔          |
-| Switch              | ~~Guard Mode (Only supported cars)~~               |               |            |
-| Button              | Start charging[^4]                                 |               | ✔          |
-| Switch              | PAUSE/UNPAUSE charging[^5]                         |               | ✔          |
-| Switch              | Auto SoftwareUpdates[^1]                           | ✔             | ✔          |
-| DeviceTracker       | Vehicle Tracker[^1]                                | ✔             | ✔          |
-| Select              | Zone Lighting (experimental)[^1]                   | ✔             | ✔          |
-| Switch              | RC: Start (❄/☀)[^1][^2]                            | ✔             | ✔          |
-| Select (was Number) | RC: Climate Temperature (❄/☀)[^1][^2]              | ✔             | ✔          |
-| Switch              | RC: Steering Wheel Heating[^1][^2]                 | ✔             | ✔          |
-| Select              | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3] | ✔             | ✔          |
-| Switch              | RC: Rear Defrost[^1][^2]                           | ✔             | ✔          |
-| Switch              | RC: Windshield Heating[^1][^2]                     | ✔             | ✔          |
-| Select              | Target charge level(s)[^6]                         |               | ✔          |
+| Type                | Sensor Name                                         | Petrol/Diesel | (P)HEV/BEV |
+|:--------------------|:----------------------------------------------------|:-------------:|:----------:|
+| Button              | Remote Sync (Car with Ford backend)                 | ✔             | ✔          |
+| Button              | Local Sync (Ford backend with HA)                   | ✔             | ✔          |
+| Lock                | Lock/Unlock Vehicle[^1]                             | ✔             | ✔          |
+| Switch              | ~~Guard Mode (Only supported cars)~~                |               |            |
+| Button              | Start charging[^4]                                  |               | ✔          |
+| Switch              | PAUSE/UNPAUSE charging[^5]                          |               | ✔          |
+| Switch              | Auto SoftwareUpdates[^1]                            | ✔             | ✔          |
+| DeviceTracker       | Vehicle Tracker[^1]                                 | ✔             | ✔          |
+| Select              | Zone Lighting (experimental)[^1]                    | ✔             | ✔          |
+| Switch              | RC: Start (❄/☀)[^1][^2]                             | ✔             | ✔          |
+| Button              | RC: Extend Time[^1][^2]                             | ✔             | ✔          |
+| Select (was Number) | RC: Climate Temperature (❄/☀)[^1][^2]               | ✔             | ✔          |
+| Switch              | RC: Steering Wheel Heating[^1][^2]                  | ✔             | ✔          |
+| Select              | RC: Seat (❄/☀) front/rear & left/right[^1][^2][^3]  | ✔             | ✔          |
+| Switch              | RC: Rear Defrost[^1][^2]                            | ✔             | ✔          |
+| Switch              | RC: Windshield Heating[^1][^2]                      | ✔             | ✔          |
+| Select              | Target charge level(s)[^6]                          |               | ✔          |
 
 [^1]: Must be supported by the vehicle. If not supported, the entity will not be available in the UI.
 [^2]: _RC_ stands for 'Remote Control'.
@@ -330,13 +336,19 @@ When you create an issue, please consider:
 
 ## I need You!
 
-This might be a quite unusual request, but I would like to ask you to consider supporting the testing of this integration by granting me access to your car data. 
+In the past month I have asked various Ford owners to support the development of this integration by providing access to their vehicle data. This has helped a lot to improve the integration and to ensure that it works with various Ford models (EV's, PHEV's, Petrol and Diesel vehicles).
+
+Currently, I do have (IMHO) enough different vehicles to test the integration. If this situation is going to change, I will ask again for your support - typically in the [discussion area of this repository](https://github.com/marq24/ha-fordpass/discussions).
+
+In the meantime, it would be very kind, if you would consider to support the ongoing development efforty by a [paypal donation][paypal], [buying some coffee][buymecoffee] or become [a GitHub sponsor][ghs], where the last one is my personal favourite.
+
+<!-- This might be a quite unusual request, but I would like to ask you to consider supporting the testing of this integration by granting me access to your car data. 
 
 It's correct that this implies that you are willing to share your vehicle data (like the location) with me and I would __fully understand if you are not willing to do so__. But at least it must be allowed to ask. Since I can't afford to buy another Ford vehicle (nor do I actually have the space), it would be great if I would be able to test (besides with my EV, also) PEV's, DIESEL and GAS vehicles with this integration.
 
 You can do this by adding my FordPass™/The Lincoln Way™ account to your existing vehicle as it's described here in the section [Use of a separate FordPass account is recommended](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended).
 
-So if you are willing to help, please send me a short eMail and I will send you my FordPass™/The Lincoln Way™ account eMail address, so you can add me to your vehicle (and can accept your invite). You can end the sharing at any time by removing my account from your vehicle in your FordPass™/The Lincoln Way™ app.
+So if you are willing to help, please send me a short eMail and I will send you my FordPass™/The Lincoln Way™ account eMail address, so you can add me to your vehicle (and can accept your invite). You can end the sharing at any time by removing my account from your vehicle in your FordPass™/The Lincoln Way™ app. -->
 
 
 ## Supporting the development
