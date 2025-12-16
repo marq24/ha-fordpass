@@ -1789,12 +1789,18 @@ class ConnectedFordPassVehicle:
                     await self._local_logging("pct", result_pct)
 
                 # we are going to transform our result! - we create a dict with the 'location.id' as a key
+                # UPDATE 2025/12/16:
+                # thanks for nothing Ford - how you could make an ID not unique in a object ?!
+                # funny: the location.id is not unique... we simply create our own unique key here!
                 if isinstance(result_pct, list):
                     modified_result = {}
+                    counter = 0
                     for a_entry in result_pct:
                         if "vin" in a_entry:
                             if a_entry["vin"].upper() == self.vin.upper():
-                                modified_result[a_entry["location"]["id"]] = a_entry
+                                if "location" in a_entry:
+                                    modified_result[f"{str(counter)}"] = a_entry
+                                    counter += 1
                     result_pct = modified_result
                 else:
                     _LOGGER.warning(f"{self.vli}req_preferred_charge_times(): received unexpected data format: {type(result_pct).__name__} - expected a list of entries")
