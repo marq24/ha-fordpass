@@ -2652,13 +2652,31 @@ class ConnectedFordPassVehicle:
                                         self.status_updates_allowed = True
                                     return True
 
+                                elif to_state == "COMMAND_FAILED_ON_DEVICE":
+                                    error_context = "UNKNOWN_CONTEXT"
+                                    error_code = "UNKNOWN_CODE"
+                                    try:
+                                        if "data" in resp_command_obj["value"] and "commandError" in resp_command_obj["value"]["data"]:
+                                            error_data = resp_command_obj["value"]["data"]["commandError"]
+                                            if "commandExecutionFailure" in error_data:
+                                                failure = error_data["commandExecutionFailure"]
+                                                error_context = failure.get("oemErrorContext", error_context)
+                                                error_code = failure.get("oemErrorCode", error_code)
+                                    except BaseException as err:
+                                        _LOGGER.warning(f"{self.vli}__wait_for_state(): Error during status checking - {type(err).__name__} - {err}")
+
+                                    _LOGGER.info(f"{self.vli}__wait_for_state(): Command FAILED ON DEVICE - vehicle rejected the command. Error: {error_context} (code: {error_code})")
+                                    if not use_websocket:
+                                        self.status_updates_allowed = True
+                                    return False
+
                                 elif "EXPIRED" == to_state:
                                     _LOGGER.info(f"{self.vli}__wait_for_state(): Command EXPIRED - wait is OVER")
                                     if not use_websocket:
                                         self.status_updates_allowed = True
                                     return False
 
-                                elif "REQUEST_QUEUED" == to_state or "IN_PROGRESS" in to_state:
+                                elif to_state in ["REQUEST_QUEUED", "RECEIVED_BY_DEVICE"] or "IN_PROGRESS" in to_state or "DELIVERY" in to_state:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): toState: '{to_state}'")
                                 else:
                                     _LOGGER.info(f"{self.vli}__wait_for_state(): UNKNOWN 'toState': {to_state}")
