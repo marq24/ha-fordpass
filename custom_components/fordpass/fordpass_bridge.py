@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from numbers import Number
 from pathlib import Path
 from typing import Final, Iterable
+from urllib.parse import urlparse, parse_qs
 
 import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
@@ -312,7 +313,15 @@ class ConnectedFordPassVehicle:
             redirect_schema = REGIONS[region_key]["redirect_schema"]
 
         _LOGGER.debug(f"{self.vli}generate_tokens() for country_code: {self.locale_code}")
-        the_code = urlstring.replace(f"{redirect_schema}://userauthorized/?code=", "")
+        query_params = parse_qs(urlparse(urlstring).query)
+        if "code" not in query_params:
+            _LOGGER.error(f"{self.vli}No 'code' parameter found in redirect URL")
+            self.login_fail_reason = "No authorization code in redirect URL"
+            return False
+
+        # parse_qs returns a list of values for each parameter, get the first one
+        the_code = query_params.get("code", [None])[0]
+        _LOGGER.debug(f"{self.vli}Authorization code extracted: {the_code[:50]}... (length: {len(the_code)})")
 
         headers = {
             **loginHeadersOct2025,
