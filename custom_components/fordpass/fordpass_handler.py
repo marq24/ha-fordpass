@@ -1378,16 +1378,20 @@ class FordpassDataHandler:
     async def messages_delete_last(coordinator, vehicle):
         msgs = coordinator.data.get(ROOT_MESSAGES, {})
         if len(msgs) > 0:
-            message_ids = [message['messageId'] for message in msgs if message['relevantVin'] == vehicle.vin]
+            message_ids = [int(message['messageId']) for message in msgs if (len(message['relevantVin']) == 0 or message['relevantVin'] == vehicle.vin)]
             if len(message_ids) > 0:
-                return await vehicle.delete_messages([message_ids[0]])
+                if await vehicle.delete_messages([message_ids[0]]):
+                    await vehicle.ws_check_for_message_update_required()
+                    return True
 
     async def messages_delete_all(coordinator, vehicle):
         msgs = coordinator.data.get(ROOT_MESSAGES, {})
         if len(msgs) > 0:
-            message_ids = [message['messageId'] for message in msgs if message['relevantVin'] == vehicle.vin]
+            message_ids = [int(message['messageId']) for message in msgs if (len(message['relevantVin']) == 0 or message['relevantVin'] == vehicle.vin)]
             if len(message_ids) > 0:
-                return await vehicle.delete_messages([message['messageId'] for message in msgs])
+                if await vehicle.delete_messages(message_ids):
+                    await vehicle.ws_check_for_message_update_required()
+                    return True
 
     # just for development purposes...
     async def start_charge_vehicle(coordinator, vehicle):

@@ -190,8 +190,8 @@
             "hafdefault":       {"name": "Hupen & Blinken [3 Sek.]"},
             "haflong":          {"name": "Hupen & Blinken [5 Sek.]"},
             "extendremotestart":{"name": "RC (❄|☀): Laufzeit verlängern"},
-            "msgdeleteall":     {"name": "Alle Nachrichten Löschen"},
-            "msgdeletelast":    {"name": "Letzte Nachrichten Löschen"}
+            "msgdeleteall":     {"name": "Nachrichten: Alle Löschen"},
+            "msgdeletelast":    {"name": "Nachrichten: Letzte Löschen"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},

@@ -877,12 +877,14 @@ BUTTONS = [
         key=Tag.MESSAGES_DELETE_LAST.key,
         icon="mdi:delete",
         has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ExtButtonEntityDescription(
         tag=Tag.MESSAGES_DELETE_ALL,
         key=Tag.MESSAGES_DELETE_ALL.key,
         icon="mdi:delete-alert",
         has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
     )
 ]
 

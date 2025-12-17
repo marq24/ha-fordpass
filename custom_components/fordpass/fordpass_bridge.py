@@ -157,6 +157,7 @@ class ConnectedFordPassVehicle:
     _ws_debounced_update_task: asyncio.Task | None = None
     _ws_in_use_access_token: str | None = None
     _LAST_MESSAGES_UPDATE: float = 0.0
+    _message_update_is_running = False
     _last_ignition_state: str | None = None
     _last_remote_start_state: str | None = None
     _last_ev_connect_state: str | None = None
@@ -899,7 +900,7 @@ class ConnectedFordPassVehicle:
 
                     if do_housekeeping_checks:
                         # check if we need to update the messages...
-                        await self._ws_check_for_message_update_required()
+                        await self.ws_check_for_message_update_required()
 
                         # check if we need to refresh the auto token...
                         await self._ws_check_for_auth_token_refresh(ws)
@@ -1156,28 +1157,35 @@ class ConnectedFordPassVehicle:
         except BaseException as e:
             _LOGGER.error(f"{self.vli}_ws_check_for_auth_token_refresh(): Error while refreshing auto token - {type(e).__name__} - {e}")
 
-    async def _ws_check_for_message_update_required(self):
-        update_interval = 0
-        if self.coordinator is not None:
-            update_interval = int(self.coordinator.update_interval.total_seconds())
+    async def ws_check_for_message_update_required(self):
+        if not self._message_update_is_running:
+            self._message_update_is_running = True
+            try:
+                update_interval = 0
+                if self.coordinator is not None:
+                    update_interval = int(self.coordinator.update_interval.total_seconds())
 
-        # only request every 20 minutes for new messages...
-        to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 20 * 60)
-        if to_wait_till < time.time():
-            _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
-            # we need to update the messages...
-            msg_data = await self.req_messages()
-            if msg_data is not None:
-                self._data_container[ROOT_MESSAGES] = msg_data
-                self._ws_notify_for_new_data()
-            elif self._HAS_COM_ERROR:
-                # we have some communication issues when try to read messages - as long as the
-                # websocket is connected, we should not panic...
-                # we will still update the last messages update time... so that we don't hammer
-                # the backend with requests...
-                self._LAST_MESSAGES_UPDATE = time.time()
-        else:
-            _LOGGER.debug(f"{self.vli}_ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
+                # only request every 20 minutes for new messages...
+                to_wait_till = self._LAST_MESSAGES_UPDATE + max(update_interval, 20 * 60)
+                if to_wait_till < time.time():
+                    _LOGGER.debug(f"{self.vli}ws_check_for_message_update_required(): a update of the messages is required [last update was: {round((time.time() - self._LAST_MESSAGES_UPDATE) / 60, 1)} min ago]")
+                    # we need to update the messages...
+                    msg_data = await self.req_messages()
+                    if msg_data is not None:
+                        self._data_container[ROOT_MESSAGES] = msg_data
+                        self._ws_notify_for_new_data()
+                    elif self._HAS_COM_ERROR:
+                        # we have some communication issues when try to read messages - as long as the
+                        # websocket is connected, we should not panic...
+                        # we will still update the last messages update time... so that we don't hammer
+                        # the backend with requests...
+                        self._LAST_MESSAGES_UPDATE = time.time()
+                else:
+                    _LOGGER.debug(f"{self.vli}ws_check_for_message_update_required(): no update required [wait for: {round((to_wait_till - time.time())/60, 1)} min]")
+            except BaseException as e:
+                _LOGGER.debug(f"{self.vli}ws_check_for_message_update_required() caused: {type(e).__name__} - {e}")
+
+            self._message_update_is_running = False
 
     def _ws_notify_for_new_data(self):
         if self._ws_debounced_update_task is not None and not self._ws_debounced_update_task.done():
@@ -1572,7 +1580,7 @@ class ConnectedFordPassVehicle:
                 "auth-token": self.access_token,
                 "Application-Id": self.app_id,
             }
-            response_msg = await self.session.get(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/messages?", headers=headers_msg, timeout=self.timeout)
+            response_msg = await self.session.get(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/messages", headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1611,10 +1619,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}messages() - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}delete_messages() - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}messages() - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}delete_messages() - access_token exist? {self.access_token is not None}")
                 if self.access_token is None:
                     return None
 
@@ -1627,7 +1635,7 @@ class ConnectedFordPassVehicle:
             post_data = {
                 "messageIds": delete_list
             }
-            response_msg = await self.session.delete(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/messages?", data=json.dumps(post_data), headers=headers_msg, timeout=self.timeout)
+            response_msg = await self.session.delete(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/user/messages", data=json.dumps(post_data), headers=headers_msg, timeout=self.timeout)
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1638,22 +1646,22 @@ class ConnectedFordPassVehicle:
             elif response_msg.status == 401:
                 _FOUR_NULL_ONE_COUNTER[self.vin] += 1
                 if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"{self.vli}req_messages(): status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}delete_messages(): status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_messages(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}delete_messages(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
                 return None
             else:
-                _LOGGER.info(f"{self.vli}req_messages(): status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
+                _LOGGER.info(f"{self.vli}delete_messages(): status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_messages(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
+                _LOGGER.warning(f"{self.vli}delete_messages(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
-                _LOGGER.info(f"{self.vli}req_messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+                _LOGGER.info(f"{self.vli}delete_messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 

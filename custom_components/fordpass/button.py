@@ -48,12 +48,14 @@ class FordpassButton(FordPassEntity, ButtonEntity):
             return state and Tag.EVCC_STATUS.get_state(self.coordinator.data) in ["B", "C"]
         elif self._tag == Tag.EXTEND_REMOTE_START:
             return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
-        elif self._tag in [Tag.MESSAGES_DELETE_LAST, Tag.MESSAGES_DELETE_ALL]:
-            val = Tag.MESSAGES.get_state(self.coordinator.data)
-            if val is not None and int(val) > 0:
-                return state
-            else:
-                return False
+
+        # elif self._tag in [Tag.MESSAGES_DELETE_LAST, Tag.MESSAGES_DELETE_ALL]:
+        #     val = Tag.MESSAGES.get_state(self.coordinator.data)
+        #     if val is not None and int(val) > 0:
+        #         return state
+        #     else:
+        #         return False
+
         # elif self._tag == Tag.DOOR_LOCK:
         #     return state and Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED"
         # elif self._tag == Tag.DOOR_UNLOCK:
