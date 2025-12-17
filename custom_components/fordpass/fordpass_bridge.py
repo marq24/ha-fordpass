@@ -1605,6 +1605,58 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return None
 
+    async def delete_messages(self, delete_list: list = None):
+        """Get Vehicle messages from API"""
+        global _FOUR_NULL_ONE_COUNTER
+        try:
+            await self.__ensure_valid_tokens()
+            if self._HAS_COM_ERROR:
+                _LOGGER.debug(f"{self.vli}messages() - COMM ERROR")
+                return None
+            else:
+                _LOGGER.debug(f"{self.vli}messages() - access_token exist? {self.access_token is not None}")
+                if self.access_token is None:
+                    return None
+
+            headers_msg = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+            }
+
+            post_data = {
+                "messageIds": delete_list
+            }
+            response_msg = await self.session.delete(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/messages?", data=json.dumps(post_data), headers=headers_msg, timeout=self.timeout)
+            if response_msg.status == 200:
+                # ok first resetting the counter for 401 errors (if we had any)
+                _FOUR_NULL_ONE_COUNTER[self.vin] = 0
+                result_msg = await response_msg.json()
+                _LOGGER.debug(f"{self.vli}delete_messages(): Deleted messages response: {result_msg}")
+                self._LAST_MESSAGES_UPDATE = 0
+                return True
+            elif response_msg.status == 401:
+                _FOUR_NULL_ONE_COUNTER[self.vin] += 1
+                if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
+                    _LOGGER.error(f"{self.vli}req_messages(): status_code: 401 - mark_re_auth_required()")
+                    self.mark_re_auth_required()
+                else:
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_messages(): status_code: 401 - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    await asyncio.sleep(5)
+                return None
+            else:
+                _LOGGER.info(f"{self.vli}req_messages(): status_code: {response_msg.status} - {response_msg.real_url} - Received response: {await response_msg.text()}")
+                self._HAS_COM_ERROR = True
+                return None
+
+        except BaseException as e:
+            if not await self.__check_for_closed_session(e):
+                _LOGGER.warning(f"{self.vli}req_messages(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
+            else:
+                _LOGGER.info(f"{self.vli}req_messages(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+            self._HAS_COM_ERROR = True
+            return None
+
     async def req_vehicles(self):
         """Get the vehicle list from the ford account"""
         global _FOUR_NULL_ONE_COUNTER

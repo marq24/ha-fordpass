@@ -190,7 +190,9 @@
             "hafshort":         {"name": "Honk & Flash [1 sec.]"},
             "hafdefault":       {"name": "Honk & Flash [3 sec.]"},
             "haflong":          {"name": "Honk & Flash [5 sec.]"},
-            "extendremotestart":{"name": "RC (❄|☀): Extend Time"}
+            "extendremotestart":{"name": "RC (❄|☀): Extend Time"},
+            "msgdeleteall":     {"name": "Delete All Messages"},
+            "msgdeletelast":    {"name": "Delete Last Message"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},

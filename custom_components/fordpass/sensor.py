@@ -93,7 +93,8 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
     def available(self):
         """Return True if entity is available."""
         state = super().available
-        if self._tag == Tag.REMOTE_START_COUNTDOWN:
-            return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
+        # the countdown sensor can be always active (does not hurt)
+        # if self._tag == Tag.REMOTE_START_COUNTDOWN:
+        #     return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
 
         return state

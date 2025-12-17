@@ -270,3 +270,48 @@ XEVBATTERYCHARGEDISPLAY_STATES:             Final = [XEVBATTERYCHARGEDISPLAY_STA
                                                      XEVBATTERYCHARGEDISPLAY_STATE_PAUSED, XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
                                                      XEVBATTERYCHARGEDISPLAY_STATE_STOPPED, XEVBATTERYCHARGEDISPLAY_STATE_FAULT,
                                                      XEVBATTERYCHARGEDISPLAY_STATION_NOT_DETECTED]
+
+TRANSLATIONS: Final = {
+    "de":{
+        "account": "Konto",
+        "deu": "Deutschland",
+        "fra": "Frankreich",
+        "nld": "Niederlande",
+        "ita": "Italien",
+        "esp": "Spanien",
+        "gbr": "Vereinigtes Königreich Großbritannien und Irland",
+        "aus": "Australien",
+        "nzl": "Neuseeland",
+        "zaf": "Südafrika",
+        "can": "Kanada",
+        "mex": "Mexiko",
+        "usa": "Die Vereinigten Staaten von Amerika",
+        "bra": "Brasilien",
+        "arg": "Argentinien",
+        "rest_of_europe": "Andere europäische Länder",
+        "rest_of_world": "Rest der Welt",
+        "lincoln_usa": "Vereinigten Staaten von Amerika",
+        "USA": "USA (LEGACY)", "Canada":"Kanada (LEGACY)", "Australia":"Australien (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Niederlande (LEGACY)"
+    },
+    "en": {
+        "account": "Account",
+        "deu": "Germany",
+        "fra": "France",
+        "nld": "Netherlands",
+        "ita": "Italy",
+        "esp": "Spain",
+        "gbr": "United Kingdom of Great Britain and Northern Ireland",
+        "aus": "Australia",
+        "nzl": "New Zealand",
+        "zaf": "South Africa",
+        "can": "Canada",
+        "mex": "Mexico",
+        "usa": "The United States of America",
+        "bra": "Brazil",
+        "arg": "Argentina",
+        "rest_of_europe": "Other European Countries",
+        "rest_of_world": "Rest of the World",
+        "lincoln_usa": "United States of America",
+        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)"
+    }
+}

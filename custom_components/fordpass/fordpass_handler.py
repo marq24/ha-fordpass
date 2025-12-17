@@ -1375,6 +1375,20 @@ class FordpassDataHandler:
     async def extend_remote_start(coordinator, vehicle):
         await vehicle.remote_start()
 
+    async def messages_delete_last(coordinator, vehicle):
+        msgs = coordinator.data.get(ROOT_MESSAGES, {})
+        if len(msgs) > 0:
+            message_ids = [message['messageId'] for message in msgs if message['relevantVin'] == vehicle.vin]
+            if len(message_ids) > 0:
+                return await vehicle.delete_messages([message_ids[0]])
+
+    async def messages_delete_all(coordinator, vehicle):
+        msgs = coordinator.data.get(ROOT_MESSAGES, {})
+        if len(msgs) > 0:
+            message_ids = [message['messageId'] for message in msgs if message['relevantVin'] == vehicle.vin]
+            if len(message_ids) > 0:
+                return await vehicle.delete_messages([message['messageId'] for message in msgs])
+
     # just for development purposes...
     async def start_charge_vehicle(coordinator, vehicle):
         await vehicle.start_charge()

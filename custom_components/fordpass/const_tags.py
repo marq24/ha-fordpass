@@ -107,9 +107,12 @@ class Tag(ApiKey, Enum):
                                  press_fn=FordpassDataHandler.honk_and_light)
     HAF_LONG            = ApiKey(key="haflong",
                                  press_fn=FordpassDataHandler.honk_and_light_long)
-
     EXTEND_REMOTE_START = ApiKey(key="extendRemoteStart",
                                  press_fn=FordpassDataHandler.extend_remote_start)
+    MESSAGES_DELETE_LAST= ApiKey(key="msgdeletelast",
+                                 press_fn=FordpassDataHandler.messages_delete_last)
+    MESSAGES_DELETE_ALL= ApiKey(key="msgdeleteall",
+                                press_fn=FordpassDataHandler.messages_delete_all)
     # LOCKS
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
@@ -867,6 +870,18 @@ BUTTONS = [
         tag=Tag.EXTEND_REMOTE_START,
         key=Tag.EXTEND_REMOTE_START.key,
         icon="mdi:air-conditioner",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.MESSAGES_DELETE_LAST,
+        key=Tag.MESSAGES_DELETE_LAST.key,
+        icon="mdi:delete",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.MESSAGES_DELETE_ALL,
+        key=Tag.MESSAGES_DELETE_ALL.key,
+        icon="mdi:delete-alert",
         has_entity_name=True,
     )
 ]

@@ -22,6 +22,7 @@ from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
     DOMAIN,
+    TRANSLATIONS,
     STARTUP_MESSAGE,
     CONFIG_VERSION,
     CONFIG_MINOR_VERSION,
@@ -289,6 +290,12 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._config_entry = config_entry
         self._vin = vin
         self.vli = f"[@{self._vin}] "
+
+        lang = hass.config.language.lower()
+        if lang in TRANSLATIONS:
+            self.lang_map = TRANSLATIONS[lang]
+        else:
+            self.lang_map = TRANSLATIONS["en"]
 
         self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, vin, self.vli), user,
                                                vin, region_key, coordinator=self, storage_path=Path(hass.config.config_dir).joinpath(STORAGE_DIR),
@@ -688,6 +695,8 @@ class FordPassEntity(CoordinatorEntity):
         if self._tag is None:
             return None
 
+        ## messages are login/user bound... so we create an own device for the user objects
+        #if not self._tag in [Tag.MESSAGES, Tag.MESSAGES_DELETE_LAST, Tag.MESSAGES_DELETE_ALL]:
         model = "unknown"
         if "vehicles" in self.coordinator.data and self.coordinator.data["vehicles"] is not None:
             if "vehicleProfile" in self.coordinator.data["vehicles"] and self.coordinator.data["vehicles"]["vehicleProfile"] is not None:
@@ -701,6 +710,16 @@ class FordPassEntity(CoordinatorEntity):
             "model": f"{model}",
             "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD
         }
+        # else:
+        #     a_config_entry = self.coordinator._config_entry
+        #     name = a_config_entry.data.get(CONF_USERNAME, "unknown_user")
+        #     region = a_config_entry.data.get(CONF_REGION, DEFAULT_REGION_FORD)
+        #     return {
+        #         "identifiers": {(DOMAIN, f"{name}µ@µ{region}")},
+        #         "name": f"{self.coordinator.lang_map.get("account", "Account")}: {name} [{self.coordinator.lang_map.get(region, "Unknown")}]",
+        #         "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD
+        #     }
+
 
     def _friendly_name_internal(self) -> str | None:
         """Return the friendly name.
