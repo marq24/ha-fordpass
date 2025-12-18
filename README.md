@@ -34,7 +34,7 @@ If you have currently your integration configured, then you might be lucky and t
 > Negative potential consequences of an action.
 -->
 
-[![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
+[![hacs_badge][hacsbadge]][hacs] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![buymecoffee2][buymecoffeebadge2]][buymecoffee2] [![PayPal][paypalbadge]][paypal] [![hainstall][hainstallbadge]][hainstall]
 
 > [!WARNING]
 > ## General Disclaimer
@@ -354,7 +354,7 @@ So if you are willing to help, please send me a short eMail and I will send you 
 ## Supporting the development
 If you like this integration and want to support the development, please consider supporting me on [GitHub Sponsors][ghs] or [BuyMeACoffee][buymecoffee] or [PayPal][paypal]. 
 
-[![GitHub Sponsors][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![PayPal][paypalbadge]][paypal]
+[![GitHub Sponsors][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee] [![buymecoffee2][buymecoffeebadge2]][buymecoffee2] [![PayPal][paypalbadge]][paypal]
 
 
 > [!WARNING]
@@ -403,6 +403,11 @@ If you like this integration and want to support the development, please conside
 
 [buymecoffee]: https://www.buymeacoffee.com/marquardt24
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
+
+[buymecoffee2]: https://buymeacoffee.com/marquardt24/membership
+[buymecoffeebadge2]: https://img.shields.io/badge/sponsor%20📅-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
+
+
 
 [paypal]: https://paypal.me/marq24
 [paypalbadge]: https://img.shields.io/badge/paypal-me-blue.svg?style=for-the-badge&logo=paypal&logoColor=ccc
