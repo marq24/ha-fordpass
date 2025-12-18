@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 from numbers import Number
 from re import sub
 from typing import Final, Iterable
@@ -20,7 +20,7 @@ from custom_components.fordpass.const import (
     XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
     XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
     VEHICLE_LOCK_STATE_LOCKED, VEHICLE_LOCK_STATE_PARTLY, VEHICLE_LOCK_STATE_UNLOCKED,
-    REMOTE_START_STATE_ACTIVE, REMOTE_START_STATE_INACTIVE, HONK_AND_FLASH
+    REMOTE_START_STATE_ACTIVE, REMOTE_START_STATE_INACTIVE, HONK_AND_FLASH, DAYS_MAP
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ ROOT_ENERGY_TRANSFER_LOGS: Final = "etl"
 ROOT_UPDTIME: Final = "updateTime"
 
 UNSUPPORTED: Final = str("Unsupported")
+UNDEFINED: Final = str("Undefined")
 
 class FordpassDataHandler:
     # Helper functions to simplify the callable implementations
@@ -543,6 +544,9 @@ class FordpassDataHandler:
             else:
                 attrs["motorkW"] = 0
 
+        xev_next_departure_time_schedule_id = None
+        xev_next_departure_time_location_id = None
+
         if "customMetrics" in data_metrics:
             for key in data_metrics.get("customMetrics", {}):
                 if "accumulated-vehicle-speed-cruising-coaching-score" in key:
@@ -562,8 +566,56 @@ class FordpassDataHandler:
                     attrs["remoteDataResponseStatus"] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
 
                 if ":custom:xev-" in key:
-                    entryName = FordpassDataHandler.to_camel(key.split(":custom:xev-")[1])
-                    attrs[entryName] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    if "next-departure-time-schedule-id" in key:
+                        xev_next_departure_time_schedule_id = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    elif "next-departure-time-location-id" in key:
+                        xev_next_departure_time_location_id = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+                    else:
+                        entryName = FordpassDataHandler.to_camel(key.split(":custom:xev-")[1])
+                        attrs[entryName] = data_metrics.get("customMetrics", {}).get(key, {}).get("value")
+
+        if xev_next_departure_time_schedule_id is not None: #and xev_next_departure_time_location_id is not None:
+            # IF there is a 'schedule_id' defined, then we set the attribute, in order to make the processing
+            # of this data a bit easier - since you must not check for existence of both id's all the time
+            attrs["nextScheduledDepartureTime"] = UNDEFINED
+            xev_departure_locations = data_metrics.get("configurations", {}).get("xevDepartureSchedulesSetting",{}).get("value", {}).get("departureLocations", {})
+            for a_depart_location in xev_departure_locations:
+                if "departureSchedules" in a_depart_location and (
+                        len(xev_departure_locations) == 1 or
+                        a_depart_location.get("locationId", None) == xev_next_departure_time_location_id
+                ) :
+                    for a_schedule in a_depart_location["departureSchedules"]:
+                        if str(a_schedule.get("scheduleId", None)) == str(xev_next_departure_time_schedule_id):
+                            if a_schedule.get("scheduleStatus", "OFF").upper() == "ON":
+                                a_schedule_obj = a_schedule.get("schedule", {})
+                                if len(a_schedule_obj) > 0:
+                                    _LOGGER.debug(f"{a_schedule_obj}")
+                                    time_obj = a_schedule_obj.get("weeklySchedule", {})
+                                    day_of_week = time_obj.get("dayOfWeek", UNSUPPORTED).upper()
+                                    time_of_day = time_obj.get("timeOfDay", UNSUPPORTED)
+                                    tz = a_schedule_obj.get("timeZone", UNSUPPORTED)
+
+                                    if "LOCAL_TIME" == tz:
+                                        if day_of_week in DAYS_MAP and time_of_day != UNSUPPORTED:
+                                            # Get the current date and time in local timezone
+                                            now = datetime.now()
+
+                                            # Get the weekday number for the specified day
+                                            target_weekday = DAYS_MAP[day_of_week]
+                                            target_time = datetime.strptime(time_of_day, "%H:%M").time()
+
+                                            # Calculate days until the next target day
+                                            days_until = (target_weekday - now.weekday() + 7) % 7
+                                            if days_until == 0 and now.time() >= target_time:
+                                                days_until = 7  # If today is Friday but the time is past, go to next week
+
+                                            # Calculate the next date
+                                            next_date = now + timedelta(days=days_until)
+
+                                            # Set the target time
+                                            attrs["nextScheduledDepartureTime"] = next_date.replace(hour=target_time.hour, minute=target_time.minute, second=0, microsecond=0)
+
+                                    break
 
         data_events = FordpassDataHandler.get_events(data)
         if "customEvents" in data_events:
