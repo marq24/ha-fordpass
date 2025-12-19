@@ -405,9 +405,7 @@ If you like this integration and want to support the development, please conside
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
 
 [buymecoffee2]: https://buymeacoffee.com/marquardt24/membership
-[buymecoffeebadge2]: https://img.shields.io/badge/sponsor%20📅-coffee-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
-
-
+[buymecoffeebadge2]: https://img.shields.io/badge/coffee-subs-blue.svg?style=for-the-badge&logo=buymeacoffee&logoColor=ccc
 
 [paypal]: https://paypal.me/marq24
 [paypalbadge]: https://img.shields.io/badge/paypal-me-blue.svg?style=for-the-badge&logo=paypal&logoColor=ccc
