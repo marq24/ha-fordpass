@@ -1674,7 +1674,7 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return None
 
-    async def req_vehicles(self):
+    async def req_vehicles(self, retry:int=0):
         """Get the vehicle list from the ford account"""
         global _FOUR_NULL_ONE_COUNTER
         try:
@@ -1741,8 +1741,13 @@ class ConnectedFordPassVehicle:
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
                 _LOGGER.warning(f"{self.vli}req_vehicles(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
+                if retry < 5:
+                    new_retry = retry + 1
+                    await asyncio.sleep(random.uniform(0.2, 1.5))
+                    return await self.req_vehicles(new_retry)
             else:
                 _LOGGER.info(f"{self.vli}req_vehicles(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+
             self._HAS_COM_ERROR = True
             return None
 
