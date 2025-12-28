@@ -42,7 +42,7 @@ PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
 BRAND_OPTIONS = ["ford", "lincoln"]
 
 DEFAULT_REGION_FORD: Final = "rest_of_world"
-REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "gbr", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "nor", "gbr", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
 
 REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
 DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
@@ -101,6 +101,12 @@ REGIONS: Final = {
         "locale": "es-ES",
         "login_url": "https://login.ford.com",
         "countrycode": "ESP"
+    },
+    "nor": {
+        "app_id": REGION_APP_IDS["europe"],
+        "locale": "no-NB",
+        "login_url": "https://login.ford.no",
+        "countrycode": "NOR"
     },
     # checked 2025/06/08 - working fine...
     "nld": {
@@ -289,6 +295,7 @@ TRANSLATIONS: Final = {
         "nld": "Niederlande",
         "ita": "Italien",
         "esp": "Spanien",
+        "nor": "Norwegen",
         "gbr": "Vereinigtes Königreich Großbritannien und Irland",
         "aus": "Australien",
         "nzl": "Neuseeland",
@@ -310,6 +317,7 @@ TRANSLATIONS: Final = {
         "nld": "Netherlands",
         "ita": "Italy",
         "esp": "Spain",
+        "nor": "Norway",
         "gbr": "United Kingdom of Great Britain and Northern Ireland",
         "aus": "Australia",
         "nzl": "New Zealand",
