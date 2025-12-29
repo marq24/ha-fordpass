@@ -33,7 +33,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             entities.append(entity)
         else:
             # calling the state reading function to check if the entity should be added (if there is any data)
-            value = a_entity_description.tag.state_fn(coordinator.data)
+            value = a_entity_description.tag.state_fn(coordinator.data, None)
             if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 entities.append(entity)

@@ -532,7 +532,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 if "vehicleCapabilities" in veh_data:
                     for capability_obj in veh_data["vehicleCapabilities"]:
                         if capability_obj["VIN"] == self._vin:
-                            self._supports_ALARM = Tag.ALARM.get_state(self.data).upper() != "UNSUPPORTED"
+                            self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0

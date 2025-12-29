@@ -2,14 +2,16 @@
 import logging
 from dataclasses import replace
 from numbers import Number
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.restore_state import RestoreEntity  # , async_get, RestoreStateData
+from homeassistant.helpers import entity_platform
+from homeassistant.helpers.restore_state import RestoreEntity, async_get, StoredState
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
+from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
 from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
@@ -23,7 +25,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     sensors = []
 
     check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0
-    #storage = async_get(hass)
+    storage = async_get(hass)
+    platform = entity_platform.async_get_current_platform().domain
 
     for a_entity_description in SENSORS:
         a_entity_description: ExtSensorEntityDescription
@@ -49,11 +52,24 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
         #     #     _LOGGER.debug(f"{a_entity_description.tag} no VALUE to RESTORE {restored_value}")
 
+        if a_entity_description.tag == Tag.ODOMETER:
+            # make sure that the entity_id will have the correct domain!
+            # in 'some' cases the domain was 'fordpass.' instead of the expected 'sensor.'
+            entity_id = f"{platform}.{sensor.entity_id.split('.')[1]}"
+            restored_state = storage.last_states.get(entity_id, None)
+            if restored_state is not None and isinstance(restored_state, StoredState) and restored_state.state is not None and restored_state.state.state is not None:
+                try:
+                    sensor._previous_state = restored_state.state.state
+                    _LOGGER.debug(f"async_setup_entry(): restored prev value for key '{a_entity_description.tag.key}': {restored_state.state.state}")
+                except:
+                    _LOGGER.debug(f"async_setup_entry(): ignoring prev value for key {a_entity_description.tag.key}: cause value is: {restored_state.state}")
+                    sensor._previous_state = None
+
         if a_entity_description.skip_existence_check or not check_data_availability:
             sensors.append(sensor)
         else:
             # calling the state reading function to check if the sensor should be added (if there is any data)
-            value = a_entity_description.tag.state_fn(coordinator.data)
+            value = a_entity_description.tag.state_fn(coordinator.data, None)
             if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 sensors.append(sensor)
@@ -69,6 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 
 class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
+    _previous_state: Any|None = None
 
     def __init__(self, coordinator:FordPassDataUpdateCoordinator, entity_description:ExtSensorEntityDescription):
         # make sure that we set the device class for battery sensors [see #89]
@@ -77,6 +94,7 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
                 entity_description,
                 device_class=SensorDeviceClass.BATTERY
             )
+        self._previous_state = None
         super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
     @property
@@ -87,14 +105,16 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
     @property
     def native_value(self):
         """Return Native Value"""
-        return self._tag.get_state(self.coordinator.data)
+        new_state = self._tag.get_state(self.coordinator.data, self._previous_state)
+        if new_state is not None and new_state is not UNSUPPORTED:
+            self._previous_state = new_state
+        return new_state
 
     @property
     def available(self):
-        """Return True if entity is available."""
+        """Return True if the entity is available."""
         state = super().available
         # the countdown sensor can be always active (does not hurt)
         # if self._tag == Tag.REMOTE_START_COUNTDOWN:
         #     return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
-
         return state

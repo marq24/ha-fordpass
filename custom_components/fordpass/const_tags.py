@@ -28,7 +28,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class ApiKey(NamedTuple):
     key: str
-    state_fn: Callable[[dict], Any] = None
+    state_fn: Callable[[dict, Any], Any] = None
     attrs_fn: Callable[[dict, UnitSystem], Any] = None
     # asynchronous functions
     on_off_fn: Callable[[dict, Any, bool], Any] = None
@@ -43,9 +43,9 @@ class Tag(ApiKey, Enum):
     def __str__(self):
         return self.key
 
-    def get_state(self, data):
+    def get_state(self, data, prev_state=None):
         if self.state_fn:
-            return self.state_fn(data)
+            return self.state_fn(data, prev_state)
         return None
 
     def get_attributes(self, data, units: UnitSystem):
@@ -116,7 +116,7 @@ class Tag(ApiKey, Enum):
     # LOCKS
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
-                                 state_fn=lambda data: FordpassDataHandler.get_door_lock_state(data),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_door_lock_state(data, None),
                                  press_fn=FordpassDataHandler.lock_vehicle)
 
     # SWITCHES
@@ -138,13 +138,13 @@ class Tag(ApiKey, Enum):
                                  on_off_fn=FordpassDataHandler.on_off_auto_updates)
 
     RCC_DEFROST_REAR    = ApiKey(key="rccDefrostRear",
-                                state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRearDefrost_Rq"),
+                                state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRearDefrost_Rq"),
                                 on_off_fn=FordpassDataHandler.on_off_rcc_RccRearDefrost_Rq)
     RCC_DEFROST_FRONT   = ApiKey(key="rccDefrostFront",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedWindshield_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedWindshield_Rq"),
                                  on_off_fn=FordpassDataHandler.on_off_rcc_RccHeatedWindshield_Rq)
     RCC_STEERING_WHEEL  = ApiKey(key="rccSteeringWheel",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedSteeringWheel_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedSteeringWheel_Rq"),
                                  on_off_fn=FordpassDataHandler.on_off_rcc_RccHeatedSteeringWheel_Rq)
 
 
@@ -155,27 +155,27 @@ class Tag(ApiKey, Enum):
                                  select_fn=FordpassDataHandler.set_zone_lighting)
 
     RCC_SEAT_REAR_LEFT  = ApiKey(key="rccSeatRearLeft",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccLeftRearClimateSeat_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccLeftRearClimateSeat_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_RccLeftRearClimateSeat_Rq)
     RCC_SEAT_REAR_RIGHT = ApiKey(key="rccSeatRearRight",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightRearClimateSeat_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightRearClimateSeat_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_RccRightRearClimateSeat_Rq)
     RCC_SEAT_FRONT_LEFT = ApiKey(key="rccSeatFrontLeft",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccLeftFrontClimateSeat_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccLeftFrontClimateSeat_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_RccLeftFrontClimateSeat_Rq)
     RCC_SEAT_FRONT_RIGHT= ApiKey(key="rccSeatFrontRight",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightFrontClimateSeat_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccRightFrontClimateSeat_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_RccRightFrontClimateSeat_Rq)
 
 
     ELVEH_TARGET_CHARGE = ApiKey(key="elVehTargetCharge",
-                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 0),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_elev_target_charge_state(data, 0),
                                  select_fn=FordpassDataHandler.set_elev_target_charge)
     ELVEH_TARGET_CHARGE_ALT1 = ApiKey(key="elVehTargetChargeAlt1",
-                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 1),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_elev_target_charge_state(data, 1),
                                  select_fn=FordpassDataHandler.set_elev_target_charge_alt1)
     ELVEH_TARGET_CHARGE_ALT2 = ApiKey(key="elVehTargetChargeAlt2",
-                                 state_fn=lambda data: FordpassDataHandler.get_elev_target_charge_state(data, 2),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_elev_target_charge_state(data, 2),
                                  select_fn=FordpassDataHandler.set_elev_target_charge_alt2)
 
     GLOBAL_TARGET_SOC = ApiKey(key="globalTargetSoc",
@@ -184,7 +184,7 @@ class Tag(ApiKey, Enum):
 
     # NUMBERS
     RCC_TEMPERATURE = ApiKey(key="rccTemperature",
-                                 state_fn=lambda data: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="SetPointTemp_Rq"),
                                  select_fn=FordpassDataHandler.set_rcc_SetPointTemp_Rq)
 
     GLOBAL_AC_CURRENT_LIMIT = ApiKey(key="globalAcCurrentLimit",
@@ -198,7 +198,7 @@ class Tag(ApiKey, Enum):
     # SENSORS
     ##################################################
     ODOMETER            = ApiKey(key="odometer",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "odometer", None),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "odometer", None),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "odometer"))
     FUEL                = ApiKey(key="fuel",
                                  state_fn=FordpassDataHandler.get_fuel_state,
@@ -207,22 +207,22 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_battery_state,
                                  attrs_fn=FordpassDataHandler.get_battery_attrs)
     OIL                 = ApiKey(key="oil",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "oilLifeRemaining", None),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "oilLifeRemaining", None),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "oilLifeRemaining"))
     SEATBELT            = ApiKey(key="seatbelt",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "seatBeltStatus", 0),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "seatBeltStatus", 0),
                                  attrs_fn=FordpassDataHandler.get_seatbelt_attrs)
     TIRE_PRESSURE       = ApiKey(key="tirePressure",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "tirePressureSystemStatus", 0),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "tirePressureSystemStatus", 0),
                                  attrs_fn=FordpassDataHandler.get_tire_pressure_attrs)
     GPS                 = ApiKey(key="gps",
                                  state_fn=FordpassDataHandler.get_gps_state,
                                  attrs_fn=FordpassDataHandler.get_gps_attr)
     ALARM               = ApiKey(key="alarm",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "alarmStatus"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "alarmStatus"),
                                  attrs_fn=FordpassDataHandler.get_alarm_attr)
     IGNITION_STATUS     = ApiKey(key="ignitionStatus",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "ignitionStatus"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "ignitionStatus"),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "ignitionStatus"))
     DOOR_STATUS         = ApiKey(key="doorStatus",
                                  state_fn=FordpassDataHandler.get_door_status_state,
@@ -236,10 +236,10 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_elveh_state,
                                  attrs_fn=FordpassDataHandler.get_elveh_attrs)
     ELVEH_CHARGING      = ApiKey(key="elVehCharging",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryChargeDisplayStatus"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryChargeDisplayStatus"),
                                  attrs_fn=FordpassDataHandler.get_elveh_charging_attrs)
     ELVEH_PLUG          = ApiKey(key="elVehPlug",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "xevPlugChargerStatus"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "xevPlugChargerStatus"),
                                  attrs_fn=FordpassDataHandler.get_elveh_plug_attrs)
     EVCC_STATUS         = ApiKey(key="evccStatus",
                                  state_fn=FordpassDataHandler.get_evcc_status_state)
@@ -254,48 +254,48 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_messages_state,
                                  attrs_fn=FordpassDataHandler.get_messages_attrs)
     DIESEL_SYSTEM_STATUS= ApiKey(key="dieselSystemStatus",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFilterStatus"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFilterStatus"),
                                  attrs_fn=FordpassDataHandler.get_diesel_system_status_attrs)
     EXHAUST_FLUID_LEVEL = ApiKey(key="exhaustFluidLevel",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFluidLevel", None),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFluidLevel", None),
                                  attrs_fn=FordpassDataHandler.get_exhaust_fluid_level_attrs)
     SPEED               = ApiKey(key="speed",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "speed", None),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "speed", None),
                                  attrs_fn=FordpassDataHandler.get_speed_attrs)
     ENGINESPEED         = ApiKey(key="engineSpeed",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineSpeed", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "engineSpeed", None))
     GEARLEVERPOSITION   = ApiKey(key="gearLeverPosition",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "gearLeverPosition"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "gearLeverPosition"))
     INDICATORS          = ApiKey(key="indicators",
                                  state_fn=FordpassDataHandler.get_indicators_state,
                                  attrs_fn=FordpassDataHandler.get_indicators_attrs)
     COOLANT_TEMP        = ApiKey(key="coolantTemp",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineCoolantTemp", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "engineCoolantTemp", None))
     OUTSIDE_TEMP        = ApiKey(key="outsideTemp",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "outsideTemperature", None),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "outsideTemperature", None),
                                  attrs_fn=FordpassDataHandler.get_outside_temp_attrs)
     ENGINE_OIL_TEMP     = ApiKey(key="engineOilTemp",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "engineOilTemp", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "engineOilTemp", None))
     SOC                 = ApiKey(key="soc",
                                  state_fn=FordpassDataHandler.get_soc_state,
                                  attrs_fn=FordpassDataHandler.get_soc_attrs)
     YAW_RATE            = ApiKey(key="yawRate",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "yawRate", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "yawRate", None))
     ACCELERATION        = ApiKey(key="acceleration",
-                                 state_fn=lambda data: FordpassDataHandler.get_attr_of_metrics_value_dict(data, "acceleration", "x", None),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_attr_of_metrics_value_dict(data, "acceleration", "x", None),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_value_for_metrics_key(data, "acceleration", None))
     BRAKE_PEDAL_STATUS  = ApiKey(key="brakePedalStatus",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakePedalStatus"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "brakePedalStatus"))
     BRAKE_TORQUE        = ApiKey(key="brakeTorque",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "brakeTorque", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "brakeTorque", None))
     ACCELERATOR_PEDAL   = ApiKey(key="acceleratorPedalPosition",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "acceleratorPedalPosition", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "acceleratorPedalPosition", None))
     PARKING_BRAKE       = ApiKey(key="parkingBrakeStatus",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"))
     TORQUE_TRANSMISSION = ApiKey(key="torqueAtTransmission",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "torqueAtTransmission", None))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "torqueAtTransmission", None))
     WHEEL_TORQUE        = ApiKey(key="wheelTorqueStatus",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "wheelTorqueStatus"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "wheelTorqueStatus"))
     CABIN_TEMP          = ApiKey(key="cabinTemperature",
                                  state_fn=FordpassDataHandler.get_cabin_temperature_state,
                                  attrs_fn=FordpassDataHandler.get_cabin_temperature_attrs)
@@ -304,9 +304,9 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_device_connectivity_state)
 
     DEEPSLEEP_IN_PROGRESS   = ApiKey(key="deepSleepInProgress",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
     FIRMWAREUPG_IN_PROGRESS = ApiKey(key="firmwareUpgInProgress",
-                                 state_fn=lambda data: FordpassDataHandler.get_value_for_metrics_key(data, "firmwareUpgradeInProgress"),
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "firmwareUpgradeInProgress"),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "firmwareUpgradeInProgress"))
 
 
@@ -321,16 +321,16 @@ class Tag(ApiKey, Enum):
 
     # Debug Sensors (Disabled by default)
     EVENTS = ApiKey(key="events",
-                    state_fn=lambda data: len(FordpassDataHandler.get_events(data)),
+                    state_fn=lambda data, prev_state: len(FordpassDataHandler.get_events(data)),
                     attrs_fn=lambda data, units: FordpassDataHandler.get_events(data))
     METRICS = ApiKey(key="metrics",
-                     state_fn=lambda data: len(FordpassDataHandler.get_metrics(data)),
+                     state_fn=lambda data, prev_state: len(FordpassDataHandler.get_metrics(data)),
                      attrs_fn=lambda data, units: FordpassDataHandler.get_metrics(data))
     STATES = ApiKey(key="states",
-                    state_fn=lambda data: len(FordpassDataHandler.get_states(data)),
+                    state_fn=lambda data, prev_state: len(FordpassDataHandler.get_states(data)),
                     attrs_fn=lambda data, units: FordpassDataHandler.get_states(data))
     VEHICLES = ApiKey(key="vehicles",
-                      state_fn=lambda data: len(FordpassDataHandler.get_vehicles(data)),
+                      state_fn=lambda data, prev_state: len(FordpassDataHandler.get_vehicles(data)),
                       attrs_fn=lambda data, units: FordpassDataHandler.get_vehicles(data))
 
 # tags that are only available for gas/diesel/plugin-hybrid (PHEV) vehicles...
