@@ -60,9 +60,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
             if restored_state is not None and isinstance(restored_state, StoredState) and restored_state.state is not None and restored_state.state.state is not None:
                 try:
                     sensor._previous_state = restored_state.state.state
-                    _LOGGER.debug(f"async_setup_entry(): restored prev value for key '{a_entity_description.tag.key}': {restored_state.state.state}")
-                except:
-                    _LOGGER.debug(f"async_setup_entry(): ignoring prev value for key {a_entity_description.tag.key}: cause value is: {restored_state.state}")
+                    _LOGGER.debug(f"{coordinator.vli}SENSOR restored prev value for key '{a_entity_description.tag.key}': {restored_state.state.state}")
+                except BaseException as exc:
+                    _LOGGER.debug(f"{coordinator.vli}SENSOR ignoring prev value for key {a_entity_description.tag.key}: caused {type(exc).__name__} value is: {restored_state.state} - {exc}")
                     sensor._previous_state = None
 
         if a_entity_description.skip_existence_check or not check_data_availability:

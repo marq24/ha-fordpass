@@ -138,8 +138,27 @@ class FordpassDataHandler:
     # State- and attribute-callable functions grouped by Tag
     ###########################################################
 
+    # ODOMETER state
+    def get_odometer_state(data, prev_state=None):
+        new_odometer = FordpassDataHandler.get_value_for_metrics_key(data, "odometer", None)
+        if new_odometer is not None and isinstance(new_odometer, Number):
+
+            # make sure that the prev_state is a number...
+            try:
+                if prev_state is not None and not isinstance(prev_state, Number):
+                    prev_state = float(prev_state)
+            except BaseException as exc:
+                _LOGGER.debug(f"get_odometer_state(): invalid prev_state value: '{prev_state}' caused {type(exc).__name__} {exc}")
+                prev_state = None
+
+            # we make sure that the prev_state is a number (few lines above)...
+            if prev_state is None or new_odometer >= prev_state:
+                return new_odometer
+
+        return prev_state
+
     # FUEL state + attributes
-    def get_fuel_state(data, prev_data=None):
+    def get_fuel_state(data, prev_state=None):
         fuel_level = FordpassDataHandler.get_value_for_metrics_key(data, "fuelLevel", None)
         if fuel_level is not None and isinstance(fuel_level, Number):
             return round(fuel_level)
@@ -160,7 +179,7 @@ class FordpassDataHandler:
 
 
     # SOC state + attributes
-    def get_soc_state(data, prev_data=None):
+    def get_soc_state(data, prev_state=None):
         battery_soc = FordpassDataHandler.get_value_for_metrics_key(data, "xevBatteryStateOfCharge")
         if isinstance(battery_soc, Number):
             return round(float(battery_soc), 2)
@@ -174,7 +193,7 @@ class FordpassDataHandler:
 
 
     # BATTERY state + attributes
-    def get_battery_state(data, prev_data=None):
+    def get_battery_state(data, prev_state=None):
         battery_voltage = FordpassDataHandler.get_value_for_metrics_key(data, "batteryStateOfCharge")
         if isinstance(battery_voltage, Number):
             return round(float(battery_voltage), 0)
@@ -244,7 +263,7 @@ class FordpassDataHandler:
 
 
     # GPS state + attributes [+ LAT & LON getters for device tracker]
-    def get_gps_state(data, prev_data=None):
+    def get_gps_state(data, prev_state=None):
         return FordpassDataHandler.get_metrics(data).get("position", {}).get("value", {}).get("location", {})
 
     def get_gps_attr(data, units:UnitSystem):
@@ -291,7 +310,7 @@ class FordpassDataHandler:
         return attrs or None
 
     # DOOR_LOCK state
-    def get_door_lock_state(data, prev_data=None):
+    def get_door_lock_state(data, prev_state=None):
         # EXAMPLE data:
 
         # # UNKNOWN
@@ -425,7 +444,7 @@ class FordpassDataHandler:
             return VEHICLE_LOCK_STATE_UNLOCKED
 
     # DOOR_STATUS state + attributes
-    def get_door_status_state(data, prev_data=None):
+    def get_door_status_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
         for value in data_metrics.get("doorStatus", []):
             if value["value"].upper() in ["CLOSED", "INVALID", "UNKNOWN"]:
@@ -454,7 +473,7 @@ class FordpassDataHandler:
 
 
     # WINDOW_POSITION state + attributes
-    def get_window_position_state(data, prev_data=None):
+    def get_window_position_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
         for window in data_metrics.get("windowStatus", []):
             windowrange = window.get("value", {}).get("doubleRange", {})
@@ -482,12 +501,12 @@ class FordpassDataHandler:
 
 
     # LAST_REFRESH state
-    def get_last_refresh_state(data, prev_data=None):
+    def get_last_refresh_state(data, prev_state=None):
         return dt.as_local(dt.parse_datetime(data.get(ROOT_UPDTIME, "1970-01-01T00:00:00.000Z")))
 
 
     # ELVEH state + attributes
-    def get_elveh_state(data, prev_data=None):
+    def get_elveh_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "xevBatteryRange" in data_metrics:
             val = data_metrics.get("xevBatteryRange", {}).get("value", UNSUPPORTED)
@@ -658,7 +677,7 @@ class FordpassDataHandler:
 
 
     # ELVEH_CHARGING start/stop cancel/pause
-    # def get_start_stop_charge_switch_state(data, prev_data=None):
+    # def get_start_stop_charge_switch_state(data, prev_state=None):
     #     # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
     #     data_metrics = FordpassDataHandler.get_metrics(data)
     #     val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
@@ -678,7 +697,7 @@ class FordpassDataHandler:
     #     else:
     #         return await vehicle.stop_charge()
 
-    def get_cancel_pause_charge_switch_state(data, prev_data=None):
+    def get_cancel_pause_charge_switch_state(data, prev_state=None):
         # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
         data_metrics = FordpassDataHandler.get_metrics(data)
         val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
@@ -801,7 +820,7 @@ class FordpassDataHandler:
         return attrs
 
     # EVCC_STATUS state
-    def get_evcc_status_state(data, prev_data=None):
+    def get_evcc_status_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
         val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
         if val != UNSUPPORTED:
@@ -822,7 +841,7 @@ class FordpassDataHandler:
 
 
     # ZONE_LIGHTING state + attributes
-    def get_zone_lighting_state(data, prev_data=None):
+    def get_zone_lighting_state(data, prev_state=None):
         # "pttb-power-mode-change-event": {
         #     "updateTime": "2025-06-12T21:45:25Z",
         #     "oemData": {
@@ -875,7 +894,7 @@ class FordpassDataHandler:
 
 
     # REMOTE_START state + on_off
-    def get_remote_start_state(data, prev_data=None):
+    def get_remote_start_state(data, prev_state=None):
         val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
         return "ON" if val > 0 else "OFF"
 
@@ -888,7 +907,7 @@ class FordpassDataHandler:
 
 
     # REMOTE_START_STATUS state + attributes
-    def get_remote_start_status_state(data, prev_data=None):
+    def get_remote_start_status_state(data, prev_state=None):
         val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
         return REMOTE_START_STATE_ACTIVE if val > 0 else REMOTE_START_STATE_INACTIVE
 
@@ -897,12 +916,12 @@ class FordpassDataHandler:
 
 
     # REMOTE_START_COUNTDOWN state
-    def get_remote_start_countdown_state(data, prev_data=None):
+    def get_remote_start_countdown_state(data, prev_state=None):
         return FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
 
 
     # MESSAGES state + attributes
-    def get_messages_state(data, prev_data=None):
+    def get_messages_state(data, prev_state=None):
         messages = data.get(ROOT_MESSAGES)
         return len(messages) if messages is not None else None
 
@@ -973,7 +992,7 @@ class FordpassDataHandler:
 
 
     # INDICATORS state + attributes
-    def get_indicators_state(data, prev_data=None):
+    def get_indicators_state(data, prev_state=None):
         return sum(1 for indicator in FordpassDataHandler.get_metrics(data).get("indicators", {}).values() if indicator.get("value"))
 
     def get_indicators_attrs(data, units:UnitSystem):
@@ -999,7 +1018,7 @@ class FordpassDataHandler:
 
 
     # CABIN_TEMP state + attributes (from trip data)
-    def get_cabin_temperature_state(data, prev_data=None):
+    def get_cabin_temperature_state(data, prev_state=None):
         data_events = FordpassDataHandler.get_events(data)
         if "customEvents" in data_events:
             trip_data_str = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
@@ -1024,7 +1043,7 @@ class FordpassDataHandler:
 
 
     # LAST_ENERGY_CONSUMED state + attributes (from trip data)
-    def get_last_energy_consumed_state(data, prev_data=None):
+    def get_last_energy_consumed_state(data, prev_state=None):
         data_events = FordpassDataHandler.get_events(data)
         if "customEvents" in data_events:
             trip_data_str = data_events.get("customEvents", {}).get("xev-key-off-trip-segment-data", {}).get("oemData", {}).get("trip_data", {}).get("stringArrayValue", [])
@@ -1051,7 +1070,7 @@ class FordpassDataHandler:
 
 
     # LAST_ENERGY_TRANSFER_LOG_ENTRY state + attributes (from energy_transfer_logs)
-    def get_energy_transfer_log_state(data, prev_data=None):
+    def get_energy_transfer_log_state(data, prev_state=None):
         # {
         #     "id": "a_entry_id_here",
         #     "deviceId": "VIN-HERE",
@@ -1130,7 +1149,7 @@ class FordpassDataHandler:
 
 
     # GLOBAL_AC_CURRENT_LIMIT state + set_value
-    def get_global_ac_current_limit_state(data, prev_data=None):
+    def get_global_ac_current_limit_state(data, prev_state=None):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
             for key in cm_data:
@@ -1145,7 +1164,7 @@ class FordpassDataHandler:
 
 
     # GLOBAL_DC_POWER_LIMIT state + set_value
-    def get_global_dc_power_limit_state(data, prev_data=None):
+    def get_global_dc_power_limit_state(data, prev_state=None):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
             for key in cm_data:
@@ -1160,7 +1179,7 @@ class FordpassDataHandler:
 
 
     # GLOBAL_TARGET_SOC state + set_value
-    def get_global_target_soc_state(data, prev_data=None):
+    def get_global_target_soc_state(data, prev_state=None):
         cm_data = FordpassDataHandler.get_metrics_dict(data, "customMetrics")
         if cm_data is not None:
             for key in cm_data:
@@ -1350,7 +1369,7 @@ class FordpassDataHandler:
         return await vehicle.set_rcc(rcc_dict, list_data)
 
     # DEVICE_CONNECTIVITY state
-    def get_device_connectivity_state(data, prev_data=None):
+    def get_device_connectivity_state(data, prev_state=None):
         state = FordpassDataHandler.get_states(data).get("deviceConnectivity", {}).get("value", {}).get("toState", UNSUPPORTED)
         if state.upper() == "CONNECTED":
             return "CONNECTED"
@@ -1364,7 +1383,7 @@ class FordpassDataHandler:
     #####################################
 
     # DEEPSLEEP state
-    def get_deepsleep_state(data, prev_data=None):
+    def get_deepsleep_state(data, prev_state=None):
         state = FordpassDataHandler.get_states(data).get("commandPreclusion", {}).get("value", {}).get("toState", UNSUPPORTED)
         if state.upper() == "COMMANDS_PRECLUDED":
             return "ACTIVE"
@@ -1380,7 +1399,7 @@ class FordpassDataHandler:
         guard_status_data = data.get("guardstatus", {})
         return "returnCode" in guard_status_data and guard_status_data["returnCode"] == 200
 
-    def get_guard_mode_state(data, prev_data=None):
+    def get_guard_mode_state(data, prev_state=None):
         # marq24: need to find a vehicle that still supports 'guard' mode to test this...
         # Need to find the correct response for enabled vs. disabled, so this may be spotty at the moment
         guard_status_data = data.get("guardstatus", {})

@@ -198,7 +198,7 @@ class Tag(ApiKey, Enum):
     # SENSORS
     ##################################################
     ODOMETER            = ApiKey(key="odometer",
-                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "odometer", None),
+                                 state_fn=FordpassDataHandler.get_odometer_state,
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "odometer"))
     FUEL                = ApiKey(key="fuel",
                                  state_fn=FordpassDataHandler.get_fuel_state,
@@ -400,7 +400,7 @@ SENSORS = [
         tag=Tag.ODOMETER,
         key=Tag.ODOMETER.key,
         icon="mdi:counter",
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         has_entity_name=True,
