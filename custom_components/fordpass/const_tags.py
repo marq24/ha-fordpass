@@ -11,6 +11,7 @@ from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass,
 from homeassistant.const import (
     UnitOfTime,
     UnitOfPower,
+    UnitOfEnergy,
     UnitOfSpeed,
     UnitOfLength,
     UnitOfTemperature,
@@ -720,7 +721,7 @@ SENSORS = [
         key=Tag.LAST_ENERGY_CONSUMED.key,
         icon="mdi:counter",
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.WATT,
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
         has_entity_name=True,
     ),
     ExtSensorEntityDescription(
@@ -729,7 +730,7 @@ SENSORS = [
         skip_existence_check=True,
         icon="mdi:ev-station",
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         has_entity_name=True,
     ),
 
