@@ -4,17 +4,17 @@
 <!--
 > [!IMPORTANT]  
 > ## New Users: You need version 2025.10.2 or later!
-> When you want to initially setup this integration you must use the latest version (2025.10.2 or later) - in any other case you will get no response from the Ford backend, when the integration trying to fetch the access_token ([see Issue #107](https://github.com/marq24/ha-fordpass/issues/107)).
+> When you want to initially set up this integration, you must use the latest version (2025.10.2 or later) – in any other case you will get no response from the Ford backend, when the integration trying to fetch the access_token ([see Issue #107](https://github.com/marq24/ha-fordpass/issues/107)).
 -->
 
 <!--
 # IMPORTANT 2025/10/22 - Integration Setup does NOT WORK ANYLONGER
 
-I am sorry to let you know, that Ford have changed once again the initial login procedure to receive a initial ACCESS-Token for a Ford vehicle. This means, that NEW users currently can't setup this integration - since the complete Setup will NOT work.
+I am sorry to let you know that Ford have changed once again the initial login procedure to receive an initial ACCESS-Token for a Ford vehicle. This means that NEW users currently can't set up this integration - since the complete Setup will NOT work.
 
-This was just a question of time, when this will happen - but we will see, IF and WHEN it's possible again to dig a new tunnel though the Ford backends :-/
+This was just a question of time when this will happen - but we will see IF and WHEN it's possible again to dig a new tunnel though the Ford backends :-/
 
-If you have currently your integration configured, then you might be lucky and this will continue to work... *sigh* - I'll keep you update.
+If you currently have your integration configured, then you might be lucky and this will continue to work... *sigh* - I'll keep you update.
 -->
 
 <!--
@@ -174,7 +174,7 @@ So do not expect that the charging control will work with all charging stations.
 
 Here is a short procedure how to create and connect a second account (for FordPass™):
 
-1. Create a new FordPass™ account (via the regular Ford website) with a different email address (and confirm this account by eMail). All this can be done via a regular web browser.<br/>__It's important, that you can access this eMail account from your mobile phone where the FordPass™ App is installed__ (we need this in step 6).
+1. Create a new FordPass™ account (via the regular Ford website) with a different email address (and confirm this account by eMail). All this can be done via a regular web browser.<br/>__It's important that you can access this eMail account from your mobile phone where the FordPass™ App is installed__ (we need this in step 6).
 2. On a mobile Device: Open the FordPass™ app (logged in with your original account), then you can select `Settings` from the main screen (at the bottom there are three options: `Connected Services >`, `Location >` & `Settings >`)
 3. On the next screen select `Vehicle Access` (from the options: `Phone As A Key >`, `Software updates >` & `Vehicle Access >`)
 4. Select `Invite Driver(s) Invite` and then enter the next screen the eMail address of the new account you created in step 1. 
@@ -182,18 +182,18 @@ Here is a short procedure how to create and connect a second account (for FordPa
 6. Wait till the invitation eMail arrives and accept the invitation with the button at the bottom of eMail.<br/>__This step must be performed on the mobile device where the FordPass™ app is installed!__ (since only on a mobile device with installed FordPass™ you can open the acceptance-link of this eMail)
 7. Finally, you should now have connected your car to the new FordPass™ account.
 8. You can now log out again of the FordPass™ app with your second account and re-login with your original FordPass™ account.
-9. You can double-check with a regular browser, that the car is now accessible with the new account by web.
+9. You can double-check with a regular browser that the car is now accessible with the new account by web.
 
-If accepting the invitation doesn't work or results in a blank sceeen in the Ford app, try adding the vehicle by VIN to the new account first then accepting the invite.
+If accepting the invitation doesn't work or results in a blank screen in the Ford app, try adding the vehicle by VIN to the new account first, then accepting the invite.
 
 ## Multi-Vehicle Support
 
 When you have __multiple__ vehicles registered in your FordPass™/The Lincoln Way™ account, then in the FordPass™/The Lincoln Way™ App you must first select the vehicle you want to use, before you can access any data or functionality of this vehicle. __The same limitation is also true__ for this Home Assistant integration.
 
-The main reason for this restriction is the fact, that the FordPass™ App and this integration makes use of a websocket connection to the Ford backend, which is some sort of bound to a single vehicle at a time.
+The main reason for this restriction is the fact that the FordPass™ App and this integration make use of a websocket connection to the Ford backend, which is some sort of bound to a single vehicle at a time.
 
 So you have three options to use multiple vehicles in Home Assistant with this integration:
-1. **Use multiple FordPass™ accounts**: You can create a separate FordPass™ account for each of your vehicles and then add each account as a separate integration in Home Assistant. This way you can use multiple vehicles in Home Assistant that does not have any influence on each other [my personal recommendation].
+1. **Use multiple FordPass™ accounts**: You can create a separate FordPass™ account for each of your vehicles and then add each account as a separate integration in Home Assistant. This way you can use multiple vehicles in Home Assistant that do not have any influence on each other [my personal recommendation].
 
 2. **Use different Regions**: If you have multiple vehicles, you can create for each of the vehicles a separate Region (and create a new access token per Region).
 
@@ -203,12 +203,12 @@ So you have three options to use multiple vehicles in Home Assistant with this i
 ## Services
 
 ### Clear Tokens
-If you are experiencing any sign in issues, please try clearing your tokens using the "clear_tokens" service call.
+If you are experiencing any sign-in issues, please try clearing your tokens using the "clear_tokens" service call.
 
-### Poll API (local refresh) — also available as button in the UI
+### Poll API (local refresh) — also available as a button in the UI
 This service allows you to sync the data of the integration (read via the websocket) with the Ford backends by manually polling all data. This can become Handy if you want to ensure that HA data is in sync with the Ford backend data.
 
-### Request Update (remote refresh) — also available as button in the UI
+### Request Update (remote refresh) — also available as a button in the UI
 This service will contact the modem in the vehicle and request to sync data between the vehicle and the ford backends. **Please note that this will have an impact on the battery of your vehicle.**
 
 
@@ -265,13 +265,13 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Status Wheel Torque                |       ✔       |   ✔    |         ✔         |
 | Cabin Temperature                  |       ✔       |   ✔    |         ✔         |
 
-Many sensors provide more detail information as attributes of sensors. These attributes are available by expanding the panel at the bottom of sensor view (marked by green border).
+Many sensors provide more detail information as attributes of sensors. These attributes are available by expanding the panel at the bottom of the sensor view (marked by green border).
 
 ![image](./images/012.png)
 
 You can find more details about the individual sensors when accessing your HA via `http://[your-ha-ip-here]/developer-tools/state` and then selecting the individual sensor from the dropdown list, then you can see all the attributes of the sensor.
 
-Based on these attributes you can create your own template sensors or automations in Home Assistant.
+Based on these attributes, you can create your own template sensors or automations in Home Assistant.
 
 
 ## Buttons / Switches / Other
@@ -323,7 +323,7 @@ logger:
 
 ### Additional considerations before reporting an issue
 
-If you miss entities or functionality, please check if there is any data available in the FordPass™/The Lincoln Way™ App. If there is no data available in the FordPass™/The Lincoln Way™ App, then there might be good reasons, why there is no data available for this integration either. Please be aware that not all vehicles support all features, so it's possible that some entities are not available for your vehicle.
+If you miss entities or functionality, please check if there is any data available in the FordPass™/The Lincoln Way™ App. If there is no data available in the FordPass™/The Lincoln Way™ App, then there might be good reasons why there is no data available for this integration either. Please be aware that not all vehicles support all features, so it's possible that some entities are not available for your vehicle.
 
 You can enable the __Log API responses to local HA filesystem__ in the integration configuration. This will log all API responses to the local HA filesystem, which can be helpful for any data debugging purposes. The log files will be stored in the `.storage/fordpass/data_dumps` directory of your Home Assistant installation.
 
@@ -338,9 +338,9 @@ When you create an issue, please consider:
 
 In the past month I have asked various Ford owners to support the development of this integration by providing access to their vehicle data. This has helped a lot to improve the integration and to ensure that it works with various Ford models (EV's, PHEV's, Petrol and Diesel vehicles).
 
-Currently, I do have (IMHO) enough different vehicles to test the integration. If this situation is going to change, I will ask again for your support - typically in the [discussion area of this repository](https://github.com/marq24/ha-fordpass/discussions).
+Currently, I do have (IMHO) enough different vehicles to test the integration. If this situation is going to change, I will ask again for your support – typically in the [discussion area of this repository](https://github.com/marq24/ha-fordpass/discussions).
 
-In the meantime, it would be very kind, if you would consider to support the ongoing development efforty by a [paypal donation][paypal], [buying some coffee][buymecoffee] or become [a GitHub sponsor][ghs], where the last one is my personal favourite.
+In the meantime, it would be very kind if you would consider supporting the ongoing development efforty by a donation [via revolut][revolut] | [via wero][wero] | [via paypal][paypal], [buying some coffee][buymecoffee] or become [a GitHub sponsor][ghs], where the last one is my personal favourite.
 
 <!-- This might be a quite unusual request, but I would like to ask you to consider supporting the testing of this integration by granting me access to your car data. 
 
@@ -352,16 +352,14 @@ So if you are willing to help, please send me a short eMail and I will send you 
 
 
 ## Supporting the development
-If you like this integration and want to support the development, please consider supporting me on [GitHub Sponsors][ghs] or [BuyMeACoffee][buymecoffee] or [PayPal][paypal]. 
-
-[![hacs_badge][hacsbadge]][hacs] [![hainstall][hainstallbadge]][hainstall] [![Wero][werobadge]][wero] [![Revolut][revolutbadge]][revolut] [![PayPal][paypalbadge]][paypal] [![github][ghsbadge]][ghs] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+If you like this integration and want to support the development, please consider supporting me on [![github][ghsbadge]][ghs] [![Wero][werobadge]][wero] [![Revolut][revolutbadge]][revolut] [![PayPal][paypalbadge]][paypal] [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
 
 > [!WARNING]
 > ## This fork is **not compatible** with the original FordPass integration from @itchannel and @SquidBytes
 > Before you can use this fork with your vehicle, you must have removed the original FordPass integration from HA and you should delete all configuration entries. Please be aware that it's quite likely that a configuration can be disabled!
 >
-> When the integration detect a configuration entry that was not generated by this fork you might get additional warnings in your HA log.
+> When the integration detects a configuration entry that was not generated by this fork you might get additional warnings in your HA log.
 > ### Incompatible changes:
 > - The VIN has been added to all the entity names, to ensure that names stay unique in HA when you have multiple vehicles.
 > - The sensor attribute names do not contain spaces anymore to make post-processing easier. Additionally, all the attribute names are now using camelcase. This means that all attributes start with a lower-case character (don't let you fool by the HA user interface, which always will show the first character as upper-case).
