@@ -308,7 +308,9 @@ TRANSLATIONS: Final = {
         "rest_of_europe": "Andere europäische Länder",
         "rest_of_world": "Rest der Welt",
         "lincoln_usa": "Vereinigten Staaten von Amerika",
-        "USA": "USA (LEGACY)", "Canada":"Kanada (LEGACY)", "Australia":"Australien (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Niederlande (LEGACY)"
+        "USA": "USA (LEGACY)", "Canada":"Kanada (LEGACY)", "Australia":"Australien (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Niederlande (LEGACY)",
+        "coord_null_data": "Es konnten keine Daten abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration.",
+        "coord_no_vehicle_data": "Es konnten keine Daten zu Deinem konfigurierten Fahrzeug abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration."
     },
     "en": {
         "account": "Account",
@@ -330,6 +332,8 @@ TRANSLATIONS: Final = {
         "rest_of_europe": "Other European Countries",
         "rest_of_world": "Rest of the World",
         "lincoln_usa": "United States of America",
-        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)"
+        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)",
+        "coord_null_data": "Coordinator could not provided any data. Please check your Home Assistant system log for possible error messages.",
+        "coord_no_vehicle_data": "Coordinator could not fetch essential information from your configured vehicle. Please check your Home Assistant system log for possible error messages."
     }
 }

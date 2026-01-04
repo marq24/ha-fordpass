@@ -4,7 +4,7 @@ from dataclasses import replace
 from numbers import Number
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
@@ -26,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
     check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0
     storage = async_get(hass)
-    platform = entity_platform.async_get_current_platform().domain
+    the_platform = entity_platform.async_get_current_platform().domain
 
     for a_entity_description in SENSORS:
         a_entity_description: ExtSensorEntityDescription
@@ -52,17 +52,24 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
         #     #     _LOGGER.debug(f"{a_entity_description.tag} no VALUE to RESTORE {restored_value}")
 
-        if a_entity_description.tag == Tag.ODOMETER:
+        if a_entity_description.state_class == SensorStateClass.TOTAL_INCREASING:
             # make sure that the entity_id will have the correct domain!
             # in 'some' cases the domain was 'fordpass.' instead of the expected 'sensor.'
-            entity_id = f"{platform}.{sensor.entity_id.split('.')[1]}"
+            entity_id = f"{the_platform}.{sensor.entity_id.split('.')[1]}"
             restored_state = storage.last_states.get(entity_id, None)
             if restored_state is not None and isinstance(restored_state, StoredState) and restored_state.state is not None and restored_state.state.state is not None:
                 try:
-                    sensor._previous_state = restored_state.state.state
-                    _LOGGER.debug(f"{coordinator.vli}SENSOR restored prev value for key '{a_entity_description.tag.key}': {restored_state.state.state}")
+                    # the restored value MUST be number (since we use the 'total_increasing' state_class
+                    a_val = restored_state.state.state
+                    if (isinstance(a_val, str) and a_val.lower() is not ["unknown", "unavailable", "unsupported", "none"]) or isinstance(a_val, Number):
+                        sensor._previous_state = float(a_val)
+                        _LOGGER.debug(f"{coordinator.vli}SENSOR restored prev value for key '{a_entity_description.tag.key}': {a_val}")
+                    else:
+                        _LOGGER.debug(f"{coordinator.vli}SENSOR ignoring prev value for key {a_entity_description.tag.key}: since it's not a number {type(a_val).__name__} '{a_val}'")
+                        sensor._previous_state = None
+
                 except BaseException as exc:
-                    _LOGGER.debug(f"{coordinator.vli}SENSOR ignoring prev value for key {a_entity_description.tag.key}: caused {type(exc).__name__} value is: {restored_state.state} - {exc}")
+                    _LOGGER.debug(f"{coordinator.vli}SENSOR ignoring prev value for key {a_entity_description.tag.key}: caused {type(exc).__name__} value is: {type(restored_state.state).__name__} {restored_state.state} - {exc}")
                     sensor._previous_state = None
 
         if a_entity_description.skip_existence_check or not check_data_availability:

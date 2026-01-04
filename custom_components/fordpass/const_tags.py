@@ -10,7 +10,6 @@ from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import (
     UnitOfTime,
-    UnitOfPower,
     UnitOfEnergy,
     UnitOfSpeed,
     UnitOfLength,
@@ -21,8 +20,12 @@ from homeassistant.const import (
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import RCC_TEMPERATURES_CELSIUS, ZONE_LIGHTS_OPTIONS, RCC_SEAT_OPTIONS_FULL, \
+from custom_components.fordpass.const import (
+    RCC_TEMPERATURES_CELSIUS,
+    ZONE_LIGHTS_OPTIONS,
+    RCC_SEAT_OPTIONS_FULL,
     ELVEH_TARGET_CHARGE_OPTIONS
+)
 from custom_components.fordpass.fordpass_handler import FordpassDataHandler, UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)

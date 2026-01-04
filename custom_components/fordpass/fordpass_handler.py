@@ -134,6 +134,12 @@ class FordpassDataHandler:
                 _LOGGER.debug(f"Invalid temperature value: '{value}' caused {type(e).__name__} {e}")
         return None
 
+    @staticmethod
+    def is_essential_vehicle_data_available(data):
+        if data is not None and ROOT_METRICS in data:
+            return len(data.get(ROOT_METRICS, {}).keys()) > 0
+        return False
+
     ###########################################################
     # State- and attribute-callable functions grouped by Tag
     ###########################################################

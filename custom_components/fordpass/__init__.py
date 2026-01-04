@@ -148,11 +148,30 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # well 'coordinator.async_config_entry_first_refresh()' does not work for our fordpass integration
     # I must debug later why this is the case
     await coordinator.async_refresh()  # Get initial data
-    if not coordinator.last_update_success or coordinator.data is None:
-        # we should check, if 'reauth' is required... and trigger it when
-        # it's needed...
+
+    # TO TEST STARTUP-ISSUES/ERRORS
+    # coordinator.data = {"metrics": {}}
+
+    is_essential_vehicle_data_available = FordpassDataHandler.is_essential_vehicle_data_available(coordinator.data)
+    if not coordinator.last_update_success or is_essential_vehicle_data_available is False:
+        # we should check if 'reauth' is required... and trigger it when
+        # it's necessary...
         await coordinator._check_for_reauth()
-        raise ConfigEntryNotReady
+
+        # report the GUI the final error/reason/some sort of what to check
+        if not is_essential_vehicle_data_available:
+            lang = hass.config.language.lower()
+            if lang in TRANSLATIONS:
+                lang_map = TRANSLATIONS[lang]
+            else:
+                lang_map = TRANSLATIONS["en"]
+
+            if coordinator.data is None:
+                raise ConfigEntryNotReady(lang_map["coord_null_data"])
+            else:
+                raise ConfigEntryNotReady(lang_map["coord_no_vehicle_data"])
+        else:
+            raise ConfigEntryNotReady("")
     else:
         await coordinator.read_config_on_startup(hass)
 
