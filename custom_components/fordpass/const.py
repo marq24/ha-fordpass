@@ -335,5 +335,29 @@ TRANSLATIONS: Final = {
         "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)",
         "coord_null_data": "Coordinator could not provided any data. Please check your Home Assistant system log for possible error messages.",
         "coord_no_vehicle_data": "Coordinator could not fetch essential information from your configured vehicle. Please check your Home Assistant system log for possible error messages."
+    },
+    "it": {
+        "account": "Account",
+        "deu": "Germania",
+        "fra": "Francia",
+        "nld": "Paesi Bassi",
+        "ita": "Italia",
+        "esp": "Spagna",
+        "nor": "Norvegia",
+        "gbr": "Regno Unito di Gran Bretagna e Irlanda del Nord",
+        "aus": "Australia",
+        "nzl": "Nuova Zelanda",
+        "zaf": "Sudafrica",
+        "can": "Canada",
+        "mex": "Messico",
+        "usa": "Stati Uniti d'America",
+        "bra": "Brasile",
+        "arg": "Argentina",
+        "rest_of_europe": "Altri Paesi Europei",
+        "rest_of_world": "Resto del Mondo",
+        "lincoln_usa": "Stati Uniti d'America",
+        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)",
+        "coord_null_data": "Il coordinatore non ha potuto fornire alcun dato. Controlla il registro di sistema di Home Assistant per possibili messaggi di errore.",
+        "coord_no_vehicle_data": "Il coordinatore non ha potuto recuperare le informazioni essenziali dal veicolo configurato. Controlla il registro di sistema di Home Assistant per possibili messaggi di errore."
     }
 }
