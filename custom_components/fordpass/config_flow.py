@@ -24,6 +24,9 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     OAUTH_ID,
     CLIENT_ID,
     REGIONS,
+    REGIONS_STRICT,
+    LEGACY_REGION_KEYS,
+    LEGACY_TO_ACTIVE_REGION_MAP,
     REGION_OPTIONS_FORD,
     DEFAULT_REGION_FORD,
     REGION_OPTIONS_LINCOLN,
@@ -640,24 +643,35 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 # we should not save our user-captured 'code' url...
                 del user_input[CONF_TOKEN_STR]
 
-                if self.check_token(token_fragment, reauth_entry.data[CONF_REGION]):
+                if self.check_token(token_fragment, self.region_key):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
                     # ok we have already the username and region, this must be stored
                     # in the config entry, so we can get it from there...
-                    user_input[CONF_REGION] = reauth_entry.data[CONF_REGION]
+                    user_input[CONF_REGION] = self.region_key
                     user_input[CONF_USERNAME] = reauth_entry.data[CONF_USERNAME]
                     _LOGGER.debug(f"async_step_reauth_token: user_input -> {user_input}")
 
                     info = await self.validate_token_only(user_input, token_fragment, self.code_verifier)
                     if info:
-                        # do we want to check, if the VIN is still accessible?!
+                        # do we want to check if the VIN is still accessible?!
                         # for now, we just will reload the config entry...
-                        await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+
+                        if reauth_entry.data.get(CONF_REGION, None) != self.region_key:
+                            # when the region key has changed (from LEGACY to a newly supported region), then
+                            # updating the config entry will automatically reload the config entry.
+                            _LOGGER.info(f"async_step_reauth_confirm(): region key changed from {reauth_entry.data[CONF_REGION]} to {self.region_key}")
+                            new_data = {**reauth_entry.data, **{CONF_REGION: self.region_key}}
+                            self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
+                        else:
+                            # when the reauth_entry does not need to be changed, then we must
+                            # trigger the reload of the config entry manually.
+                            await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+
                         return self.async_abort(reason="reauth_successful")
                     else:
-                        # what we need to do, if user did not re-authenticate successfully?
+                        # what do we need to do if user did not re-authenticate successfully?
                         _LOGGER.warning(f"Re-Authorization failed - fordpass integration can't provide data for VIN: {reauth_entry.data[CONF_VIN]}")
                         return self.async_abort(reason="reauth_unsuccessful")
                 else:
@@ -670,16 +684,37 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 else:
                     errors["base"] = "cannot_connect - UNKNOWN REASON"
 
-        # then we generate again the fordpass-login-url and show it to the
-        # user...
-        return self.async_show_form(
-            step_id="reauth_confirm",
-            data_schema=vol.Schema({
-                vol.Optional(CONF_URL, default=self.generate_url(reauth_entry.data[CONF_REGION])): str,
-                vol.Required(CONF_TOKEN_STR): str,
-            }),
-            errors=errors
-        )
+        # first of all we check IF this is a LEGACY region?!
+        self.region_key = None
+        a_config_region = reauth_entry.data.get(CONF_REGION, None)
+        if a_config_region is None:
+            _LOGGER.error(f"async_step_reauth_confirm(): No region found in reauth_entry.data: {reauth_entry.data}")
+
+        elif a_config_region in REGIONS_STRICT:
+            self.region_key = a_config_region
+            _LOGGER.debug(f"async_step_reauth_confirm(): Actively supported region key {a_config_region}")
+
+        elif a_config_region in LEGACY_REGION_KEYS:
+            self.region_key = LEGACY_TO_ACTIVE_REGION_MAP.get(a_config_region, DEFAULT_REGION_FORD)
+            _LOGGER.warning(f"async_step_reauth_confirm(): active region key is LEGACY {a_config_region}, the key must be adjusted to {self.region_key}")
+
+        if self.region_key is not None:
+            # then we generate again the fordpass-login-url and show it to the
+            # user...
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=vol.Schema({
+                    vol.Optional(CONF_URL, default=self.generate_url(region_key=self.region_key)): str,
+                    vol.Required(CONF_TOKEN_STR): str,
+                }),
+                description_placeholders={
+                    CONF_USERNAME: reauth_entry.data.get(CONF_USERNAME, "UNKNOWN-USER")
+                },
+                errors=errors
+            )
+        else:
+            # what should we return here? - we just can cancel the reauth...
+            return self.async_abort(reason="reauth_not_possible")
 
     @staticmethod
     @callback

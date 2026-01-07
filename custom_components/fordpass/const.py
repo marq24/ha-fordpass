@@ -48,6 +48,13 @@ REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
 DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
 
 LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
+LEGACY_TO_ACTIVE_REGION_MAP: Final = {
+    "USA":          "usa",
+    "Canada":       "can",
+    "Australia":    "aus",
+    "UK&Europe":    "rest_of_europe",
+    "Netherlands":  "nld"
+}
 
 REGION_APP_IDS: Final = {
     "africa":           "71AA9ED7-B26B-4C15-835E-9F35CC238561", # South Africa, ...

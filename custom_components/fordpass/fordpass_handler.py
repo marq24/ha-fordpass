@@ -87,7 +87,7 @@ class FordpassDataHandler:
 
     @staticmethod
     def get_value_for_metrics_key(data, metrics_key, default=UNSUPPORTED):
-        """Get a value from metrics with default fallback."""
+        """Get a value from metrics with a default fallback."""
         return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", default)
 
     @staticmethod
@@ -209,9 +209,16 @@ class FordpassDataHandler:
         attrs = {}
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "batteryVoltage" in data_metrics:
-            attrs["batteryVoltage"] = data_metrics.get("batteryVoltage", 0)
+            if data_metrics["batteryVoltage"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
+                attrs["batteryVoltage"] = FordpassDataHandler.get_value_for_metrics_key(data, "batteryVoltage")
+            else:
+                attrs["batteryVoltageObject"] = data_metrics.get("batteryVoltage", 0)
+
         if "batteryLoadStatus" in data_metrics:
-            attrs["batteryLoadStatus"] = data_metrics.get("batteryLoadStatus", UNSUPPORTED)
+            if data_metrics["batteryLoadStatus"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
+                attrs["batteryLoadStatus"] = FordpassDataHandler.get_value_for_metrics_key(data, "batteryLoadStatus")
+            else:
+                attrs["batteryLoadStatusObject"] = data_metrics.get("batteryLoadStatus", UNSUPPORTED)
         return attrs or None
 
 
