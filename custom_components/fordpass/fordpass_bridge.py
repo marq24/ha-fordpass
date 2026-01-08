@@ -401,12 +401,12 @@ class ConnectedFordPassVehicle:
     def mark_re_auth_required(self, ws=None):
         stack_trace = traceback.format_stack()
         stack_trace_str = ''.join(stack_trace[:-1])  # Exclude the call to this function
-        _LOGGER.warning(f"{self.vli}mark_re_auth_required() called!!! -> stack trace:\n{stack_trace_str}")
-        self.ws_close(ws)
+        _LOGGER.info(f"{self.vli}mark_re_auth_required() called\nThis is not an error/issue - it will just help me (marq24, the integration developer) to understand the method sequence - Please do not report this occurrence itself as issue - TIA - so here is the stack trace:\n{stack_trace_str}")
+        asyncio.create_task(self.ws_close(ws))
         self._is_reauth_required = True
 
     async def __ensure_valid_tokens(self, now_time:float=None):
-        # Fetch and refresh token as needed
+        # Fetch and refresh a token as needed
         # with get_sync_lock_for_user_and_region(self.username, self.region_key, self.vli):
 
         _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
@@ -713,6 +713,10 @@ class ConnectedFordPassVehicle:
         """Save token to file for reuse"""
         _LOGGER.debug(f"{self.vli}_write_token_to_storage()")
 
+        if self.stored_tokens_location is None:
+            _LOGGER.info(f"{self.vli}_write_token_to_storage(): self._app_stored_tokens_location is None - NO-ACCESS-TOKEN-FILE will be SAVED")
+            return
+
         # Check if the parent directory exists
         directory = os.path.dirname(self.stored_tokens_location)
         if not os.path.exists(directory):
@@ -727,16 +731,30 @@ class ConnectedFordPassVehicle:
             await asyncio.get_running_loop().run_in_executor(None, lambda: self.__write_token_int(token))
         else:
             _LOGGER.wrning(f"{self.vli}_write_token_to_storage(): Directory '{directory}' does not exist, cannot write token file.")
+
         # Make sure that we will read the token data next time
         self.use_token_data_from_memory = False
 
     def __write_token_int(self, token):
-        """Synchronous method to write token file, called from executor."""
-        try:
-            with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
-                json.dump(token, outfile)
-        except OSError as exc:
-            _LOGGER.error(f"{self.vli}_write_token_to_storage(): Failed to create directory '{self.stored_tokens_location}': {type(exc).__name__} - {exc}")
+        """Synchronous method to write the token file, called from executor."""
+        if self.stored_tokens_location is None:
+            _LOGGER.info(f"{self.vli}__write_token_int(): self._app_stored_tokens_location is None - NO-ACCESS-TOKEN-FILE will be SAVED")
+            return
+
+        if token is None:
+            try:
+                os.remove(self.stored_tokens_location)
+                _LOGGER.debug(f"{self.vli}__write_token_int(): Token file deleted: {self.stored_tokens_location}")
+            except FileNotFoundError:
+                _LOGGER.debug(f"{self.vli}__write_token_int(): Token file not found, nothing to delete: {self.stored_tokens_location}")
+            except OSError as exc:
+                _LOGGER.info(f"{self.vli}__write_token_int(): Error deleting token file: {type(exc).__name__} - {exc}")
+        else:
+            try:
+                with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
+                    json.dump(token, outfile)
+            except OSError as exc:
+                _LOGGER.error(f"{self.vli}__write_token_int(): Failed to create directory '{self.stored_tokens_location}': {type(exc).__name__} - {exc}")
 
     async def _read_token_from_storage(self):
         """Read saved token from a file"""
@@ -750,8 +768,9 @@ class ConnectedFordPassVehicle:
             #self.mark_re_auth_required()
             #return None
 
-        except ValueError:
+        except ValueError as ex:
             _LOGGER.warning(f"{self.vli}_read_token_from_storage: 'ValueError' invalidate TOKEN FILE -> mark_re_auth_required()")
+            _LOGGER.debug(f"{self.vli}_read_token_from_storage: '{type(ex).__name__}' details -> {ex} - file location {self.stored_tokens_location}")
             self.mark_re_auth_required()
         return None
 

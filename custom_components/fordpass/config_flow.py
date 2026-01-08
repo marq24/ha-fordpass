@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from secrets import token_urlsafe
 from typing import Any, Final
+from urllib.parse import urlparse, parse_qs
 
 import aiohttp
 import voluptuous as vol
@@ -116,6 +117,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         hashed_verifier = hashlib.sha256(code_verifier.encode("utf-8"))
         code_challenge = urlsafe_b64encode(hashed_verifier.digest())
+        #the 'simpler' encoded challenge is not accepted... [so I rolled this back]
+        #code_challenge = b32encode(hashed_verifier.digest())
         code_challenge_without_padding = code_challenge.rstrip(b"=")
         return {
             "code_verifier": code_verifier,
@@ -176,7 +179,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     _LOGGER.warning(f"configured_accounts(): INCOMPATIBLE CONFIG ENTRY FOUND: {entry}")
         return accounts
 
-    async def validate_token(self, data, token:str, code_verifier:str):
+    async def validate_token(self, data, code_urlstring:str, code_verifier:str):
         _LOGGER.debug(f"validate_token(): {data}")
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
@@ -185,7 +188,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
 
-        results = await bridge.generate_tokens(token, code_verifier, data[CONF_REGION])
+        results = await bridge.generate_tokens(code_urlstring.strip(), code_verifier, data[CONF_REGION])
 
         if results:
             _LOGGER.debug(f"validate_token(): request Vehicles")
@@ -197,8 +200,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             self._can_not_connect_reason = bridge.login_fail_reason
             raise CannotConnect
 
-    async def validate_token_only(self, data, token:str, code_verifier:str) -> bool:
-        _LOGGER.debug(f"validate_token_only(): {data}")
+    async def validate_token_only(self, data, code_urlstring:str, code_verifier:str) -> bool:
+        _LOGGER.debug(f"validate_token_only(): with data: {data}")
         if self._session is None:
             self._session = async_create_clientsession(self.hass)
 
@@ -206,7 +209,12 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
 
-        results = await bridge.generate_tokens(token, code_verifier, data[CONF_REGION])
+        _LOGGER.debug(f"validate_token_only(): delete the existing token file - so we can really start with a fresh setup")
+        await bridge._write_token_to_storage(token=None)
+        _LOGGER.debug(f"validate_token_only(): will sleep not for 3 seconds")
+        await asyncio.sleep(3)
+        _LOGGER.debug(f"validate_token_only(): continue now after sleeping, hopefully all IO stuff is done...")
+        results = await bridge.generate_tokens(code_urlstring.strip(), code_verifier, data[CONF_REGION])
 
         if not results:
             _LOGGER.debug(f"validate_token_only(): failed - {results}")
@@ -454,11 +462,11 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                token_fragment = user_input[CONF_TOKEN_STR]
+                code_urlstring = user_input[CONF_TOKEN_STR]
                 # we should not save our user-captured 'code' url...
                 del user_input[CONF_TOKEN_STR]
 
-                if self.check_token(token_fragment, self.region_key):
+                if self.preverify_code_url_string(urlstring=code_urlstring, region_key=self.region_key):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
@@ -466,7 +474,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     user_input[CONF_USERNAME] = self.username
                     _LOGGER.debug(f"user_input {user_input}")
 
-                    info = await self.validate_token(user_input, token_fragment, self.code_verifier)
+                    info = await self.validate_token(user_input, code_urlstring, self.code_verifier)
                     self.cached_login_input = user_input
 
                     return await self.extract_vehicle_info_and_proceed_with_next_step(info)
@@ -513,8 +521,26 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             return await self.async_step_vin()
 
     @staticmethod
-    def check_token(token, region_key):
-        _LOGGER.debug(f"check_token(): selected REGIONS object: {REGIONS[region_key]}")
+    def preverify_code_url_string(urlstring, region_key):
+        _LOGGER.debug(f"preverify_code_url_string(): selected REGIONS object: {REGIONS[region_key]}")
+
+        if urlstring is not None and len(urlstring) > 0:
+            trimmed_urlstring = urlstring.strip()
+            redirect_schema = "fordapp"
+            if region_key in REGIONS and "redirect_schema" in REGIONS[region_key]:
+                redirect_schema = REGIONS[region_key]["redirect_schema"]
+
+            if trimmed_urlstring.startswith(f"{redirect_schema}://"):
+                query_params = parse_qs(urlparse(trimmed_urlstring).query)
+                if "code" in query_params:
+                    return True
+                else:
+                    _LOGGER.error(f"preverify_code_url_string(): No 'code' parameter found in redirect URL")
+            else:
+                _LOGGER.error(f"preverify_code_url_string(): redirect URL does not start with '{redirect_schema}'")
+        else:
+            _LOGGER.error(f"preverify_code_url_string(): invalid URL '{urlstring}'")
+        return False
 
         redirect_schema = "fordapp"
         if "redirect_schema" in REGIONS[region_key]:
@@ -639,11 +665,11 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                token_fragment = user_input[CONF_TOKEN_STR]
+                code_urlstring = user_input[CONF_TOKEN_STR]
                 # we should not save our user-captured 'code' url...
                 del user_input[CONF_TOKEN_STR]
 
-                if self.check_token(token_fragment, self.region_key):
+                if self.preverify_code_url_string(urlstring=code_urlstring, region_key=self.region_key):
                     # we don't need our generated URL either...
                     del user_input[CONF_URL]
 
@@ -651,9 +677,9 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     # in the config entry, so we can get it from there...
                     user_input[CONF_REGION] = self.region_key
                     user_input[CONF_USERNAME] = reauth_entry.data[CONF_USERNAME]
-                    _LOGGER.debug(f"async_step_reauth_token: user_input -> {user_input}")
+                    _LOGGER.debug(f"async_step_reauth_confirm(): user_input -> {user_input}")
 
-                    info = await self.validate_token_only(user_input, token_fragment, self.code_verifier)
+                    info = await self.validate_token_only(user_input, code_urlstring, self.code_verifier)
                     if info:
                         # do we want to check if the VIN is still accessible?!
                         # for now, we just will reload the config entry...
@@ -667,7 +693,14 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         else:
                             # when the reauth_entry does not need to be changed, then we must
                             # trigger the reload of the config entry manually.
-                            await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+
+                            # BUT waiting till it's actually restarted might not that be THAT smart?
+                            try:
+                                async with asyncio.timeout(30):
+                                    await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+                            except TimeoutError:
+                                _LOGGER.warning(f"async_step_reauth_confirm(): Timeout reloading config entry {reauth_entry.entry_id} during reauth")
+                                return self.async_abort(reason="reauth_reload_failed")
 
                         return self.async_abort(reason="reauth_successful")
                     else:

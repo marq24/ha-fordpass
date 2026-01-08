@@ -41,8 +41,9 @@
         "abort": {
             "already_configured": "Account is already configured",
             "no_vehicles": "No vehicles on account or all are configured already",
-            "reauth_successful": "Re-Autorization was successful",
-            "reauth_unsuccessful": "Re-Autorization FAILED\n\nPlease check the token and try again",
+            "reauth_successful": "Re-Authorization was completed",
+            "reauth_reload_failed": "Re-Authorization was completed\n\nBut the integration could not be reloaded. Please restart Home Assistant to complete the re-Authorization process or check your log for further details",
+            "reauth_unsuccessful": "Re-Authorization FAILED\n\nPlease check the token and try again",
             "reauth_not_possible": "No valid region found\n\nUnfortunately you must reconfigure the integration",
             "no_filesystem_access": "This integration requires access to the local file system of your HomeAssistant installation to store a key for your FordPass™/The Lincoln Way™ account.\n\nTo do this, a subfolder will be created in the '.storage/' folder. However, this is currently not possible. An internal test failed. You can find details in the log of your Home Assistant instance.\n\nPlease ensure that you are running the Home Assistant installation with the correct user who has write access to the local file system.\n\nIf you are running Home Assistant in a Docker container, ensure that you are running the container with the correct user and that the container has access to the local file system.\n\nPlease check your installation and restart the setup of this integration once access to the local file system is possible.",
             "no_brand": "No Brand (Ford or Lincoln) could be detected"
