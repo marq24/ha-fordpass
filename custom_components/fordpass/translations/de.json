@@ -67,6 +67,13 @@
                     "setup_type": "Wenn Du mit demselben Account ein zweites Fahrzeug einrichtest, darf immer nur eines der beiden im HA aktiv sein – sonst überschreiben sich die Access-Token gegenseitig"
                 }
             },
+            "user_connect": {
+                "title": "Neues Ford Fahrzeug hinzufügen",
+                "description": "## Willkommen zur FordConnect Query Integration\nDies ist eine [alternative Integration zu FordPass](https://github.com/marq24/ha-fordpass), die die FordConnect Query API nutzt. Diese API bietet __read-only__ Zugriff auf Deine Fahrzeugdaten.\n### Voraussetzungen\n- Dein Fahrzeug muss über die neueste On-Board-Modem-Funktionalität verfügen und bei der FordPass™-Anwendung registriert/autorisiert sein.\n- Einen API-Schlüssel, der zuvor im EU-Ford-Entwicklerportal registriert wurde.\n\nWeitere Informationen findest Du [im _Application Registration Guide_. Dort findest Du auch eine Schritt-für-Schritt-Anleitung](https://github.com/marq24/ha-fordconnect-query/blob/main/docs/REGISTER_APPLICATION.md) zur Registrierung eines solchen Schlüssels.\n### Benötigst Du weitere Hilfe?\nAlle weiteren Einrichtungsdetails findest Du [hier im _Integration Setup Guide_](https://github.com/marq24/ha-fordconnect-query/blob/main/docs/CONFIGURE_INTEGRATION.md).\n### Abschließender Hinweis in eigener Sache\nWenn Du diese Integration nützlich findest, dann bitte denk doch bitte darüber nach, ob Du mich nicht vielleicht als GitHub-Projekt-Sponsor (oder auf eine der anderen in [meinem Profil@GitHub](https://github.com/marq24) beschriebenen Art) unerstützen möchtest – vielen Dank an die Menschen, die dies bereits tun – Ihr seid großartig!",
+                "data": {
+                    "config_title": "Wähle einen Namen für den Konfigurations-Eintrag aus"
+                }
+            },
             "select_account": {
                 "title": "FordPass™/The Lincoln Way™-Konto auswählen",
                 "description": "Bitte wähle das FordPass™/The Lincoln Way™-Konto, aus dem Du ein weiteres Fahrzeug hinzufügen möchtest.",
@@ -92,6 +99,10 @@
                     "url": "URL: Füge diese in Deinen Browser ein",
                     "tokenstr": "Token Request-URL: Nachdem der Anmeldevorgang im Browser abgeschlossen ist, füge die vollständige „Request-URL“ ein"
                 }
+            },
+            "reauth_confirm_connect": {
+                "title": "Erneute Autorisierung erforderlich",
+                "description": "Dein bisheriges Token ist ungültig (geworden) - Du musst nun ein Neues für das Konto {username} erzeugen"
             },
             "brand": {
                 "data": {
@@ -141,16 +152,18 @@
             "init": {
                 "data": {
                     "pressure_unit": "Maßeinheit für Druck",
-                    "distance_unit": "Maßeinheit für Entfernung",
-                    "update_interval": "Aktualisierungsintervall FordPass-API (Sekunden)",
+                    "scan_interval": "Aktualisierungsintervall der Ford-API Requests (Sekunden)",
+                    "update_interval": "Aktualisierungsintervall der Ford-API Requests (Sekunden)",
                     "force_remote_climate_control": "Die Optionen der Klima Fernsteuerung (❄|☀) [RemoteControl] sollen immer verfügbar sein",
                     "log_to_filesystem": "Protokolliere API-Antworten im lokalen HA Dateisystem"
                 },
                 "data_description": {
+                    "update_interval": "Das kleinste Interval sind 30 Sekunden",
+                    "scan_interval": "Das kleinste Interval sind 30 Sekunden",
                     "force_remote_climate_control": "Wenn Du diese Option aktivierst, werden die von Ford vorgegebenen Einstellungen ignoriert.",
-                    "log_to_filesystem": "Diese Option sollte nicht über einen längeren Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/fordpass/data_dumps'"
+                    "log_to_filesystem": "Diese Option sollte nicht über einen längeren Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/{integration_name}/data_dumps'"
                 },
-                "description": "Optionen konfigurieren"
+                "description": "Einstellungsoptionen für Integration"
             }
         }
     },

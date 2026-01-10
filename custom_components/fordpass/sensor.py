@@ -1,6 +1,7 @@
 """All vehicle sensors from the accessible by the API"""
 import logging
 from dataclasses import replace
+from datetime import datetime
 from numbers import Number
 from typing import Any
 
@@ -11,7 +12,8 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.restore_state import RestoreEntity, async_get, StoredState
 
 from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN
+from custom_components.fordpass.const_shared import COORDINATOR_KEY
 from custom_components.fordpass.const_tags import SENSORS, ExtSensorEntityDescription, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 
@@ -78,7 +80,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
             # calling the state reading function to check if the sensor should be added (if there is any data)
             value = a_entity_description.tag.state_fn(coordinator.data, None)
             if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
-                                      (isinstance(value, (dict, list)) and len(value) != 0) ):
+                                      (isinstance(value, (dict, list)) and len(value) != 0) or
+                                      (isinstance(value, datetime) and value) ):
                 sensors.append(sensor)
             else:
                 _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' skipping cause no data available: type: {type(value).__name__} - value:'{value}'")

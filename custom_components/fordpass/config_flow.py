@@ -20,7 +20,7 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.storage import STORAGE_DIR
 
-from custom_components.fordpass.const import (  # pylint:disable=unused-import
+from custom_components.fordpass.const import (
     DOMAIN,
     OAUTH_ID,
     CLIENT_ID,
@@ -38,15 +38,17 @@ from custom_components.fordpass.const import (  # pylint:disable=unused-import
     CONF_IS_SUPPORTED,
     CONF_BRAND,
     CONF_VIN,
-    CONF_PRESSURE_UNIT,
-    CONF_LOG_TO_FILESYSTEM,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
-    PRESSURE_UNITS,
-    DEFAULT_PRESSURE_UNIT,
     BRAND_OPTIONS,
 
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
+)
+from custom_components.fordpass.const_shared import (
+    CONF_PRESSURE_UNIT,
+    CONF_LOG_TO_FILESYSTEM,
+    PRESSURE_UNITS,
+    DEFAULT_PRESSURE_UNIT,
 )
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
 
@@ -772,4 +774,4 @@ class FordPassOptionsFlowHandler(OptionsFlow):
                    vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL, default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
                    vol.Optional(CONF_LOG_TO_FILESYSTEM, default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
                    vol.Optional(UPDATE_INTERVAL, default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int}
-        return self.async_show_form(step_id="init", data_schema=vol.Schema(options))
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(options), description_placeholders={"integration_name": "fordpass"})

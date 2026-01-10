@@ -22,28 +22,32 @@ from homeassistant.util.unit_system import UnitSystem
 
 from custom_components.fordpass.const import (
     DOMAIN,
-    TRANSLATIONS,
-    STARTUP_MESSAGE,
     CONFIG_VERSION,
     CONFIG_MINOR_VERSION,
     CONF_IS_SUPPORTED,
-    CONF_PRESSURE_UNIT,
     CONF_VIN,
-    CONF_LOG_TO_FILESYSTEM,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
-    DEFAULT_PRESSURE_UNIT,
     DEFAULT_REGION_FORD,
-    MANUFACTURER_FORD,
-    MANUFACTURER_LINCOLN,
     REGION_OPTIONS_LINCOLN,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
-    COORDINATOR_KEY,
-    PRESSURE_UNITS,
     REGIONS,
     REGIONS_STRICT,
     LEGACY_REGION_KEYS,
-    RCC_SEAT_MODE_NONE, RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_MODE_HEAT_AND_COOL
+    TRANSLATIONS
+)
+from custom_components.fordpass.const_shared import (
+    STARTUP_MESSAGE,
+    CONF_PRESSURE_UNIT,
+    CONF_LOG_TO_FILESYSTEM,
+    DEFAULT_PRESSURE_UNIT,
+    MANUFACTURER_FORD,
+    MANUFACTURER_LINCOLN,
+    COORDINATOR_KEY,
+    PRESSURE_UNITS,
+    RCC_SEAT_MODE_NONE,
+    RCC_SEAT_MODE_HEAT_ONLY,
+    RCC_SEAT_MODE_HEAT_AND_COOL
 )
 from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
 from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
@@ -64,7 +68,7 @@ WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the FordPass component."""
-    hass.data.setdefault(DOMAIN, {})
+    # hass.data.setdefault(DOMAIN, {})
     return True
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
@@ -181,14 +185,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     else:
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, coordinator.start_watchdog)
 
-    fordpass_options_listener = config_entry.add_update_listener(entry_update_listener)
-
     if not config_entry.options:
         await async_update_options(hass, config_entry)
 
     hass.data[DOMAIN][config_entry.entry_id] = {
-        COORDINATOR_KEY: coordinator,
-        "fordpass_options_listener": fordpass_options_listener
+        COORDINATOR_KEY: coordinator
     }
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
@@ -246,6 +247,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 async def async_update_options(hass, config_entry):
     """Update options entries on change"""
+    _LOGGER.debug(f"async_update_options(): called for entry: {config_entry.entry_id}")
     options = {
         CONF_PRESSURE_UNIT: config_entry.data.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),
     }
@@ -254,7 +256,7 @@ async def async_update_options(hass, config_entry):
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.debug(f"async_unload_entry() called for entry: {config_entry.entry_id}")
+    _LOGGER.debug(f"async_unload_entry(): called for entry: {config_entry.entry_id}")
     unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
     if unload_ok:

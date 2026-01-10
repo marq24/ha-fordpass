@@ -7,7 +7,8 @@ from homeassistant.components.number import NumberEntity
 from homeassistant.const import UnitOfTemperature
 
 from custom_components.fordpass import FordPassEntity, RCC_TAGS, FordPassDataUpdateCoordinator
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN
+from custom_components.fordpass.const_shared import COORDINATOR_KEY
 from custom_components.fordpass.const_tags import Tag, NUMBERS, ExtNumberEntityDescription
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED, ROOT_METRICS
 

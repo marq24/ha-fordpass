@@ -22,7 +22,9 @@ from custom_components.fordpass import DOMAIN
 from custom_components.fordpass.const import (
     OAUTH_ID,
     CLIENT_ID,
-    REGIONS,
+    REGIONS
+)
+from custom_components.fordpass.const_shared import (
     ZONE_LIGHTS_VALUE_OFF,
     REMOTE_START_STATE_ACTIVE,
     REMOTE_START_STATE_INACTIVE,

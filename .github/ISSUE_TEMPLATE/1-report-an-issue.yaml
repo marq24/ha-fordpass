@@ -1,6 +1,5 @@
 name: Problem Report
 description: please report any technical issue with this home assistant integration - please note this is not a official Ford repository or service
-labels: bug
 body:
   - type: markdown
     attributes:

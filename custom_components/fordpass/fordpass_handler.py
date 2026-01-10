@@ -9,7 +9,7 @@ from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
 from homeassistant.util import dt
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import (
+from custom_components.fordpass.const_shared import (
     ZONE_LIGHTS_VALUE_ALL_ON,
     ZONE_LIGHTS_VALUE_FRONT,
     ZONE_LIGHTS_VALUE_REAR,

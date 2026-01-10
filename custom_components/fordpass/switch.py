@@ -4,7 +4,8 @@ import logging
 from homeassistant.components.switch import SwitchEntity
 
 from custom_components.fordpass import FordPassEntity, RCC_TAGS
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY
+from custom_components.fordpass.const import DOMAIN
+from custom_components.fordpass.const_shared import COORDINATOR_KEY
 from custom_components.fordpass.const_tags import SWITCHES, Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 

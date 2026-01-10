@@ -2,12 +2,6 @@
 ## Supporting all Ford vehicles with FordPass™ & Lincoln vehicles with The Lincoln Way™ connectivity
 
 <!--
-> [!IMPORTANT]  
-> ## New Users: You need version 2025.10.2 or later!
-> When you want to initially set up this integration, you must use the latest version (2025.10.2 or later) – in any other case you will get no response from the Ford backend, when the integration trying to fetch the access_token ([see Issue #107](https://github.com/marq24/ha-fordpass/issues/107)).
--->
-
-<!--
 # IMPORTANT 2025/10/22 - Integration Setup does NOT WORK ANYLONGER
 
 I am sorry to let you know that Ford have changed once again the initial login procedure to receive an initial ACCESS-Token for a Ford vehicle. This means that NEW users currently can't set up this integration - since the complete Setup will NOT work.
@@ -47,6 +41,15 @@ If you currently have your integration configured, then you might be lucky and t
 > Since this integration is not officially supported by Ford, using it could result in your being locked out! from your account.
 >
 > **It's recommended** to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
+
+---
+> [!TIP]
+> ## FordConnect Query _an alternative HA Integration_
+> When you _just_ want to access (read-only) data from your Ford vehicle, then you can also use the [FordConnect Query integration](https://github.com/marq24/ha-fordconnect-query) instead.
+>
+> Using FordConnect might be for you a better choice if you have issues with getting the required access token for this Fordpass integration (exacting it via the developer tools of your browser).
+> 
+> While the access-token-acquire-process is (IMHO) much simpler in the FordConnect integration, the registration of _application API credentials_ in the _EU Ford Developer Portal_ is required for this one. This process is also fully documented, but could be considered also as _a bit more complex_ than you might be used to, from other HA integration you are using so far.
 
 ---
 

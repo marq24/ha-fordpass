@@ -10,7 +10,7 @@
 
 ### **Step I:**
 1. In Home Assistant: Enter your Fordpass username
-2. You can select an alternative Region, __but currently I do not expect that any other region then `USA` will work__.
+2. You should select your region (where you have registered your FordPass account).
 
 ![image](./../images/001.png)
 

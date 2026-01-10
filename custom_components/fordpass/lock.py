@@ -5,7 +5,8 @@ import logging
 from homeassistant.components.lock import LockEntity
 
 from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN, COORDINATOR_KEY, VEHICLE_LOCK_STATE_LOCKED
+from custom_components.fordpass.const import DOMAIN
+from custom_components.fordpass.const_shared import COORDINATOR_KEY, VEHICLE_LOCK_STATE_LOCKED
 from custom_components.fordpass.const_tags import Tag
 from custom_components.fordpass.fordpass_handler import UNSUPPORTED
 

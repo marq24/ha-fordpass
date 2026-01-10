@@ -8,10 +8,12 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.fordpass.const import (
-    DOMAIN,
+from custom_components.fordpass.const import DOMAIN
+from custom_components.fordpass.const_shared import (
     COORDINATOR_KEY,
-    RCC_SEAT_MODE_HEAT_ONLY, RCC_SEAT_OPTIONS_HEAT_ONLY, RCC_TEMPERATURES_CELSIUS
+    RCC_SEAT_MODE_HEAT_ONLY,
+    RCC_SEAT_OPTIONS_HEAT_ONLY,
+    RCC_TEMPERATURES_CELSIUS
 )
 from custom_components.fordpass.const_tags import SELECTS, ExtSelectEntityDescription, Tag, RCC_TAGS
 from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED, FordpassDataHandler, ROOT_METRICS

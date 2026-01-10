@@ -20,7 +20,7 @@ from homeassistant.const import (
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import (
+from custom_components.fordpass.const_shared import (
     RCC_TEMPERATURES_CELSIUS,
     ZONE_LIGHTS_OPTIONS,
     RCC_SEAT_OPTIONS_FULL,

@@ -67,6 +67,13 @@
                     "setup_type": "If you set up a second vehicle with the same account, only one of the two may be active in HA at any one time - otherwise the access tokens will overwrite each other"
                 }
             },
+            "user_connect": {
+                "title": "Add a new Ford Vehicle",
+                "description": "## Welcome to the FordConnect Query Integration\nThis is an alternative [integration to FordPass](https://github.com/marq24/ha-fordpass), making use of the FordConnect Query API. This API provides __read-only__ access to the vehicle data.\n### Requirements\n- Your car must have the latest on-board modem functionality and have been registered/authorized with the FordPass™ application\n- An API credential pair previously registered with the EU Ford developer portal.\n\nFurther information can be found in [_the Application Registration Guide_. This includes a step-by-step procedure](https://github.com/marq24/ha-fordconnect-query/blob/main/docs/REGISTER_APPLICATION.md) to register an application at Fords EU developer portal.\n### Need further instructions?\nAll other setup details can be found in the [Integration Setup Guide](https://github.com/marq24/ha-fordconnect-query/blob/main/docs/CONFIGURE_INTEGRATION.md)\n### Final note\nIf you find this integration useful, please consider supporting me as a GitHub project sponsor (or in one of the other ways [described here in my profile@GitHub](https://github.com/marq24)) – thank you to those who already do – you're all amazing!",
+                "data": {
+                    "config_title": "Please select a name for your Configuration entry"
+                }
+            },
             "select_account": {
                 "title": "Select your FordPass™/The Lincoln Way™-Account",
                 "description": "Please select the FordPass™/The Lincoln Way™ account from which you want to add another vehicle.",
@@ -92,6 +99,10 @@
                     "url": "URL: copy this into your browser",
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
                 }
+            },
+            "reauth_confirm_connect": {
+                "title": "Re-Authorization required",
+                "description": "Your previous token is invalid - so you must provide a new one for your account {username}"
             },
             "brand": {
                 "data": {
@@ -141,17 +152,18 @@
             "init": {
                 "data": {
                     "pressure_unit": "Unit of Pressure",
-                    "distance_unit": "Unit of Distance",
-                    "distance_conversion": "Disable distance conversion",
-                    "update_interval": "Interval to poll FordPass API (Seconds)",
+                    "update_interval": "Interval to poll Ford-API requests (Seconds)",
+                    "scan_interval": "Interval to poll Ford-API requests (Seconds)",
                     "force_remote_climate_control": "The remote climate (❄|☀) control options should always be available",
                     "log_to_filesystem": "Log API responses to local HA filesystem"
                 },
                 "data_description": {
+                    "update_interval": "The minimum update interval is 30 seconds",
+                    "scan_interval": "The minimum update interval is 30 seconds",
                     "force_remote_climate_control": "If you activate this option, the setting specified by Ford will be ignored.",
-                    "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/fordpass/data_dumps'"
+                    "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/{integration_name}/data_dumps'"
                 },
-                "description": "Configure fordpass options"
+                "description": "Configuration options for the Integration"
             }
         }
     },
