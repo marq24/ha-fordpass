@@ -46,7 +46,8 @@
             "reauth_unsuccessful": "Re-Authorization FAILED\n\nPlease check the token and try again",
             "reauth_not_possible": "No valid region found\n\nUnfortunately you must reconfigure the integration",
             "no_filesystem_access": "This integration requires access to the local file system of your HomeAssistant installation to store a key for your FordPass™/The Lincoln Way™ account.\n\nTo do this, a subfolder will be created in the '.storage/' folder. However, this is currently not possible. An internal test failed. You can find details in the log of your Home Assistant instance.\n\nPlease ensure that you are running the Home Assistant installation with the correct user who has write access to the local file system.\n\nIf you are running Home Assistant in a Docker container, ensure that you are running the container with the correct user and that the container has access to the local file system.\n\nPlease check your installation and restart the setup of this integration once access to the local file system is possible.",
-            "no_brand": "No Brand (Ford or Lincoln) could be detected"
+            "no_brand": "No Brand (Ford or Lincoln) could be detected",
+            "oauth_error_final": "## The final OAuth token retrival process failed\nSomething went wrong, when trying to request the final access token from Ford. Are you sure that the credentials you have specified as `client-id` & `secret` are correct?\nPlease also check the log of your Home Assistant for further possible error messages, that would help you to identify the root cause of this issue.\n\n#### Possible Reason:\n{error_info}"
         },
         "error": {
             "cannot_connect": "Failed to connect",
@@ -191,8 +192,6 @@
             "description": "Manually poll API for data update (Warning: doing this too often could result in a ban)"
         }
     },
-    "title": "FordPass",
-
     "entity": {
         "button": {
             "update_data":      {"name": "Local Sync"},

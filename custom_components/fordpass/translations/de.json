@@ -46,7 +46,8 @@
             "reauth_unsuccessful": "Re-Autorisierung fehlgeschlagen\n\nBitte prüf Deinen Login und versuche es erneut",
             "reauth_not_possible": "Keine gültige Region gefunden\n\nDu musst die Integration leider ganz neu konfigirieren",
             "no_filesystem_access": "Diese Integration benötigt Zugriff auf das lokale Dateisystem Deiner Home Assistant Installation, um einen Schlüssel für Deinen FordPass™/The Lincoln Way™ Account speichern zu können.\n\nHierzu wird im in dem Ordner '.storage/' einen Unterordner anlegen. Dies ist jedoch derzeit nicht möglich. Ein interner Test ist fehlgeschlagen. Details hierzu findest Du im LOG Deiner Home Assistant Instanz.\n\nBitte stelle sicher, dass Du die Home Assistant Installation mit dem richtigen Benutzer ausführst, der Schreibzugriff auf das lokale Dateisystem hat.\n\nWenn Du Home Assistant in einem Docker-Container ausführst, stelle sicher, dass Du den Container mit dem richtigen Benutzer ausführst und dass der Container Zugriff auf das lokale Dateisystem hat.\n\nBitte prüfe Deine installation und starte die Einrichtung dieser Integration neu, sobald der Zugriff auf das lokale Dateisystem möglich ist.",
-            "no_brand": "Kein Hersteller (Ford oder Lincoln) erkannt"
+            "no_brand": "Kein Hersteller (Ford oder Lincoln) erkannt",
+            "oauth_error_final": "## Der Abruf des finalen OAuth-Tokens ist fehlgeschlagen.\nBeim Anfordern des finalen Zugriffstokens von Ford ist ein Fehler aufgetreten. Bist Du sicher, dass die von Dir angegebenen Anmeldeinformationen (`client-id` und `secret`) korrekt sind?\nBitte überprüfe auch das Protokoll Deines Home Assistant auf weitere mögliche Fehlermeldungen. Diese können Dir helfen, die Ursache des Problems zu ermitteln.\n\n#### Mögliche Ursache vom Backend:\n\n{error_info}"
         },
         "error": {
             "cannot_connect": "Verbindungsfehler",
@@ -191,8 +192,6 @@
             "description": "Ruft eine manuelle Datenaktualisierung aus der FordPass-API auf. (Vorsicht: Häufige Aufrufe können zu einer temporären Drosselung/Sperre führen)"
         }
     },
-    "title": "FordPass",
-
     "entity": {
         "button": {
             "update_data":      {"name": "Lokaler Sync"},
