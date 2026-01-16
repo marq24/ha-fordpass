@@ -60,7 +60,7 @@
 
 ![webrequst](./../images/003a.png)
 
-5. Now look into the `Network tab` of the Browsers developer tools you just have opened in step 3. In the following the Chrome/Egde method is described – for Firefox please refer to the Firefox specific instructions linked above]
+5. Now look into the `Network tab` of the Browsers developer tools you just have opened in step 3. In the following the Chrome/Egde method is described [for Firefox please refer to the Firefox specific instructions linked above]
    
    - The last request (probably already showed in red) is the one we are interested in... Since this last request contains the code we must capture for the integration.
    - Do a right-click on that line that should start with `code?=...` (in the _Name_ Column)
