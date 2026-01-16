@@ -121,8 +121,8 @@ class Tag(ApiKey, Enum):
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_door_lock_state(data, None),
+                                 attrs_fn=FordpassDataHandler.get_door_lock_attrs,
                                  press_fn=FordpassDataHandler.lock_vehicle)
-
     # SWITCHES
     ##################################################
     # for historic reasons the key is "ignition" (even if it's the remote_start switch)
@@ -778,6 +778,13 @@ SENSORS = [
         skip_existence_check=True,
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.DOOR_LOCK,
+        key=Tag.DOOR_LOCK.key,
+        icon="mdi:car-door-lock",
+        has_entity_name=True,
+        entity_registry_enabled_default=True
     ),
 ]
 

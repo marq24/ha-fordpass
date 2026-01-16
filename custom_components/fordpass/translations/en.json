@@ -276,7 +276,8 @@
             "cabintemperature":         {"name": "Cabin Temperature"},
             "lastenergyconsumed":       {"name": "EV Energy Consumption (last trip)"},
             "energytransferlogentry":   {"name": "EV Last Charging Session"},
-            "remotestartcountdown":     {"name": "RC (❄|☀): Remaining Time"}
+            "remotestartcountdown":     {"name": "RC (❄|☀): Remaining Time"},
+            "doorlock":                 {"name": "State Locks"}
         },
         "select": {
             "zonelighting": {

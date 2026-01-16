@@ -276,7 +276,8 @@
             "cabintemperature":         {"name": "Innenraumtemperatur"},
             "lastenergyconsumed":       {"name": "EV Energieverbrauch (letzte Fahrt)"},
             "energytransferlogentry":   {"name": "EV Letzter Ladevorgang"},
-            "remotestartcountdown":     {"name": "RC (❄|☀): Verbleibende Zeit"}
+            "remotestartcountdown":     {"name": "RC (❄|☀): Verbleibende Zeit"},
+            "doorlock":                 {"name": "Status Verriegelung"}
         },
         "select": {
             "zonelighting": {

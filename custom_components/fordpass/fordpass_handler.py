@@ -16,11 +16,17 @@ from custom_components.fordpass.const_shared import (
     ZONE_LIGHTS_VALUE_DRIVER,
     ZONE_LIGHTS_VALUE_PASSENGER,
     ZONE_LIGHTS_VALUE_OFF,
-    XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC,
-    XEVPLUGCHARGER_STATE_DISCONNECTED, XEVPLUGCHARGER_STATE_CONNECTED,
+    XEVPLUGCHARGER_STATE_CHARGING,
+    XEVPLUGCHARGER_STATE_CHARGINGAC,
+    XEVPLUGCHARGER_STATE_DISCONNECTED,
+    XEVPLUGCHARGER_STATE_CONNECTED,
     XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
-    VEHICLE_LOCK_STATE_LOCKED, VEHICLE_LOCK_STATE_PARTLY, VEHICLE_LOCK_STATE_UNLOCKED,
-    REMOTE_START_STATE_ACTIVE, REMOTE_START_STATE_INACTIVE, HONK_AND_FLASH, DAYS_MAP
+    VEHICLE_LOCK_STATE_LOCKED,
+    VEHICLE_LOCK_STATE_PARTLY,
+    VEHICLE_LOCK_STATE_UNLOCKED,
+    REMOTE_START_STATE_ACTIVE,
+    REMOTE_START_STATE_INACTIVE,
+    HONK_AND_FLASH, DAYS_MAP
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -456,6 +462,22 @@ class FordpassDataHandler:
         else:
             return VEHICLE_LOCK_STATE_UNLOCKED
 
+    def get_door_lock_attrs(data, units:UnitSystem):
+        data_metrics = FordpassDataHandler.get_metrics(data)
+        attrs = {}
+        for a_door in data_metrics.get("doorLockStatus", []):
+            if "vehicleSide" in a_door:
+                if "vehicleDoor" in a_door and a_door['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
+                    attrs[FordpassDataHandler.to_camel(a_door['vehicleSide']+" FRONT")] = a_door['value']
+                elif "vehicleDoor" in a_door and a_door['vehicleDoor'].upper() == "UNSPECIFIED_REAR":
+                    attrs[FordpassDataHandler.to_camel(a_door['vehicleSide']+" REAR")] = a_door['value']
+                else:
+                    attrs[FordpassDataHandler.to_camel(a_door['vehicleDoor'])] = a_door['value']
+            else:
+                attrs[FordpassDataHandler.to_camel(a_door["vehicleDoor"])] = a_door['value']
+        return attrs
+
+
     # DOOR_STATUS state + attributes
     def get_door_status_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
@@ -473,7 +495,9 @@ class FordpassDataHandler:
         for a_door in data_metrics.get("doorStatus", []):
             if "vehicleSide" in a_door:
                 if "vehicleDoor" in a_door and a_door['vehicleDoor'].upper() == "UNSPECIFIED_FRONT":
-                    attrs[FordpassDataHandler.to_camel(a_door['vehicleSide'])] = a_door['value']
+                    attrs[FordpassDataHandler.to_camel(a_door['vehicleSide']+" FRONT")] = a_door['value']
+                elif "vehicleDoor" in a_door and a_door['vehicleDoor'].upper() == "UNSPECIFIED_REAR":
+                    attrs[FordpassDataHandler.to_camel(a_door['vehicleSide']+" REAR")] = a_door['value']
                 else:
                     attrs[FordpassDataHandler.to_camel(a_door['vehicleDoor'])] = a_door['value']
             else:
