@@ -1,6 +1,6 @@
 ## Chromium Based (Chrome / Edge) 
 
-❗Photos are taken in Google Chrome. Edge will look differently but the same steps apply
+❗Photos are taken in Google Chrome. Edge will look different but the same steps apply
 
 > [!NOTE]
 > It is recommended to disable any ad-blockers or extensions that might interfere with this process.  
@@ -37,18 +37,8 @@ Alternatively, you can use a private window.
 
 ## Firefox
 
-> [!WARNING]
-> Even if Firefox support developer tools by pressing F12 on the keyboard, for some reason the logging of request URL's does not work in a similar way then with chrome based browsers.
-> 
-> Technically it is also possible to make use of Firefox to capture the _required_ token URL via the developer tools - but for your mental safety please consider using a different browser for this operation.
-
-__I will keep the instructions for Firefox here as reference - but let me repeat, that I recommend to use a chrome based browser to perform this operation.__
-
----
-### Just as reference, if you really want to give it a try with Firefox 
-
 > [!NOTE]
-> It is recommended to disable any ad-blockers or extension that might interfere with this process. Alternatively, you can use a private window.  
+> It is recommended to disable any ad-blockers or extensions that might interfere with this process. Alternatively, you can use a private window.  
 Users have also reported issues using Firefox specifically.  
 **If you're having trouble using Firefox it is recommended to try using a Chromium based browser.**
 
@@ -56,19 +46,20 @@ Users have also reported issues using Firefox specifically.
 1. Open developer tools by pressing F12 on the keyboard
 2. Navigate to the URL provided through HomeAssistant
 
-![image](./../images/008.png)
-
 #### **Step 2:**
 1. Enter your credentials to login to Ford with the developer tools opened
 2. Press *Sign In*
-3. Select the item populated under Network (Item 1 in the photo below)
+3. Now navigate to the Network tab within your browser's developer tools and search for an entry (likely only one exists), which is starts with `?conmfirmed`. and then click on this item.
    > This will open a new section
+
+<table><tr><td><img src="./../images/008.png" width="675" /></td></tr></table>
+
 4. In the `Headers` tab, scroll down until you find `Response Headers` (Item 2 in the photo below)
 
-![image](./../images/009.png)
+<table><tr><td><img src="./../images/009.png" width="675" /></td></tr></table>
 
-5. Find the `Location` section and copy the entire string.
+5. Find the `Location` section (Item 3 in the photo) and "__Copy Value__" via the context menu.
 
-![image](./../images/010.png)
+<table><tr><td><img src="./../images/010.png" width="375" /></td></tr></table>
 
 6. Proceed with installation
