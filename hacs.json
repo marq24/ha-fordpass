@@ -1,5 +1,5 @@
 {
-	"name": "fordpass",
+	"name": "FordPass +2025 (EV/PHEV/Petrol/Diesel)",
 	"content_in_root": false,
     "homeassistant": "2024.12.0",
     "hacs": "1.18.0",
