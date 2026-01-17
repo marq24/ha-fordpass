@@ -1,0 +1,181 @@
+{
+    "selector": {
+        "region": {
+            "options": {
+                "aaa": "------ Veicoli FORD ------",
+                "deu": "Germania",
+                "fra": "Francia",
+                "nld": "Paesi Bassi",
+                "ita": "Italia",
+                "esp": "Spagna",
+                "nor": "Norvegia",
+                "gbr": "Regno Unito di Gran Bretagna e Irlanda del Nord",
+                "aus": "Australia [richiede un account 'ford.com.au/ford.co.nz']",
+                "nzl": "Nuova Zelanda [richiede un account 'ford.co.nz/ford.com.au']",
+                "zaf": "Sudafrica [richiede un account 'ford.co.za']",
+                "can": "Canada",
+                "mex": "Messico",
+                "usa": "Stati Uniti d'America",
+                "bra": "Brasile [richiede un account 'ford.com.br/ford.com.ar']",
+                "arg": "Argentina [richiede un account 'ford.com.ar/ford.com.br']",
+                "rest_of_europe": "Altri Paesi Europei",
+                "rest_of_world": "Resto del Mondo",
+                "zzz": "------ Veicoli LINCOLN ------",
+                "lincoln_usa": "Stati Uniti d'America"
+            }
+        },
+        "setup_type": {
+            "options": {
+                "new_account": "Aggiungi un nuovo account FordPass™/The Lincoln Way™ o configura una nuova regione",
+                "add_vehicle": "Aggiungi un veicolo da un account/regione FordPass™/The Lincoln Way™ esistente"
+            }
+        },
+        "brand": {
+            "options": {
+                "ford": "Veicoli Ford - App FordPass™",
+                "lincoln": "Veicoli Lincoln - App The Lincoln Way™"
+            }
+        }
+    },
+    "config": {
+        "abort": {
+            "already_configured": "L'account è già configurato",
+            "no_vehicles": "Nessun veicolo nell'account o tutti sono già configurati",
+            "reauth_successful": "Ri-autorizzazione completata con successo",
+            "reauth_unsuccessful": "Ri-autorizzazione FALLITA\n\nControlla il token e riprova",
+            "no_filesystem_access": "Questa integrazione richiede l'accesso al file system locale della tua installazione Home Assistant per salvare una chiave per il tuo account FordPass™/The Lincoln Way™.\n\nPer farlo verrà creata una sottocartella nella cartella '.storage/'. Tuttavia, al momento non è possibile. Un test interno è fallito. Puoi trovare i dettagli nel log della tua istanza Home Assistant.\n\nAssicurati di eseguire Home Assistant con l'utente corretto che abbia i permessi di scrittura sul file system locale.\n\nSe stai eseguendo Home Assistant in un container Docker, assicurati che il container sia avviato con l'utente corretto e che abbia accesso al file system locale.\n\nVerifica l'installazione e riavvia la configurazione dell'integrazione quando l'accesso al file system locale sarà possibile.",
+            "no_brand": "Impossibile rilevare il brand (Ford o Lincoln)"
+        },
+        "error": {
+            "cannot_connect": "Connessione fallita",
+            "invalid_auth": "Credenziali non valide",
+            "invalid_vin": "VIN non trovato per l'account specificato",
+            "invalid_mobile": "Se utilizzi la regione Sudafrica, il numero di cellulare deve essere specificato come username",
+            "invalid_token": "Il token non è valido, verifica di aver copiato il token corretto dall'Header Location (deve iniziare con fordapp:// o lincolnapp://)",
+            "unknown": "Errore imprevisto"
+        },
+        "step": {
+            "user": {
+                "title": "Aggiungi un nuovo account o veicolo FordPass™/The Lincoln Way™",
+                "description": "Poiché hai già configurato almeno un account FordPass™/The Lincoln Way™, devi prima selezionare se desideri aggiungere un altro veicolo o un nuovo account (o regione).\n-- --\n### Informazioni importanti sul supporto multi-veicolo\n\nSe hai __più__ veicoli registrati nel tuo account FordPass™/The Lincoln Way™, nell'app FordPass™/The Lincoln Way™ devi prima selezionare il veicolo che desideri utilizzare prima di poter accedere ai dati o alle funzionalità di quel veicolo. __La stessa limitazione vale anche__ per questa integrazione Home Assistant.\n\nIl motivo principale di questa limitazione è che l'app FordPass™ e questa integrazione utilizzano una connessione websocket verso il backend Ford, che può essere associata a un solo veicolo alla volta.\n\nTutti i dettagli sono disponibili qui: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#multi-vehicle-support",
+                "data": {
+                    "setup_type": "Cosa vuoi fare?"
+                },
+                "data_description": {
+                    "setup_type": "Se configuri un secondo veicolo con lo stesso account, solo uno dei due può essere attivo in Home Assistant alla volta, altrimenti i token di accesso si sovrascriveranno"
+                }
+            },
+            "select_account": {
+                "title": "Seleziona il tuo account FordPass™/The Lincoln Way™",
+                "description": "Seleziona l'account FordPass™/The Lincoln Way™ dal quale desideri aggiungere un altro veicolo.",
+                "data": {
+                    "account": "Account FordPass™/The Lincoln Way™"
+                },
+                "data_description": {
+                    "account": "Se configuri un secondo veicolo con lo stesso account, solo uno dei due può essere attivo in Home Assistant alla volta, altrimenti i token di accesso si sovrascriveranno"
+                }
+            },
+            "token": {
+                "title": "Configurazione Token",
+                "description": "La configurazione del token richiede un browser esterno per ottenere il token di accesso finale.\r\rI dettagli sono disponibili qui: https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rSegui questi passaggi:\r1. Copia l'URL sottostante\r2. Apri un browser (con strumenti di sviluppo attivi) e incolla l'URL copiato\r3. Inserisci nuovamente le tue credenziali FordPass™/The Lincoln Way™ e premi il pulsante di login\r4. Osserva la scheda Network finché non vedi la richiesta `?code=`\r5. Copia l'intero `Request-URL` da questa richiesta dagli strumenti di sviluppo del browser e incollalo nel campo Token sottostante\r6. Clicca OK per continuare",
+                "data": {
+                    "url": "URL: copialo nel browser",
+                    "tokenstr": "Request-URL del token: dopo il completamento del login nel browser, incolla l'intero `Request-URL`"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Ri-autorizzazione richiesta",
+                "description": "Il token precedente non è valido — devi quindi fornirne uno nuovo:\r\rLa configurazione del token richiede un browser esterno per ottenere il token di accesso finale.\r\rI dettagli sono disponibili qui: https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md\r\rSegui questi passaggi:\r1. Copia l'URL sottostante\r2. Apri un browser (con strumenti di sviluppo attivi) e incolla l'URL copiato\r3. Inserisci nuovamente le tue credenziali FordPass™/The Lincoln Way™ e premi il pulsante di login (non farti ingannare dallo spinner infinito — è normale)\r4. Osserva la scheda Network finché non vedi la richiesta `?code=`\r5. Copia l'intero `Request-URL` da questa richiesta dagli strumenti di sviluppo del browser e incollalo nel campo Token sottostante\r6. Clicca OK per continuare",
+                "data": {
+                    "url": "URL: copialo nel browser",
+                    "tokenstr": "Request-URL del token: dopo il completamento del login nel browser, incolla l'intero `Request-URL`"
+                }
+            },
+            "brand": {
+                "data": {
+                    "brand": "Seleziona il tuo brand"
+                }
+            },
+            "new_account_ford": {
+                "data": {
+                    "password": "Password FordPass™",
+                    "username": "Username FordPass™ (Email)",
+                    "region": "Regione FordPass™"
+                },
+                "data_description": {
+                    "username": "Se utilizzi un numero di cellulare invece dell'email, inserisci il numero (senza lo 0 iniziale) includendo + e il prefisso internazionale (es. +39123456789)",
+                    "region": "La regione selezionata deve corrispondere a quella con cui hai registrato il tuo account FordPass™. Maggiori dettagli su GitHub"
+                }
+            },
+            "new_account_lincoln": {
+                "data": {
+                    "password": "Password The Lincoln Way™",
+                    "username": "Username The Lincoln Way™ (Email)",
+                    "region": "Regione The Lincoln Way™"
+                },
+                "data_description": {
+                    "username": "Se utilizzi un numero di cellulare invece dell'email, inserisci il numero (senza lo 0 iniziale) includendo + e il prefisso internazionale (es. +39123456789)",
+                    "region": "La regione selezionata deve corrispondere a quella con cui hai registrato il tuo account The Lincoln Way™. Maggiori dettagli su GitHub"
+                }
+            },
+            "vehicle": {
+                "title": "Seleziona il veicolo da aggiungere",
+                "description": "Verranno mostrati solo i veicoli non ancora aggiunti",
+                "data": {
+                    "vin": "VIN"
+                }
+            },
+            "vin": {
+                "title": "Inserimento manuale VIN",
+                "description": "Inserisci manualmente il numero VIN poiché non è stato possibile trovare automaticamente alcun veicolo.",
+                "data": {
+                    "vin": "Numero VIN del veicolo"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "pressure_unit": "Unità di pressione",
+                    "distance_unit": "Unità di distanza",
+                    "distance_conversion": "Disabilita conversione distanza",
+                    "update_interval": "Intervallo di interrogazione API FordPass (secondi)",
+                    "force_remote_climate_control": "I controlli del clima remoto (❄|☀) devono essere sempre disponibili",
+                    "log_to_filesystem": "Registra le risposte API nel file system locale di HA"
+                },
+                "data_description": {
+                    "force_remote_climate_control": "Se attivi questa opzione, l'impostazione specificata da Ford verrà ignorata.",
+                    "log_to_filesystem": "Questa opzione non dovrebbe essere attivata per lunghi periodi!\rI file si trovano in: './storage/fordpass/data_dumps'"
+                },
+                "description": "Configura le opzioni FordPass"
+            }
+        }
+    },
+    "services": {
+        "refresh_status": {
+            "name": "Aggiorna stato veicolo",
+            "description": "Interroga l'auto per ottenere lo stato più recente (può richiedere fino a 5 minuti dopo l'esecuzione!)",
+            "fields": {
+                "vin": {
+                    "name": "VIN",
+                    "description": "Inserisci un VIN per aggiornare solo il veicolo specificato (per impostazione predefinita aggiorna tutti i veicoli aggiunti)"
+                }
+            }
+        },
+        "clear_tokens": {
+            "name": "Cancella token",
+            "description": "Cancella la cache dei token salvati (richiede una nuova autenticazione)"
+        },
+        "reload": {
+            "name": "Ricarica",
+            "description": "Ricarica l'integrazione FordPass"
+        },
+        "poll_api": {
+            "name": "Interroga API",
+            "description": "Interroga manualmente le API per aggiornare i dati (Attenzione: farlo troppo spesso potrebbe causare un ban)"
+        }
+    },
+    "title": "FordPass"
+}
