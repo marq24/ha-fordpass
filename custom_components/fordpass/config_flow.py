@@ -20,7 +20,7 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.storage import STORAGE_DIR
 
-from custom_components.fordpass.const import (
+from .const import (
     DOMAIN,
     OAUTH_ID,
     CLIENT_ID,
@@ -44,13 +44,13 @@ from custom_components.fordpass.const import (
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
 )
-from custom_components.fordpass.const_shared import (
+from .const_shared import (
     CONF_PRESSURE_UNIT,
     CONF_LOG_TO_FILESYSTEM,
     PRESSURE_UNITS,
     DEFAULT_PRESSURE_UNIT,
 )
-from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
+from .fordpass_bridge import ConnectedFordPassVehicle
 
 _LOGGER = logging.getLogger(__name__)
 

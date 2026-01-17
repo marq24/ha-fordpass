@@ -4,11 +4,11 @@ import logging
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 
-from custom_components.fordpass import FordPassEntity
-from custom_components.fordpass.const import DOMAIN
-from custom_components.fordpass.const_shared import COORDINATOR_KEY
-from custom_components.fordpass.const_tags import Tag
-from custom_components.fordpass.fordpass_handler import FordpassDataHandler, UNSUPPORTED
+from . import FordPassEntity
+from .const import DOMAIN
+from .const_shared import COORDINATOR_KEY
+from .const_tags import Tag
+from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 

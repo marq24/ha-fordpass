@@ -20,7 +20,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpda
 from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
 
-from custom_components.fordpass.const import (
+from .const import (
     DOMAIN,
     CONFIG_VERSION,
     CONFIG_MINOR_VERSION,
@@ -36,7 +36,7 @@ from custom_components.fordpass.const import (
     LEGACY_REGION_KEYS,
     TRANSLATIONS
 )
-from custom_components.fordpass.const_shared import (
+from .const_shared import (
     STARTUP_MESSAGE,
     CONF_PRESSURE_UNIT,
     CONF_LOG_TO_FILESYSTEM,
@@ -49,9 +49,9 @@ from custom_components.fordpass.const_shared import (
     RCC_SEAT_MODE_HEAT_ONLY,
     RCC_SEAT_MODE_HEAT_AND_COOL
 )
-from custom_components.fordpass.const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
-from custom_components.fordpass.fordpass_bridge import ConnectedFordPassVehicle
-from custom_components.fordpass.fordpass_handler import (
+from .const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
+from .fordpass_bridge import ConnectedFordPassVehicle
+from .fordpass_handler import (
     UNSUPPORTED,
     ROOT_METRICS,
     ROOT_MESSAGES,

@@ -18,19 +18,19 @@ import aiohttp
 from aiohttp import ClientConnectorError, ClientConnectionError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from custom_components.fordpass import DOMAIN
-from custom_components.fordpass.const import (
+from . import DOMAIN
+from .const import (
     OAUTH_ID,
     CLIENT_ID,
     REGIONS
 )
-from custom_components.fordpass.const_shared import (
+from .const_shared import (
     ZONE_LIGHTS_VALUE_OFF,
     REMOTE_START_STATE_ACTIVE,
     REMOTE_START_STATE_INACTIVE,
     HONK_AND_FLASH
 )
-from custom_components.fordpass.fordpass_handler import (
+from .fordpass_handler import (
     ROOT_STATES,
     ROOT_EVENTS,
     ROOT_METRICS,

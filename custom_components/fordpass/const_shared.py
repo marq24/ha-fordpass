@@ -2,7 +2,7 @@
 from enum import Enum
 from typing import Final
 
-from custom_components.fordpass.const import NAME, ISSUE_URL
+from .const import NAME, ISSUE_URL
 
 MANUFACTURER_FORD: Final = "Ford Motor Company"
 MANUFACTURER_LINCOLN: Final = "Lincoln Motor Company"

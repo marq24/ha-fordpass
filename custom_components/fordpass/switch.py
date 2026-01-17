@@ -3,11 +3,11 @@ import logging
 
 from homeassistant.components.switch import SwitchEntity
 
-from custom_components.fordpass import FordPassEntity, RCC_TAGS
-from custom_components.fordpass.const import DOMAIN
-from custom_components.fordpass.const_shared import COORDINATOR_KEY
-from custom_components.fordpass.const_tags import SWITCHES, Tag
-from custom_components.fordpass.fordpass_handler import UNSUPPORTED
+from . import FordPassEntity, RCC_TAGS
+from .const import DOMAIN
+from .const_shared import COORDINATOR_KEY
+from .const_tags import SWITCHES, Tag
+from .fordpass_handler import UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -5,10 +5,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.fordpass import FordPassEntity, FordPassDataUpdateCoordinator
-from custom_components.fordpass.const import DOMAIN
-from custom_components.fordpass.const_shared import COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
-from custom_components.fordpass.const_tags import BUTTONS, Tag, ExtButtonEntityDescription
+from . import FordPassEntity, FordPassDataUpdateCoordinator
+from .const import DOMAIN
+from .const_shared import COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
+from .const_tags import BUTTONS, Tag, ExtButtonEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
