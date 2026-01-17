@@ -493,13 +493,19 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         if self.region_key is not None:
             _LOGGER.debug(f"self.region_key {self.region_key}")
+            the_url = self.generate_url(self.region_key)
             return self.async_show_form(
-                step_id="token", data_schema=vol.Schema(
+                step_id="token",
+                data_schema=vol.Schema(
                     {
-                        vol.Optional(CONF_URL, default=self.generate_url(self.region_key)): str,
+                        vol.Optional(CONF_URL, default=the_url): str,
                         vol.Required(CONF_TOKEN_STR): str,
                     }
-                ), errors=errors
+                ),
+                description_placeholders={
+                    CONF_URL: the_url
+                },
+                errors=errors
             )
         else:
             _LOGGER.error("No region_key set - FATAL ERROR")
@@ -736,14 +742,16 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if self.region_key is not None:
             # then we generate again the fordpass-login-url and show it to the
             # user...
+            the_url = self.generate_url(region_key=self.region_key)
             return self.async_show_form(
                 step_id="reauth_confirm",
                 data_schema=vol.Schema({
-                    vol.Optional(CONF_URL, default=self.generate_url(region_key=self.region_key)): str,
+                    vol.Optional(CONF_URL, default=the_url): str,
                     vol.Required(CONF_TOKEN_STR): str,
                 }),
                 description_placeholders={
-                    CONF_USERNAME: reauth_entry.data.get(CONF_USERNAME, "UNKNOWN-USER")
+                    CONF_USERNAME: reauth_entry.data.get(CONF_USERNAME, "UNKNOWN-USER"),
+                    CONF_URL: the_url
                 },
                 errors=errors
             )
