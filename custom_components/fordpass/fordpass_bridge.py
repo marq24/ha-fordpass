@@ -15,7 +15,7 @@ from typing import Final, Iterable
 from urllib.parse import urlparse, parse_qs
 
 import aiohttp
-from aiohttp import ClientConnectorError, ClientConnectionError
+from aiohttp import ClientConnectorError, ClientConnectionError, ContentTypeError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from . import DOMAIN
@@ -337,28 +337,39 @@ class ConnectedFordPassVehicle:
             "code": the_code,
             "code_verifier": code_verifier,
         }
-        response = await self.session.post(
-            f"{self.login_url}/{OAUTH_ID}/{sign_up}{self.locale_code}/oauth2/v2.0/token",
-            headers=headers,
-            data=data,
-            ssl=True,
-            timeout=self.timeout
-        )
 
-        # do not check the status code here - since it's not always return http 200!
-        token_data = await response.json()
-        if "access_token" in token_data:
-            _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
-            return await self.generate_tokens_part2(token_data)
-        else:
-            if "message" in token_data:
-                self.login_fail_reason = token_data["message"]
-            elif "error_description" in token_data:
-                self.login_fail_reason = token_data["error_description"]
-            elif "error" in token_data:
-                self.login_fail_reason = token_data["error"]
+        try:
+            response = await self.session.post(
+                f"{self.login_url}/{OAUTH_ID}/{sign_up}{self.locale_code}/oauth2/v2.0/token",
+                headers=headers,
+                data=data,
+                ssl=True,
+                timeout=self.timeout
+            )
 
-            _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
+            # do not check the status code here - since it's not always return http 200!
+            token_data = await response.json()
+            if "access_token" in token_data:
+                _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
+                return await self.generate_tokens_part2(token_data)
+            else:
+                if "message" in token_data:
+                    self.login_fail_reason = token_data["message"]
+                elif "error_description" in token_data:
+                    self.login_fail_reason = token_data["error_description"]
+                elif "error" in token_data:
+                    self.login_fail_reason = token_data["error"]
+
+                _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- http status: {response.status} - cause no 'access_token' in response: {token_data}")
+                return False
+        except ContentTypeError as e:
+            # 403 = "Attempt to decode JSON with unexpected mimetype: text/html" ?!
+            if hasattr(e, "status") and e.status == 403:
+                pass  # sometimes a 403 is returned here - just ignore it
+            _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- request caused '{e.message}' - {response.status} - {await response.text()}")
+
+        except BaseException as e:
+            _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- {type(e).__name__} - {e}")
             return False
 
     async def generate_tokens_part2(self, token):
