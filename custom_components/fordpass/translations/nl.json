@@ -60,7 +60,7 @@
         "step": {
             "user": {
                 "title": "Voeg een nieuw FordPass™/The Lincoln Way™ account of voertuig toe",
-                "description": "Omdat u al minstens één FordPass™/The Lincoln Way™ account hebt geconfigureerd, moet u eerst selecteren of u een ander voertuig of een nieuw account (of regio) wilt toevoegen.\n-- --\n### Belangrijk informatie over ondersteuning voor meerdere voertuigen\n\nWanneer u __meerdere__ voertuigen in uw FordPass™/The Lincoln Way™ account hebt geregistreerd, moet u in de FordPass™/The Lincoln Way™ app eerst het voertuig selecteren dat u wilt gebruiken, voordat u gegevens of functionaliteit van dit voertuig kunt openen. __Dezelfde beperking is ook van toepassing__ op deze Home Assistant-integratie.\n\nDe voornaamste reden voor deze beperking is het feit dat de FordPass™ app en deze integratie gebruik maken van een websocket-verbinding met de Ford-backend, die op de een of andere manier aan één voertuig tegelijk is gebonden.\n\nU kunt alle details hier vinden: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#multi-vehicle-support",
+                "description": "Omdat u al minstens één FordPass™/The Lincoln Way™ account hebt geconfigureerd, moet u eerst selecteren of u een ander voertuig of een nieuw account (of regio) wilt toevoegen.\n-- --\n### Belangrijke informatie over ondersteuning voor meerdere voertuigen\n\nWanneer u __meerdere__ voertuigen in uw FordPass™/The Lincoln Way™ account hebt geregistreerd, moet u in de FordPass™/The Lincoln Way™ app eerst het voertuig selecteren dat u wilt gebruiken, voordat u gegevens of functionaliteit van dit voertuig kunt openen. __Dezelfde beperking is ook van toepassing__ op deze Home Assistant-integratie.\n\nDe voornaamste reden voor deze beperking is het feit dat de FordPass™ app en deze integratie gebruik maken van een websocket-verbinding met de Ford-backend, die op de een of andere manier aan één voertuig tegelijk is gebonden.\n\nU kunt alle details hier vinden: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#multi-vehicle-support",
                 "data": {
                     "setup_type": "Wat wilt u doen?"
                 },
@@ -251,7 +251,7 @@
             "deepsleep":                {"name": "Slaapmodus"},
             "firmwareupginprogress":    {"name": "Firmware-update in uitvoering"},
             "remotestartstatus":        {"name": "RC (❄|☀): Status externe start"},
-            "zonelighting":             {"name": "Zonelichting"},
+            "zonelighting":             {"name": "Zoneverlichting"},
             "messages":                 {"name": "Berichten"},
             "dieselsystemstatus":       {"name": "Dieselsysteem"},
             "exhaustfluidlevel":        {"name": "AdBlue-niveau"},
@@ -275,13 +275,13 @@
             "wheeltorquestatus":        {"name": "Wielkoppel"},
             "cabintemperature":         {"name": "Cabinetemperatuur"},
             "lastenergyconsumed":       {"name": "EV-energieverbruik (laatste rit)"},
-            "energytransferlogentry":   {"name": "EV laatst laadsessie"},
+            "energytransferlogentry":   {"name": "EV laatste laadsessie"},
             "remotestartcountdown":     {"name": "RC (❄|☀): Resterende tijd"},
             "doorlock":                 {"name": "Vergrendelingsstatus"}
         },
         "select": {
             "zonelighting": {
-                "name": "Zone verlichting",
+                "name": "Zoneverlichting",
                 "state": {
                     "0": "AAN",
                     "1": "Voor",
@@ -304,7 +304,7 @@
                 "state": {"lo": "LAAG",
                           "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
                           "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",
-                          "26": "78.8°F", "26_5": "29.7°F", "27": "80.6°F", "27_5": "81.5°F", "28": "82.4°F", "28_5": "83.3°F", "29": "84.2°F", "29_5": "85.1°F", "30": "86.0°F",
+                          "26": "78.8°F", "26_5": "79.7°F", "27": "80.6°F", "27_5": "81.5°F", "28": "82.4°F", "28_5": "83.3°F", "29": "84.2°F", "29_5": "85.1°F", "30": "86.0°F",
                           "hi": "HOOG"}
             },
             "rccseatrearleft": {
