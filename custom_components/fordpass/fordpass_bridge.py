@@ -366,8 +366,8 @@ class ConnectedFordPassVehicle:
             # 403 = "Attempt to decode JSON with unexpected mimetype: text/html" ?!
             if hasattr(e, "status") and e.status == 403:
                 pass  # sometimes a 403 is returned here - just ignore it
-            _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- request caused '{e.message}' - {response.status} - {await response.text()}")
-
+            _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- request caused '{e.message}' - {response.status}\n{await response.text()}")
+            return False
         except BaseException as e:
             _LOGGER.warning(f"{self.vli}generate_tokens 'FAILED'- {type(e).__name__} - {e}")
             return False

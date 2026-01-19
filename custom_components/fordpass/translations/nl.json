@@ -52,7 +52,7 @@
         "error": {
             "cannot_connect": "Verbinding mislukt",
             "invalid_auth": "Ongeldige aanmeldingsgegevens",
-            "invalid_vin": "Vin niet gevonden voor gegeven account",
+            "invalid_vin": "VIN niet gevonden voor gegeven account",
             "invalid_mobile": "Mobiel nummer als gebruikersnaam moet worden opgegeven bij gebruik van Zuid-Afrikaanse regio",
             "invalid_token": "Token is ongeldig, controleer alstublieft dat u het juiste token uit de Header Location hebt gekopieerd. Deze moet beginnen met fordapp:// (of lincolnapp://)",
             "unknown": "Onverwachte fout"
