@@ -249,7 +249,7 @@
             "outsidetemp":              {"name": "Buitentemperatuur"},
             "engineoiltemp":            {"name": "Temperatuur motorolie"},
             "deepsleep":                {"name": "Slaapmodus"},
-            "firmwareupginprogress":    {"name": "Firmwareupdate in uitvoering"},
+            "firmwareupginprogress":    {"name": "Firmware-update in uitvoering"},
             "remotestartstatus":        {"name": "RC (❄|☀): Status externe start"},
             "zonelighting":             {"name": "Zonelichting"},
             "messages":                 {"name": "Berichten"},
