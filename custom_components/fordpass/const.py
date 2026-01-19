@@ -243,5 +243,29 @@ TRANSLATIONS: Final = {
         "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)",
         "coord_null_data": "Coordinator could not provided any data. Please check your Home Assistant system log for possible error messages.",
         "coord_no_vehicle_data": "Coordinator could not fetch essential information from your configured vehicle. Please check your Home Assistant system log for possible error messages."
+    },
+    "nl": {
+        "account": "Account",
+        "deu": "Duitsland",
+        "fra": "Frankrijk",
+        "nld": "Nederland",
+        "ita": "Italië",
+        "esp": "Spanje",
+        "nor": "Noorwegen",
+        "gbr": "Verenigd Koninkrijk Groot-Brittannië en Noord-Ierland",
+        "aus": "Australië",
+        "nzl": "Nieuw-Zeeland",
+        "zaf": "Zuid-Afrika",
+        "can": "Canada",
+        "mex": "Mexico",
+        "usa": "Verenigde Staten van Amerika",
+        "bra": "Brazilië",
+        "arg": "Argentinië",
+        "rest_of_europe": "Overige Europese landen",
+        "rest_of_world": "Rest van de wereld",
+        "lincoln_usa": "Verenigde Staten van Amerika",
+        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australië (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Nederland (LEGACY)",
+        "coord_null_data": "Coördinator kon geen gegevens leveren. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen.",
+        "coord_no_vehicle_data": "Coördinator kon essentiële informatie van uw geconfigureerde voertuig niet ophalen. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen."
     }
 }

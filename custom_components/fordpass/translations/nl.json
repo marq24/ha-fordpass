@@ -1,0 +1,344 @@
+{
+    "selector": {
+        "region": {
+            "options": {
+                "aaa": "------ FORD Voertuigen ------",
+                "deu": "Duitsland",
+                "fra": "Frankrijk",
+                "nld": "Nederland",
+                "ita": "Italië",
+                "esp": "Spanje",
+                "nor": "Noorwegen",
+                "gbr": "Verenigd Koninkrijk Groot-Brittannië en Noord-Ierland",
+                "aus": "Australië [vereist een 'ford.com.au/ford.co.nz' account]",
+                "nzl": "Nieuw-Zeeland [vereist een 'ford.co.nz/ford.com.au' account]",
+                "zaf": "Zuid-Afrika [vereist een 'ford.co.za' account]",
+                "can": "Canada",
+                "mex": "Mexico",
+                "usa": "Verenigde Staten van Amerika",
+                "bra": "Brazilië [vereist een 'ford.com.br/ford.com.ar' account]",
+                "arg": "Argentinië [vereist een 'ford.com.ar/ford.com.br' account]",
+                "rest_of_europe": "Overige Europese landen",
+                "rest_of_world": "Rest van de wereld",
+                "zzz": "------ LINCOLN Voertuigen ------",
+                "lincoln_usa": "Verenigde Staten van Amerika"
+            }
+        },
+        "setup_type": {
+            "options": {
+                "new_account": "Voeg een nieuw FordPass™/The Lincoln Way™ account of regio toe",
+                "add_vehicle": "Voeg een voertuig toe vanuit een bestaand FordPass™/The Lincoln Way™ account/regio"
+            }
+        },
+        "brand": {
+            "options": {
+                "ford": "Ford voertuigen - FordPass™ app",
+                "lincoln": "Lincoln voertuigen - The Lincoln Way™ app"
+            }
+        }
+    },
+    "config": {
+        "abort": {
+            "already_configured": "Account is al geconfigureerd",
+            "no_vehicles": "Geen voertuigen in account of alle zijn al geconfigureerd",
+            "reauth_successful": "Hernieuwde autorisatie is voltooid",
+            "reauth_reload_failed": "Hernieuwde autorisatie is voltooid\n\nMaar de integratie kon niet opnieuw worden geladen. Herstart alstublieft Home Assistant om het herauthorisatieproces af te ronden of controleer uw logboek voor meer details",
+            "reauth_unsuccessful": "Hernieuwde autorisatie MISLUKT\n\nControleer alstublieft het token en probeer het opnieuw",
+            "reauth_not_possible": "Geen geldige regio gevonden\n\nHelaas moet u de integratie opnieuw configureren",
+            "no_filesystem_access": "Deze integratie vereist toegang tot het lokale bestandssysteem van uw HomeAssistant-installatie om een sleutel voor uw FordPass™/The Lincoln Way™-account op te slaan.\n\nHiervoor wordt een submap in de map '.storage/' gemaakt. Dit is momenteel echter niet mogelijk. Een interne test is mislukt. U kunt details vinden in het logboek van uw Home Assistant-exemplaar.\n\nZorg ervoor dat u de Home Assistant-installatie uitvoert met de juiste gebruiker die schrijftoegang tot het lokale bestandssysteem heeft.\n\nAls u Home Assistant in een Docker-container uitvoert, zorg ervoor dat u de container uitvoert met de juiste gebruiker en dat de container toegang heeft tot het lokale bestandssysteem.\n\nControleer alstublieft uw installatie en start de installatie van deze integratie opnieuw zodra toegang tot het lokale bestandssysteem mogelijk is.",
+            "no_brand": "Geen merk (Ford of Lincoln) gedetecteerd",
+            "oauth_error_final": "## Het ophalen van het definitieve OAuth-token is mislukt\nEr is iets misgegaan bij het aanvragen van het definitieve toegangstoken van Ford. Weet u zeker dat de referenties die u hebt opgegeven als `client-id` & `secret` correct zijn?\nControleer alstublieft ook het logboek van uw Home Assistant op verdere mogelijke foutmeldingen, die u helpen de oorzaak van dit probleem te identificeren.\n\n#### Mogelijke reden:\n{error_info}"
+        },
+        "error": {
+            "cannot_connect": "Verbinding mislukt",
+            "invalid_auth": "Ongeldige aanmeldingsgegevens",
+            "invalid_vin": "Vin niet gevonden voor gegeven account",
+            "invalid_mobile": "Mobiel nummer als gebruikersnaam moet worden opgegeven bij gebruik van Zuid-Afrikaanse regio",
+            "invalid_token": "Token is ongeldig, controleer alstublieft dat u het juiste token uit de Header Location hebt gekopieerd. Deze moet beginnen met fordapp:// (of lincolnapp://)",
+            "unknown": "Onverwachte fout"
+        },
+        "step": {
+            "user": {
+                "title": "Voeg een nieuw FordPass™/The Lincoln Way™ account of voertuig toe",
+                "description": "Omdat u al minstens één FordPass™/The Lincoln Way™ account hebt geconfigureerd, moet u eerst selecteren of u een ander voertuig of een nieuw account (of regio) wilt toevoegen.\n-- --\n### Belangrijk informatie over ondersteuning voor meerdere voertuigen\n\nWanneer u __meerdere__ voertuigen in uw FordPass™/The Lincoln Way™ account hebt geregistreerd, moet u in de FordPass™/The Lincoln Way™ app eerst het voertuig selecteren dat u wilt gebruiken, voordat u gegevens of functionaliteit van dit voertuig kunt openen. __Dezelfde beperking is ook van toepassing__ op deze Home Assistant-integratie.\n\nDe voornaamste reden voor deze beperking is het feit dat de FordPass™ app en deze integratie gebruik maken van een websocket-verbinding met de Ford-backend, die op de een of andere manier aan één voertuig tegelijk is gebonden.\n\nU kunt alle details hier vinden: https://github.com/marq24/ha-fordpass?tab=readme-ov-file#multi-vehicle-support",
+                "data": {
+                    "setup_type": "Wat wilt u doen?"
+                },
+                "data_description": {
+                    "setup_type": "Als u een tweede voertuig instelt met dezelfde account, kan slechts één van de twee tegelijk actief zijn in HA - anders zullen de toegangstokens elkaar overschrijven"
+                }
+            },
+            "user_connect": {
+                "title": "Voeg een nieuw Ford-voertuig toe",
+                "description": "## Welkom bij de FordConnect Query-integratie\nDit is een alternatief [integratie naar FordPass](https://github.com/marq24/ha-fordpass), met gebruik van de FordConnect Query API. Deze API biedt __alleen-lezen__ toegang tot voertuiggegevens.\n### Vereisten\n- Uw auto moet de nieuwste on-board modem-functionaliteit hebben en moet zijn geregistreerd/geautoriseerd bij de FordPass™-toepassing\n- Een API-referentiepaar dat eerder is geregistreerd bij de EU Ford-ontwikkelaarportal.\n\nVerdere informatie is te vinden in [_de handleiding Toepassingsregistratie_. Dit bevat een stapsgewijze procedure](https://github.com/marq24/ha-fordconnect-query/blob/main/docs/REGISTER_APPLICATION.md) om een toepassing in Fords EU-ontwikkelaarportal in te schrijven.\n### Hebt u verdere instructies nodig?\nAlle andere instellingsdetails vindt u in de [Gids voor integratieinstelling](https://github.com/marq24/ha-fordconnect-query/blob/main/docs/CONFIGURE_INTEGRATION.md)\n### Eindopmerking\nAls u deze integratie nuttig vindt, overweeg dan mij te ondersteunen als GitHub-projectsponsor (of op een van de andere manieren [beschreven in mijn profiel@GitHub](https://github.com/marq24)) – dank aan degenen die dit al doen – jullie zijn allemaal geweldig!",
+                "data": {
+                    "config_title": "Selecteer alstublieft een naam voor uw configuratie-invoer"
+                }
+            },
+            "select_account": {
+                "title": "Selecteer uw FordPass™/The Lincoln Way™-Account",
+                "description": "Selecteer alstublieft het FordPass™/The Lincoln Way™-account waaruit u een ander voertuig wilt toevoegen.",
+                "data": {
+                    "account": "FordPass™/The Lincoln Way™ account"
+                },
+                "data_description": {
+                    "account": "Als u een tweede voertuig instelt met dezelfde account, kan slechts één van de twee tegelijk actief zijn in HA - anders zullen de toegangstokens elkaar overschrijven"
+                }
+            },
+            "token": {
+                "title": "Setup token",
+                "description": "De Token-installatie vereist een tweede browservenster (met geactiveerde ontwikkelaarshulpmiddelen - F12) om het definitieve toegangstoken vast te leggen.\r\rDit is een tamelijk ongebruikelijke procedure voor een Home Assistant-integratie. Details vindt u in de [Installatiegids](https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md)\r\rVolg de stappen:\r1. Kopieer de onderstaande URL of klik op de volgende link (moet in een nieuw tabblad/venster worden geopend): [Start de autorisatieprocedure]({url})\r2. Open een browser (met geactiveerde ontwikkelaarshulpmiddelen) en plak de gekopieerde URL in uw tweede browser\r3. Voer uw FordPass™/The Lincoln Way™-aanmeldingsgegevens (opnieuw) in en druk op de aanmeldingsknop\r4. Bekijk het tabblad Netwerk totdat u het `?code=` verzoek ziet\r5. Kopieer de volledige `Request-URL` van dit verzoek uit de ontwikkelaarshulpmiddelen van uw browser en plak deze in het Token-veld hieronder\r6. Klik op OK om door te gaan",
+                "data": {
+                    "url": "URL: kopieer dit in uw browser",
+                    "tokenstr": "Token Request-URL: nadat het aanmeldingsproces in de browser is voltooid, plak de volledige `Request-URL`"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Hernieuwde autorisatie vereist",
+                "description": "Uw vorige token is ongeldig - u moet een nieuw token opgeven voor uw account {username}:\r\rDetails vindt u in de [Installatiegids](https://github.com/marq24/ha-fordpass/blob/main/doc/OBTAINING_TOKEN.md)\r\rVolg de stappen:\r1. Kopieer de onderstaande URL of klik op de volgende link (moet in een nieuw tabblad/venster worden geopend): [Start de autorisatieprocedure]({url})\r2. Open een browser (met geactiveerde ontwikkelaarshulpmiddelen) en plak de gekopieerde URL in uw tweede browser\r3. Voer uw FordPass™/The Lincoln Way™-aanmeldingsgegevens (opnieuw) in en druk op de aanmeldingsknop (laat u niet bedriegen door de spinner - deze draait voor altijd - dit is 'normaal')\r4. Bekijk het tabblad Netwerk totdat u het `?code=` verzoek ziet\r5. Kopieer de volledige `Request-URL` van dit verzoek uit de ontwikkelaarshulpmiddelen van uw browser en plak deze in het Token-veld hieronder\r6. Klik op OK om door te gaan",
+                "data": {
+                    "url": "URL: kopieer dit in uw browser",
+                    "tokenstr": "Token Request-URL: nadat het aanmeldingsproces in de browser is voltooid, plak de volledige `Request-URL`"
+                }
+            },
+            "reauth_confirm_connect": {
+                "title": "Hernieuwde autorisatie vereist",
+                "description": "Uw vorige token is ongeldig - u moet een nieuw token opgeven voor uw account {username}"
+            },
+            "brand": {
+                "data": {
+                    "brand": "Selecteer uw merk"
+                }
+            },
+            "new_account_ford": {
+                "data": {
+                    "password": "FordPass™ wachtwoord",
+                    "username": "FordPass™ gebruikersnaam (e-mail)",
+                    "region" : "FordPass™ regio"
+                },
+                "data_description": {
+                    "username": "Als u in plaats van een e-mailadres een mobiel nummer gebruikt, voer dan uw nummer in (zonder initiële 0) en voeg + en de landcode toe (bijv. +99123456789)",
+                    "region": "De regio die u selecteert, moet overeenkomen met de regio waarvoor u uw FordPass™-account hebt geregistreerd. Verdere details op GitHub"
+                }
+            },
+            "new_account_lincoln": {
+            "data": {
+              "password": "The Lincoln Way™ wachtwoord",
+              "username": "The Lincoln Way™ gebruikersnaam (e-mail)",
+              "region" : "The Lincoln Way™ regio"
+            },
+            "data_description": {
+              "username": "Als u in plaats van een e-mailadres een mobiel nummer gebruikt, voer dan uw nummer in (zonder initiële 0) en voeg + en de landcode toe (bijv. +99123456789)",
+              "region": "De regio die u selecteert, moet overeenkomen met de regio waarvoor u uw The Lincoln Way™-account hebt geregistreerd. Verdere details op GitHub"
+            }
+          },
+            "vehicle": {
+                "title": "Selecteer voertuig om toe te voegen",
+                "description": "Alleen voertuigen die nog niet zijn toegevoegd, worden weergegeven",
+                "data": {
+                    "vin": "VIN"
+                }
+            },
+            "vin": {
+                "title": "VIN handmatig invoeren",
+                "description": "Voer alstublieft handmatig uw VIN-nummer in, omdat er automatisch geen voertuigen konden worden gevonden.",
+                "data": {
+                    "vin": "VIN-nummer voor voertuig"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "pressure_unit": "Drukeenheid",
+                    "update_interval": "Interval voor Ford-API verzoeken (seconden)",
+                    "scan_interval": "Interval voor Ford-API verzoeken (seconden)",
+                    "force_remote_climate_control": "De opties voor klimaatbeheer op afstand (❄|☀) moeten altijd beschikbaar zijn",
+                    "log_to_filesystem": "Registreer API-reacties in lokale HA-bestandssysteem"
+                },
+                "data_description": {
+                    "update_interval": "Het minimale update-interval is 30 seconden",
+                    "scan_interval": "Het minimale update-interval is 30 seconden",
+                    "force_remote_climate_control": "Als u deze optie activeert, wordt de instelling die door Ford is opgegeven genegeerd.",
+                    "log_to_filesystem": "Deze optie mag niet gedurende een langere periode worden geactiveerd!\rBestanden vindt u op: './storage/{integration_name}/data_dumps'"
+                },
+                "description": "Configuratieopties voor de integratie"
+            }
+        }
+    },
+    "services": {
+        "refresh_status": {
+            "name": "Vernieuw voertuigstatus",
+            "description": "Poll auto op nieuwste status (Het duurt tot 5 minuten voordat deze functie wordt bijgewerkt na uitvoering!)",
+            "fields": {
+                "vin": {
+                    "name": "VIN",
+                    "description": "Voer een VIN-nummer in om alleen het opgegeven voertuig te vernieuwen (Vernieuwt standaard alle toegevoegde voertuigen)"
+                }
+            }
+        },
+        "clear_tokens": {
+            "name": "Wis tokens",
+            "description": "Wis de opgeslagen token-cache (vereist daarna een hernieuwde verificatie)"
+        },
+        "reload": {
+            "name": "Herladen",
+            "description": "Laad de FordPass-integratie opnieuw"
+        },
+        "poll_api": {
+            "name": "Poll API",
+            "description": "Poll API handmatig voor gegevensupdate (Waarschuwing: als u dit te vaak doet, kan dit resulteren in een ban)"
+        }
+    },
+    "entity": {
+        "button": {
+            "update_data":      {"name": "Lokale synchronisatie"},
+            "request_refresh":  {"name": "Externe synchronisatie"},
+            "doorlock":         {"name": "Vergrendelen"},
+            "doorunlock":       {"name": "Ontgrendelen"},
+            "evstart":          {"name": "EV-laden starten"},
+            "evcancel":         {"name": "EV-laden hervatten"},
+            "evpause":          {"name": "EV-laden pauzeren"},
+            "hafshort":         {"name": "Toeter & flits [1 sec.]"},
+            "hafdefault":       {"name": "Toeter & flits [3 sec.]"},
+            "haflong":          {"name": "Toeter & flits [5 sec.]"},
+            "extendremotestart":{"name": "RC (❄|☀): Verleng tijd"},
+            "msgdeleteall":     {"name": "Berichten: Alles verwijderen"},
+            "msgdeletelast":    {"name": "Berichten: Laatst verwijderde"}
+        },
+        "device_tracker":   {"tracker": {"name": "Voertuigtracker"}},
+        "lock":             {"doorlock":{"name": "Deuren"}},
+        "switch": {
+            "ignition":                 {"name": "RC (❄|☀): Start [Afstandsbediening]"},
+            "elvehcharge":              {"name": "EV-laden (pauze)"},
+            "guardmode":                {"name": "Beveiligingsmodus"},
+            "autosoftwareupdates":      {"name": "Automatische softwareupdates"},
+            "rccdefrostrear":           {"name": "RC (❄|☀): Achterruit ontdooien [Afstandsbediening]"},
+            "rccdefrostfront":          {"name": "RC (❄|☀): Voorruit ontdooien [Afstandsbediening]"},
+            "rccsteeringwheel":         {"name": "RC (❄|☀): Stuurwielverwarming [Afstandsbediening]"}
+        },
+        "number": {
+            "rcctemperature":       {"name": "RC (❄|☀): Klimaattemperatuur [Afstandsbediening]"},
+            "elvehtargetcharge":    {"name": "Gewenst laadniveau"},
+            "globaltargetsoc":      {"name": "Algemeen: Gewenst laadniveau"},
+            "globalaccurrentlimit": {"name": "AC-stroomlimiet"},
+            "globaldcpowerlimit":   {"name": "DC-vermogenslimiet"}
+        },
+        "sensor": {
+            "odometer":                 {"name": "Kilometerteller"},
+            "fuel":                     {"name": "Brandstof"},
+            "battery":                  {"name": "Batterij (12V)"},
+            "oil":                      {"name": "Olierestlevensduur"},
+            "tirepressure":             {"name": "Bandenspanning"},
+            "gps":                      {"name": "GPS JSON"},
+            "alarm":                    {"name": "Alarm"},
+            "ignitionstatus":           {"name": "Contact"},
+            "doorstatus":               {"name": "Deurstatus"},
+            "windowposition":           {"name": "Raamstand"},
+            "lastrefresh":              {"name": "laatst vernieuwd"},
+            "elveh":                    {"name": "EV"},
+            "elvehplug":                {"name": "EV stekker"},
+            "elvehcharging":            {"name": "EV-laden"},
+            "speed":                    {"name": "Snelheid"},
+            "enginespeed":              {"name": "Toerental"},
+            "gearleverposition":        {"name": "Huidige versnelling"},
+            "indicators":               {"name": "Indicatoren"},
+            "coolanttemp":              {"name": "Temperatuur koelvloeistof"},
+            "outsidetemp":              {"name": "Buitentemperatuur"},
+            "engineoiltemp":            {"name": "Temperatuur motorolie"},
+            "deepsleep":                {"name": "Slaapmodus"},
+            "firmwareupginprogress":    {"name": "Firmwareupdate in uitvoering"},
+            "remotestartstatus":        {"name": "RC (❄|☀): Status externe start"},
+            "zonelighting":             {"name": "Zonelichting"},
+            "messages":                 {"name": "Berichten"},
+            "dieselsystemstatus":       {"name": "Dieselsysteem"},
+            "exhaustfluidlevel":        {"name": "AdBlue-niveau"},
+            "events":                   {"name": "Gebeurtenissen"},
+            "metrics":                  {"name": "Metrieken"},
+            "states":                   {"name": "Statussen"},
+            "vehicles":                 {"name": "Voertuigen"},
+
+            "soc":                      {"name": "Laadtoestand"},
+            "evccstatus":               {"name": "EVCC-statuscode"},
+            "seatbelt":                 {"name": "Veiligheidsgordel"},
+            "deviceconnectivity":       {"name": "Connectiviteit"},
+
+            "yawrate":                  {"name": "Gierhoeksnelheid"},
+            "acceleration":             {"name": "Versnelling"},
+            "brakepedalstatus":         {"name": "Rempedaal"},
+            "braketorque":              {"name": "Remkoppel"},
+            "acceleratorpedalposition": {"name": "Gaspedaalpositie"},
+            "parkingbrakestatus":       {"name": "Parkeerrem"},
+            "torqueattransmission":     {"name": "Koppel op transmissie"},
+            "wheeltorquestatus":        {"name": "Wielkoppel"},
+            "cabintemperature":         {"name": "Cabinetemperatuur"},
+            "lastenergyconsumed":       {"name": "EV-energieverbruik (laatste rit)"},
+            "energytransferlogentry":   {"name": "EV laatst laadsessie"},
+            "remotestartcountdown":     {"name": "RC (❄|☀): Resterende tijd"},
+            "doorlock":                 {"name": "Vergrendelingsstatus"}
+        },
+        "select": {
+            "zonelighting": {
+                "name": "Zone verlichting",
+                "state": {
+                    "0": "AAN",
+                    "1": "Voor",
+                    "2": "Achter",
+                    "3": "Bestuurder",
+                    "4": "Passagier",
+                    "off": "UIT"
+                }
+            },
+            "rcctemperature": {
+              "name": "RC (❄|☀): Temperatuur [Afstandsbediening]",
+              "state": {"lo": "LAAG",
+                        "16": "16.0°C", "16_5": "16.5°C", "17": "17.0°C", "17_5": "17.5°C", "18": "18.0°C", "18_5": "18.5°C", "19": "19.0°C", "19_5": "19.5°C", "20": "20.0°C", "20_5": "20.5°C",
+                        "21": "21.0°C", "21_5": "21.5°C", "22": "22.0°C", "22_5": "22.5°C", "23": "23.0°C", "23_5": "23.5°C", "24": "24.0°C", "24_5": "24.5°C", "25": "25.0°C", "25_5": "25.5°C",
+                        "26": "26.0°C", "26_5": "26.5°C", "27": "27.0°C", "27_5": "27.5°C", "28": "28.0°C", "28_5": "28.5°C", "29": "29.0°C", "29_5": "29.5°C", "30": "30.0°C",
+                        "hi": "HOOG"}
+            },
+            "rcctemperaturefahrenheit": {
+                "name": "RC (❄|☀): Temperatuur [Afstandsbediening]",
+                "state": {"lo": "LAAG",
+                          "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
+                          "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",
+                          "26": "78.8°F", "26_5": "29.7°F", "27": "80.6°F", "27_5": "81.5°F", "28": "82.4°F", "28_5": "83.3°F", "29": "84.2°F", "29_5": "85.1°F", "30": "86.0°F",
+                          "hi": "HOOG"}
+            },
+            "rccseatrearleft": {
+                "name": "RC (❄|☀): Stoel achterbank links [Afstandsbediening]",
+                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+            },
+            "rccseatrearright": {
+                "name": "RC (❄|☀): Stoel achterbank rechts [Afstandsbediening]",
+                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+            },
+            "rccseatfrontleft": {
+                "name": "RC (❄|☀): Stoel voorkant links [Afstandsbediening]",
+                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+            },
+            "rccseatfrontright": {
+                "name": "RC (❄|☀): Stoel voorkant rechts [Afstandsbediening]",
+                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+            },
+            "elvehtargetcharge": {
+                "name": "Gewenst laadniveau",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt1": {
+                "name": "Gewenst laadniveau [alt locatie 1]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt2": {
+                "name": "Gewenst laadniveau [alt locatie 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "globaltargetsoc": {
+                "name": "Algemeen: Gewenst laadniveau",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            }
+        }
+    }
+}
