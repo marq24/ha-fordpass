@@ -15,7 +15,7 @@ from typing import Final, Iterable
 from urllib.parse import urlparse, parse_qs
 
 import aiohttp
-from aiohttp import ClientConnectorError, ClientConnectionError, ContentTypeError
+from aiohttp import ClientConnectionError, ContentTypeError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from . import DOMAIN
@@ -946,10 +946,8 @@ class ConnectedFordPassVehicle:
                         # check if we need to refresh the auto token...
                         await self._ws_check_for_auth_token_refresh(ws)
 
-        except ClientConnectorError as con:
-            _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(con).__name__} - {con}")
         except ClientConnectionError as err:
-            _LOGGER.error(f"{self.vli}ws_connect(): ??? {type(err).__name__} - {err}")
+            _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(err).__name__} - {err}")
         except asyncio.TimeoutError as time_exc:
             _LOGGER.debug(f"{self.vli}ws_connect(): TimeoutError: No WebSocket message received within timeout period")
         except CancelledError as canceled:
