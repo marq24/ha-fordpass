@@ -1495,6 +1495,7 @@ class FordpassDataHandler:
                 if await vehicle.delete_messages([message_ids[0]]):
                     await vehicle.ws_check_for_message_update_required()
                     return True
+        return False
 
     async def messages_delete_all(coordinator, vehicle):
         msgs = coordinator.data.get(ROOT_MESSAGES, {})
@@ -1504,6 +1505,27 @@ class FordpassDataHandler:
                 if await vehicle.delete_messages(message_ids):
                     await vehicle.ws_check_for_message_update_required()
                     return True
+        return False
+
+    async def messages_delete_with_id_called_from_service(coordinator, msg_id: str):
+        _LOGGER.debug(f"messages_delete_id_from_service(): msg_id: {msg_id} called...")
+        msgs = coordinator.data.get(ROOT_MESSAGES, {})
+        if len(msgs) > 0:
+            message_ids = [int(message['messageId']) for message in msgs if (len(message['relevantVin']) == 0 or message['relevantVin'] == coordinator.bridge.vin)]
+            if len(message_ids) > 0:
+                if msg_id in message_ids:
+                    _LOGGER.debug(f"messages_delete_id_from_service(): will delete message_id: {msg_id} now")
+                    if await coordinator.bridge.delete_messages([msg_id]):
+                        _LOGGER.debug(f"messages_delete_id_from_service(): message_id: {msg_id} deleted successfully")
+                        await coordinator.bridge.ws_check_for_message_update_required()
+                        return True
+                else:
+                    _LOGGER.debug(f"messages_delete_id_from_service(): message id not found in available messages: {message_ids}")
+            else:
+                _LOGGER.debug(f"messages_delete_id_from_service(): no messages found for vin: {coordinator.bridge.vin}")
+        else:
+            _LOGGER.debug(f"messages_delete_id_from_service(): no messages found in coordinator.data")
+        return False
 
     # just for development purposes...
     async def start_charge_vehicle(coordinator, vehicle):

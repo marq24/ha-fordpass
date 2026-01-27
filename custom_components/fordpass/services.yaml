@@ -15,3 +15,14 @@ reload:
 poll_api:
   name: Poll API
   description: "Manually poll API for data update (Warning: doing this too often could result in a ban)"
+delete_message:
+  name: "Delete FordPass Message"
+  description: "Delete a Message from the Messages list. Enter a Message ID to delete a specific message"
+  fields:
+    msgid:
+      name: "Message ID"
+      description: "Enter a valid Message ID to delete a specific message"
+      required: true
+      selector:
+        text:
+          multiline: false

@@ -230,10 +230,20 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         await asyncio.gather(*reload_tasks)
 
+    async def async_delete_message_service(call: ServiceCall):
+        _LOGGER.debug(f"Running Service 'delete_message'")
+        msg_id = call.data.get('msgid', None)
+        if msg_id is not None:
+            return await FordpassDataHandler.messages_delete_with_id_called_from_service(coordinator, msg_id)
+        else:
+            _LOGGER.warning(f"async_delete_message_service: No msg_id provided!")
+            return False
+
     hass.services.async_register(DOMAIN, "refresh_status", async_refresh_status_service)
     hass.services.async_register(DOMAIN, "clear_tokens", async_clear_tokens_service)
     hass.services.async_register(DOMAIN, "poll_api", poll_api_service)
     hass.services.async_register(DOMAIN, "reload", handle_reload_service)
+    hass.services.async_register(DOMAIN, "delete_message", async_delete_message_service)
 
     config_entry.async_on_unload(config_entry.add_update_listener(entry_update_listener))
     return True
@@ -270,6 +280,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         hass.services.async_remove(DOMAIN, "clear_tokens")
         hass.services.async_remove(DOMAIN, "poll_api")
         hass.services.async_remove(DOMAIN, "reload")
+        hass.services.async_remove(DOMAIN, "delete_message")
 
     return unload_ok
 

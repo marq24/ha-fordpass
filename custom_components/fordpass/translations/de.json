@@ -190,6 +190,16 @@
         "poll_api": {
             "name": "API aufrufen",
             "description": "Ruft eine manuelle Datenaktualisierung aus der FordPass-API auf. (Vorsicht: Häufige Aufrufe können zu einer temporären Drosselung/Sperre führen)"
+        },
+        "delete_message": {
+            "name": "FordPass Nachricht löschen",
+            "description": "Löscht eine Nachricht aus der bestehenene Nachrichtenliste",
+            "fields": {
+                "msgid": {
+                    "name": "Message ID",
+                    "description": "Gib eine gültige Nachrichten ID an"
+                }
+            }
         }
     },
     "entity": {
