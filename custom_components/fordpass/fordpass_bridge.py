@@ -297,7 +297,7 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}__check_for_closed_session(): RuntimeError - session is closed - trying to create a new session")
             # this might look a bit strange - but I don't want to pass the hass object down to the vehicle object...
             if self.coordinator is not None:
-                new_session = await self.coordinator.get_new_client_session(vin=self.vin)
+                new_session = self.coordinator.get_new_client_session(vin=self.vin)
                 if new_session is not None and not new_session.closed:
                     self.session = new_session
                     return True

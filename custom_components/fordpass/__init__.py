@@ -381,7 +381,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._force_classic_requests = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval_as_int))
 
-    async def get_new_client_session(self, vin: str) -> aiohttp.ClientSession:
+    def get_new_client_session(self, vin: str) -> aiohttp.ClientSession:
         """Get a new aiohttp ClientSession for the vehicle."""
         if self.hass is None:
             raise ValueError(f"{self.vli}Home Assistant instance is not available")

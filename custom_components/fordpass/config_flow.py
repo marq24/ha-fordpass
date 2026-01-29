@@ -289,6 +289,9 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                             )
                         )
                 }),
+                description_placeholders={
+                    "repo": "https://github.com/marq24/ha-fordpass"
+                },
                 errors=errors
             )
         else:
@@ -503,7 +506,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     }
                 ),
                 description_placeholders={
-                    CONF_URL: the_url
+                    CONF_URL: the_url,
+                    "repo": "https://github.com/marq24/ha-fordpass"
                 },
                 errors=errors
             )
@@ -751,7 +755,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 }),
                 description_placeholders={
                     CONF_USERNAME: reauth_entry.data.get(CONF_USERNAME, "UNKNOWN-USER"),
-                    CONF_URL: the_url
+                    CONF_URL: the_url,
+                    "repo": "https://github.com/marq24/ha-fordpass"
                 },
                 errors=errors
             )
