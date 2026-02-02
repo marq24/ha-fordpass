@@ -58,7 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         if a_entity_description.state_class == SensorStateClass.TOTAL_INCREASING:
             # make sure that the entity_id will have the correct domain!
             # in 'some' cases the domain was 'fordpass.' instead of the expected 'sensor.'
-            entity_id = f"{the_platform}.{sensor.entity_id.split('.')[1]}"
+            entity_id = f"{the_platform}.{sensor.entity_id.split('.')[1]}".lower()
             restored_state = storage.last_states.get(entity_id, None)
             if restored_state is not None and isinstance(restored_state, StoredState) and restored_state.state is not None and restored_state.state.state is not None:
                 try:
