@@ -2,6 +2,7 @@
 import logging
 
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.const import Platform
 
 from . import FordPassEntity, RCC_TAGS
 from .const import DOMAIN
@@ -33,7 +34,7 @@ class FordPassSwitch(FordPassEntity, SwitchEntity):
 
     def __init__(self, coordinator, a_tag: Tag):
         """Initialize"""
-        super().__init__(a_tag=a_tag, coordinator=coordinator)
+        super().__init__(entity_type=Platform.SWITCH, a_tag=a_tag, coordinator=coordinator)
 
     async def async_turn_on(self, **kwargs):
         """Send request to vehicle on switch status on"""

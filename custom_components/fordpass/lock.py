@@ -3,6 +3,7 @@ import asyncio
 import logging
 
 from homeassistant.components.lock import LockEntity
+from homeassistant.const import Platform
 
 from . import FordPassEntity
 from .const import DOMAIN
@@ -31,7 +32,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class FordPassLock(FordPassEntity, LockEntity):
     """Defines the vehicle's lock."""
     def __init__(self, coordinator):
-        super().__init__(a_tag=Tag.DOOR_LOCK, coordinator=coordinator)
+        super().__init__(entity_type=Platform.LOCK, a_tag=Tag.DOOR_LOCK, coordinator=coordinator)
 
     async def async_lock(self, **kwargs):
         """Locks the vehicle."""

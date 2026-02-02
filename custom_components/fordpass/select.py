@@ -4,7 +4,7 @@ from numbers import Number
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTemperature, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -80,7 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 class FordPassSelect(FordPassEntity, SelectEntity):
     def __init__(self, coordinator: FordPassDataUpdateCoordinator, entity_description: ExtSelectEntityDescription):
-        super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
+        super().__init__(entity_type=Platform.SELECT, a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
 
     async def add_to_platform_finish(self) -> None:

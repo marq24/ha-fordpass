@@ -3,6 +3,7 @@ import logging
 
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
+from homeassistant.const import Platform
 
 from . import FordPassEntity
 from .const import DOMAIN
@@ -27,7 +28,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class FordPassCarTracker(FordPassEntity, TrackerEntity):
     def __init__(self, coordinator):
-        super().__init__(a_tag=Tag.TRACKER, coordinator=coordinator)
+        super().__init__(entity_type=Platform.DEVICE_TRACKER, a_tag=Tag.TRACKER, coordinator=coordinator)
 
     @property
     def latitude(self):

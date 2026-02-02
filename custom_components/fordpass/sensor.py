@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.restore_state import RestoreEntity, async_get, StoredState
@@ -105,7 +106,7 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
                 device_class=SensorDeviceClass.BATTERY
             )
         self._previous_state = None
-        super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
+        super().__init__(entity_type=Platform.SENSOR, a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
     @property
     def extra_state_attributes(self):

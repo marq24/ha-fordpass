@@ -2,6 +2,7 @@ import logging
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -33,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_
 
 class FordpassButton(FordPassEntity, ButtonEntity):
     def __init__(self, coordinator:FordPassDataUpdateCoordinator, entity_description:ExtButtonEntityDescription):
-        super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
+        super().__init__(entity_type=Platform.BUTTON, a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
     async def async_press(self, **kwargs):
         try:

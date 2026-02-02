@@ -4,7 +4,7 @@ from dataclasses import replace
 from numbers import Number
 
 from homeassistant.components.number import NumberEntity
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTemperature, Platform
 
 from . import FordPassEntity, RCC_TAGS, FordPassDataUpdateCoordinator
 from .const import DOMAIN
@@ -61,7 +61,7 @@ class FordPassNumber(FordPassEntity, NumberEntity):
                 native_min_value=round(entity_description.native_min_value * 1.8 + 32, 0)
             )
 
-        super().__init__(a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
+        super().__init__(entity_type=Platform.NUMBER, a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
     @property
     def extra_state_attributes(self):

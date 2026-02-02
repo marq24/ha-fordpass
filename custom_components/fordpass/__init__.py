@@ -8,7 +8,7 @@ import aiohttp
 import async_timeout
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED
+from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
@@ -62,7 +62,7 @@ from .fordpass_handler import (
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-PLATFORMS = ["button", "lock", "number", "sensor", "switch", "select", "device_tracker"]
+PLATFORMS:Final = [Platform.BUTTON, Platform.LOCK, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH, Platform.SELECT, Platform.DEVICE_TRACKER]
 WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
 
@@ -682,7 +682,7 @@ class FordPassEntity(CoordinatorEntity):
     _attr_has_entity_name = True
     _attr_name_addon = None
 
-    def __init__(self, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator, description: EntityDescription | None = None):
+    def __init__(self, entity_type:str, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator, description: EntityDescription | None = None):
         """Initialize the entity."""
         super().__init__(coordinator, description)
 
@@ -698,7 +698,7 @@ class FordPassEntity(CoordinatorEntity):
             self._attr_name_addon = description.name_addon
 
         self.coordinator: FordPassDataUpdateCoordinator = coordinator
-        self.entity_id = f"{DOMAIN}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}"
+        self.entity_id = f"{entity_type}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}"
         self._tag = a_tag
 
     def _name_internal(self, device_class_name: str | None, platform_translations: dict[str, Any], ) -> str | UndefinedType | None:
