@@ -234,9 +234,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.debug(f"Running Service 'delete_message'")
         msg_id = call.data.get('msgid', None)
         if msg_id is not None:
-            return await FordpassDataHandler.messages_delete_with_id_called_from_service(coordinator, msg_id)
+            try:
+                return await FordpassDataHandler.messages_delete_with_id_called_from_service(coordinator, int(msg_id))
+            except ValueError:
+                _LOGGER.warning(f"async_delete_message_service: provided 'msgid' can not be convert to a number: {type(msg_id).__name__} - {msg_id}")
+                return False
         else:
-            _LOGGER.warning(f"async_delete_message_service: No msg_id provided!")
+            _LOGGER.warning(f"async_delete_message_service: No 'msgid' was provided!")
             return False
 
     hass.services.async_register(DOMAIN, "refresh_status", async_refresh_status_service)
@@ -719,7 +723,7 @@ class FordPassEntity(CoordinatorEntity):
     @property
     def unique_id(self):
         """Return the unique ID of the entity."""
-        return f"fordpass_uid_{self.coordinator._vin}_{self._tag.key}".lower()
+        return f"fordpass_uid_{self.coordinator._vin.lower()}_{self._tag.key}"
 
     @property
     def device_info(self):

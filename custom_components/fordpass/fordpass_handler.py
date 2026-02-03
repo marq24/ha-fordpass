@@ -1507,7 +1507,7 @@ class FordpassDataHandler:
                     return True
         return False
 
-    async def messages_delete_with_id_called_from_service(coordinator, msg_id: str):
+    async def messages_delete_with_id_called_from_service(coordinator, msg_id: int):
         _LOGGER.debug(f"messages_delete_id_from_service(): msg_id: {msg_id} called...")
         msgs = coordinator.data.get(ROOT_MESSAGES, {})
         if len(msgs) > 0:
