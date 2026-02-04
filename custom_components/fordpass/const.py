@@ -6,7 +6,7 @@ NAME: Final = "Fordpass integration for Home Assistant [optimized for EV's & EVC
 ISSUE_URL: Final = "https://github.com/marq24/ha-fordpass/issues"
 
 CONFIG_VERSION: Final = 2
-CONFIG_MINOR_VERSION: Final = 0
+CONFIG_MINOR_VERSION: Final = 1
 
 CONF_IS_SUPPORTED: Final = "is_supported"
 CONF_BRAND: Final = "brand"
@@ -21,7 +21,7 @@ UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-acces
 BRAND_OPTIONS = ["ford", "lincoln"]
 
 DEFAULT_REGION_FORD: Final = "rest_of_world"
-REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "nor", "gbr", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS_FORD: Final = ["fra", "deu", "ita", "nld", "esp", "nor", "pol", "gbr", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
 
 REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
 DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
@@ -107,6 +107,12 @@ REGIONS: Final = {
         "locale": "en-GB",
         "login_url": "https://login.ford.co.uk",
         "countrycode": "GBR"
+    },
+    "pol": {
+        "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19",
+        "locale": "pl-PL",
+        "login_url": "https://login.ford.pl",
+        "countrycode": "POL"
     },
     # using GBR as our default for the rest of europe...
     "rest_of_europe": {
@@ -204,6 +210,7 @@ TRANSLATIONS: Final = {
         "ita": "Italien",
         "esp": "Spanien",
         "nor": "Norwegen",
+        "pol": "Polen",
         "gbr": "Vereinigtes Königreich Großbritannien und Irland",
         "aus": "Australien",
         "nzl": "Neuseeland",
@@ -228,6 +235,7 @@ TRANSLATIONS: Final = {
         "ita": "Italy",
         "esp": "Spain",
         "nor": "Norway",
+        "pol": "Poland",
         "gbr": "United Kingdom of Great Britain and Northern Ireland",
         "aus": "Australia",
         "nzl": "New Zealand",
@@ -252,6 +260,7 @@ TRANSLATIONS: Final = {
         "ita": "Italië",
         "esp": "Spanje",
         "nor": "Noorwegen",
+        "pol": "Polen",
         "gbr": "Verenigd Koninkrijk Groot-Brittannië en Noord-Ierland",
         "aus": "Australië",
         "nzl": "Nieuw-Zeeland",

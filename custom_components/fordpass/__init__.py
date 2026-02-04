@@ -12,6 +12,7 @@ from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVEN
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers import entity_registry as the_entity_registry
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
@@ -19,6 +20,7 @@ from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
+
 
 from .const import (
     DOMAIN,
@@ -72,7 +74,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
     return True
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
-    if config_entry.version < CONFIG_VERSION:
+    if config_entry.version == 1:
         if config_entry.data is not None and len(config_entry.data) > 0:
             a_config_region = config_entry.data.get(CONF_REGION, UNDEFINED)
             if a_config_region in REGIONS_STRICT:
@@ -88,6 +90,32 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 pass
             else:
                 _LOGGER.warning(f"async_migrate_entry(): Incompatible config_entry found - this configuration should be removed from your HA - will not migrate {config_entry}")
+
+    # ensure that all our 'unique_id's are lower-case!
+    save_config_entry = config_entry.version == 2 and config_entry.minor_version == 0
+    if save_config_entry or config_entry.version == 1:
+        if save_config_entry:
+            _LOGGER.info(f"async_migrate_entry(): Migrating configuration from version {config_entry.version}.{config_entry.minor_version}")
+
+        registry = the_entity_registry.async_get(hass)
+        entities = the_entity_registry.async_entries_for_config_entry(registry, config_entry.entry_id)
+
+        for entity in entities:
+            # 'entity' is an instance of RegistryEntry
+            if entity.unique_id != entity.unique_id.lower():
+                new_unique_id = entity.unique_id.lower()
+                _LOGGER.info(f"Entity ID: {entity.entity_id}, Unique ID: {entity.unique_id} updated!")
+                for already_existing_entity in entities:
+                    if already_existing_entity.unique_id == new_unique_id:
+                        _LOGGER.info(f"Entity ID: {entity.entity_id}, Unique ID: {new_unique_id} already exists! - Will PURGE previous {already_existing_entity.entity_id}")
+                        registry.async_remove(already_existing_entity.entity_id)
+
+                registry.async_update_entity(entity.entity_id, new_unique_id=new_unique_id)
+
+        if save_config_entry:
+            hass.config_entries.async_update_entry(config_entry, version=CONFIG_VERSION, minor_version=CONFIG_MINOR_VERSION)
+            _LOGGER.info(f"async_migrate_entry(): Migration to configuration version {config_entry.version}.{config_entry.minor_version} successful")
+
     return True
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
@@ -723,7 +751,7 @@ class FordPassEntity(CoordinatorEntity):
     @property
     def unique_id(self):
         """Return the unique ID of the entity."""
-        return f"fordpass_uid_{self.coordinator._vin.lower()}_{self._tag.key}"
+        return f"fordpass_uid_{self.coordinator._vin}_{self._tag.key}".lower()
 
     @property
     def device_info(self):
