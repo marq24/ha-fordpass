@@ -123,16 +123,16 @@
                 }
             },
             "new_account_lincoln": {
-            "data": {
-              "password": "The Lincoln Way™ Password",
-              "username": "The Lincoln Way™ Username (Email)",
-              "region" : "The Lincoln Way™ Region"
+                "data": {
+                    "password": "The Lincoln Way™ Password",
+                    "username": "The Lincoln Way™ Username (Email)",
+                    "region" : "The Lincoln Way™ Region"
+                },
+                "data_description": {
+                    "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
+                    "region": "The region you are going to select must match the region for which you have registered your The Lincoln Way™ account. Further details at GitHub"
+                }
             },
-            "data_description": {
-              "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
-              "region": "The region you are going to select must match the region for which you have registered your The Lincoln Way™ account. Further details at GitHub"
-            }
-          },
             "vehicle": {
                 "title": "Select vehicle to add",
                 "description": "Only vehicles not currently added will be shown",

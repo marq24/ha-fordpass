@@ -1,0 +1,355 @@
+{
+    "selector": {
+        "region": {
+            "options": {
+                "aaa": "------ VÉHICULES FORD ------",
+                "deu": "Allemagne",
+                "fra": "France",
+                "nld": "Pays-Bas",
+                "ita": "Italie",
+                "esp": "Espagne",
+                "nor": "Norvège",
+                "pol": "Pologne",
+                "gbr": "Royaume-Uni",
+                "aus": "Australie [nécessite un compte 'ford.com.au/ford.co.nz']",
+                "nzl": "Nouvelle-Zélande [nécessite un compte 'ford.co.nz/ford.com.au']",
+                "zaf": "Afrique du Sud [nécessite un compte 'ford.co.za']",
+                "can": "Canada",
+                "mex": "Mexique",
+                "usa": "États-Unis d'Amérique",
+                "bra": "Brésil [nécessite un compte 'ford.com.br/ford.com.ar']",
+                "arg": "Argentine [nécessite un compte 'ford.com.ar/ford.com.br']",
+                "rest_of_europe": "Autres pays européens",
+                "rest_of_world": "Reste du monde",
+                "zzz": "------ VÉHICULES LINCOLN ------",
+                "lincoln_usa": "États-Unis d'Amérique"
+            }
+        },
+        "setup_type": {
+            "options": {
+                "new_account": "Ajouter un nouveau compte FordPass™/The Lincoln Way™ ou configurer une nouvelle région",
+                "add_vehicle": "Ajouter un véhicule à partir d'un compte/région FordPass™/The Lincoln Way™ existant"
+            }
+        },
+        "brand": {
+            "options": {
+                "ford": "Véhicules Ford - application FordPass™",
+                "lincoln": "Véhicules Lincoln - application The Lincoln Way™"
+            }
+        }
+    },
+    "config": {
+        "abort": {
+            "already_configured": "Le compte est déjà configuré",
+            "no_vehicles": "Aucun véhicule sur le compte ou tous sont déjà configurés",
+            "reauth_successful": "La ré-autorisation a été effectuée",
+            "reauth_reload_failed": "La ré-autorisation a été effectuée\n\nMais l'intégration n'a pas pu être rechargée. Veuillez redémarrer Home Assistant pour terminer le processus de ré-autorisation ou vérifiez les journaux pour plus de détails",
+            "reauth_unsuccessful": "La ré-autorisation a ÉCHOUÉE\n\nVeuillez vérifier le jeton et réessayer",
+            "reauth_not_possible": "Aucune région valide trouvée\n\nMalheureusement, vous devez reconfigurer l'intégration",
+            "no_filesystem_access": "Cette intégration nécessite un accès au système de fichiers local de votre installation Home Assistant pour stocker une clé pour votre compte FordPass™/The Lincoln Way™.\n\nPour ce faire, un sous-dossier sera créé dans le dossier '.storage/'. Cependant, cela n'est actuellement pas possible. Un test interne a échoué. Vous pouvez trouver des détails dans le journal de votre instance Home Assistant.\n\nVeuillez vous assurer que vous exécutez Home Assistant avec l'utilisateur correct qui dispose des droits en écriture sur le système de fichiers local.\n\nSi vous exécutez Home Assistant dans un conteneur Docker, assurez-vous que le conteneur est exécuté avec l'utilisateur correct et qu'il a accès au système de fichiers local.\n\nVeuillez vérifier votre installation et redémarrer la configuration de cette intégration une fois l'accès au système de fichiers local rétabli.",
+            "no_brand": "Aucune marque (Ford ou Lincoln) n'a été détectée",
+            "oauth_error_final": "## Le processus final d'obtention du jeton OAuth a échoué\nQuelque chose s'est mal passé lors de la tentative de récupération du jeton d'accès final auprès de Ford. Êtes-vous sûr que les identifiants spécifiés en tant que `client-id` et `secret` sont corrects ?\nVeuillez également vérifier le journal de Home Assistant pour d'éventuels messages d'erreur complémentaires qui pourraient vous aider à identifier la cause racine de ce problème.\n\n#### Raison possible :\n{error_info}"
+        },
+        "error": {
+            "cannot_connect": "Échec de la connexion",
+            "invalid_auth": "Identifiants invalides",
+            "invalid_vin": "VIN introuvable pour le compte indiqué",
+            "invalid_mobile": "Le numéro mobile comme nom d'utilisateur doit être spécifié si vous utilisez la région Afrique du Sud",
+            "invalid_token": "Le jeton est invalide, veuillez vérifier que vous avez copié le bon jeton depuis l'en-tête Location ; il devrait commencer par fordapp:// (ou lincolnapp://)",
+            "unknown": "Erreur inattendue"
+        },
+        "step": {
+            "user": {
+                "title": "Ajouter un compte FordPass™/The Lincoln Way™ ou un véhicule",
+                "description": "Puisque vous avez déjà configuré au moins un compte FordPass™/The Lincoln Way™, vous devez d'abord sélectionner si vous souhaitez ajouter un autre véhicule ou un nouveau compte (ou région).\n-- --\n### Informations importantes concernant la prise en charge multi-véhicules\n\nLorsque vous avez __plusieurs__ véhicules enregistrés dans votre compte FordPass™/The Lincoln Way™, dans l'application FordPass™/The Lincoln Way™ vous devez d'abord sélectionner le véhicule que vous souhaitez utiliser avant de pouvoir accéder aux données ou fonctionnalités de ce véhicule. __La même limitation s'applique__ à cette intégration Home Assistant.\n\nLa principale raison de cette restriction est que l'application FordPass™ et cette intégration utilisent une connexion websocket vers l'infrastructure Ford, qui est liée à un seul véhicule à la fois.\n\nVous trouverez tous les détails ici: {repo}?tab=readme-ov-file#multi-vehicle-support",
+                "data": {
+                    "setup_type": "Que souhaitez-vous faire ?"
+                },
+                "data_description": {
+                    "setup_type": "Si vous configurez un deuxième véhicule avec le même compte, un seul des deux peut être actif dans Home Assistant à la fois - sinon les jetons d'accès vont s'écraser mutuellement"
+                }
+            },
+            "user_connect": {
+                "title": "Ajouter un nouveau véhicule Ford",
+                "description": "## Bienvenue dans l'intégration FordConnect Query\nCeci est une intégration alternative à FordPass ({repo}), utilisant l'API FordConnect Query. Cette API fournit un accès __en lecture seule__ aux données du véhicule.\n### Exigences\n- Votre véhicule doit disposer du dernier modem embarqué et être enregistré/autorisé avec l'application FordPass™\n- Une paire d'identifiants API préalablement enregistrée sur le portail développeur Ford EU.\n\nVous trouverez plus d'informations dans le [_guide d'enregistrement d'application_], qui inclut une procédure pas à pas: {repo}/blob/main/docs/REGISTER_APPLICATION.md.\n### Besoin d'instructions supplémentaires ?\nTous les autres détails d'installation se trouvent dans le [guide de configuration]({repo}/blob/main/docs/CONFIGURE_INTEGRATION.md)\n### Remarque finale\nSi vous trouvez cette intégration utile, envisagez de me soutenir en tant que sponsor GitHub (ou d'une autre manière décrite sur mon profil GitHub) – merci à ceux qui le font déjà !",
+                "data": {
+                    "config_title": "Veuillez choisir un nom pour votre entrée de configuration"
+                }
+            },
+            "select_account": {
+                "title": "Sélectionnez votre compte FordPass™/The Lincoln Way™",
+                "description": "Veuillez sélectionner le compte FordPass™/The Lincoln Way™ à partir duquel vous souhaitez ajouter un autre véhicule.",
+                "data": {
+                    "account": "Compte FordPass™/The Lincoln Way™"
+                },
+                "data_description": {
+                    "account": "Si vous configurez un deuxième véhicule avec le même compte, un seul des deux peut être actif dans Home Assistant à la fois - sinon les jetons d'accès vont s'écraser mutuellement"
+                }
+            },
+            "token": {
+                "title": "Jeton d'installation",
+                "description": "La configuration du jeton nécessite une seconde fenêtre de navigateur (avec les outils de développement activés - F12) pour capturer le jeton d'accès final.\r\rIl s'agit d'une procédure assez inhabituelle pour une intégration Home Assistant ; les détails se trouvent dans le [guide de configuration]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rVeuillez suivre les étapes :\r1. Copiez l'URL ci-dessous ou cliquez sur le lien suivant (doit être ouvert dans un nouvel onglet/fenêtre): [Commencer la procédure d'autorisation]({url})\r2. Ouvrez un navigateur (avec les outils de développement activés) et collez l'URL copiée dans ce second navigateur\r3. Saisissez vos identifiants FordPass™/The Lincoln Way™ (à nouveau) et appuyez sur le bouton de connexion\r4. Surveillez l'onglet Réseau jusqu'à voir la requête contenant `?code=`\r5. Copiez l'URL complète de la requête depuis les outils de développement du navigateur et collez-la dans le champ Jeton ci-dessous\r6. Cliquez sur OK pour continuer",
+                "data": {
+                    "url": "URL: copiez-la dans votre navigateur",
+                    "tokenstr": "URL de la requête de jeton: après la fin du processus de connexion dans le navigateur, collez l'URL complète de la requête"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Ré-autorisation requise",
+                "description": "Votre jeton précédent est invalide - vous devez en fournir un nouveau pour votre compte {username} :\r\rLes détails se trouvent dans le [guide de configuration]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rVeuillez suivre les étapes :\r1. Copiez l'URL ci-dessous ou cliquez sur le lien suivant (doit être ouvert dans un nouvel onglet/fenêtre) : [Commencer la procédure d'autorisation]({url})\r2. Ouvrez un navigateur (avec les outils de développement activés) et collez l'URL copiée dans ce second navigateur\r3. Saisissez vos identifiants FordPass™/The Lincoln Way™ (à nouveau) et appuyez sur le bouton de connexion (ne vous laissez pas tromper par le spinner qui tourne indéfiniment - c'est normal)\r4. Surveillez l'onglet Réseau jusqu'à voir la requête contenant `?code=`\r5. Copiez l'URL complète de la requête depuis les outils de développement du navigateur et collez-la dans le champ Jeton ci-dessous\r6. Cliquez sur OK pour continuer",
+                "data": {
+                    "url": "URL: copiez-la dans votre navigateur",
+                    "tokenstr": "URL de la requête de jeton: après la fin du processus de connexion dans le navigateur, collez l'URL complète de la requête"
+                }
+            },
+            "reauth_confirm_connect": {
+                "title": "Ré-autorisation requise",
+                "description": "Votre jeton précédent est invalide - vous devez en fournir un nouveau pour votre compte {username}"
+            },
+            "brand": {
+                "data": {
+                    "brand": "Sélectionnez la marque"
+                }
+            },
+            "new_account_ford": {
+                "data": {
+                    "password": "Mot de passe FordPass™",
+                    "username": "Nom d'utilisateur FordPass™ (Email)",
+                    "region": "Région FordPass™"
+                },
+                "data_description": {
+                    "username": "Si vous utilisez un mobile au lieu d'un email, veuillez entrer votre numéro (sans le 0 initial), en incluant le + et l'indicatif pays (ex. +33123456789)",
+                    "region": "La région que vous sélectionnez doit correspondre à celle pour laquelle vous avez enregistré votre compte FordPass™. Plus de détails sur GitHub"
+                }
+            },
+            "new_account_lincoln": {
+                "data": {
+                    "password": "Mot de passe The Lincoln Way™",
+                    "username": "Nom d'utilisateur The Lincoln Way™ (Email)",
+                    "region": "Région The Lincoln Way™"
+                },
+                "data_description": {
+                    "username": "Si vous utilisez un mobile au lieu d'un email, veuillez entrer votre numéro (sans le 0 initial), en incluant le + et l'indicatif pays (ex. +33123456789)",
+                    "region": "La région que vous sélectionnez doit correspondre à celle pour laquelle vous avez enregistré votre compte The Lincoln Way™. Plus de détails sur GitHub"
+                }
+            },
+            "vehicle": {
+                "title": "Sélectionnez le véhicule à ajouter",
+                "description": "Seuls les véhicules non encore ajoutés seront affichés",
+                "data": {
+                    "vin": "VIN"
+                }
+            },
+            "vin": {
+                "title": "Saisie manuelle du VIN",
+                "description": "Veuillez saisir manuellement votre numéro VIN car aucun véhicule n'a pu être trouvé automatiquement.",
+                "data": {
+                    "vin": "Numéro VIN du véhicule"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "pressure_unit": "Unité de pression",
+                    "update_interval": "Intervalle pour interroger l'API Ford (secondes)",
+                    "scan_interval": "Intervalle pour interroger l'API Ford (secondes)",
+                    "force_remote_climate_control": "Les options de contrôle climatique à distance (❄|☀) doivent toujours être disponibles",
+                    "log_to_filesystem": "Enregistrer les réponses API sur le système de fichiers local de Home Assistant"
+                },
+                "data_description": {
+                    "update_interval": "L'intervalle de mise à jour minimum est de 30 secondes",
+                    "scan_interval": "L'intervalle de mise à jour minimum est de 30 secondes",
+                    "force_remote_climate_control": "Si vous activez cette option, le réglage spécifié par Ford sera ignoré.",
+                    "log_to_filesystem": "Cette option ne devrait pas être activée sur une longue période !\rLes fichiers peuvent être trouvés: './storage/{integration_name}/data_dumps'"
+                },
+                "description": "Options de configuration pour l'intégration"
+            }
+        }
+    },
+    "services": {
+        "refresh_status": {
+            "name": "Actualiser l'état du véhicule",
+            "description": "Interroger la voiture pour obtenir le dernier état (peut prendre jusqu'à 5 minutes pour se mettre à jour après exécution de cette fonction !)",
+            "fields": {
+                "vin": {
+                    "name": "VIN",
+                    "description": "Saisissez un numéro VIN pour ne rafraîchir que le véhicule spécifié (par défaut, rafraîchit tous les véhicules ajoutés)"
+                }
+            }
+        },
+        "clear_tokens": {
+            "name": "Effacer les jetons",
+            "description": "Effacer le cache des jetons stockés (nécessite une nouvelle authentification par la suite)"
+        },
+        "reload": {
+            "name": "Recharger",
+            "description": "Recharger l'intégration FordPass"
+        },
+        "poll_api": {
+            "name": "Interroger l'API",
+            "description": "Interroger manuellement l'API pour une mise à jour des données (Attention: le faire trop souvent peut entraîner un bannissement)"
+        },
+        "delete_message": {
+            "name": "Supprimer un message FordPass",
+            "description": "Supprimer un message de la liste des messages. Saisissez l'ID du message pour supprimer un message spécifique.",
+            "fields": {
+                "msgid": {
+                    "name": "ID du message",
+                    "description": "Saisissez un ID de message valide pour supprimer un message spécifique"
+                }
+            }
+        }
+    },
+    "entity": {
+        "button": {
+            "update_data":      {"name": "Synchronisation locale"},
+            "request_refresh":  {"name": "Synchronisation distante"},
+            "doorlock":         {"name": "Verrouiller"},
+            "doorunlock":       {"name": "Déverrouiller"},
+            "evstart":          {"name": "Démarrer la charge VE"},
+            "evcancel":         {"name": "Reprendre la charge VE"},
+            "evpause":          {"name": "Mettre la charge VE en pause"},
+            "hafshort":         {"name": "Klaxonner et clignoter [1 s]"},
+            "hafdefault":       {"name": "Klaxonner et clignoter [3 s]"},
+            "haflong":          {"name": "Klaxonner et clignoter [5 s]"},
+            "extendremotestart":{"name": "RC (❄|☀): Prolonger"},
+            "msgdeleteall":     {"name": "Messages: Tout supprimer"},
+            "msgdeletelast":    {"name": "Messages: Supprimer le dernier"}
+        },
+        "device_tracker":   {"tracker":     {"name": "Suivi du véhicule"}},
+        "lock":             {"doorlock":    {"name": "Portes"}},
+        "switch": {
+            "ignition":             {"name": "RC (❄|☀): Démarrer [RemoteControl]"},
+            "elvehcharge":          {"name": "Charge VE (Pause)"},
+            "guardmode":            {"name": "Mode gardien"},
+            "autosoftwareupdates":  {"name": "Mises à jour logicielles automatiques"},
+            "rccdefrostrear":       {"name": "RC (❄|☀): Dégivrage arrière [RemoteControl]"},
+            "rccdefrostfront":      {"name": "RC (❄|☀): Pare-brise chauffant [RemoteControl]"},
+            "rccsteeringwheel":     {"name": "RC (❄|☀): Chauffage du volant [RemoteControl]"}
+        },
+        "number": {
+            "rcctemperature":       {"name": "RC (❄|☀): Température climatisation [RemoteControl]"},
+            "elvehtargetcharge":    {"name": "Niveau cible de charge"},
+            "globaltargetsoc":      {"name": "Général: Niveau cible de charge"},
+            "globalaccurrentlimit": {"name": "Limite de courant AC"},
+            "globaldcpowerlimit":   {"name": "Limite de puissance DC"}
+        },
+        "sensor": {
+            "odometer":                 {"name": "Odomètre"},
+            "fuel":                     {"name": "Carburant"},
+            "battery":                  {"name": "Batterie (12V)"},
+            "oil":                      {"name": "Durée de vie de l'huile"},
+            "tirepressure":             {"name": "Pression des pneus"},
+            "gps":                      {"name": "GPS JSON"},
+            "alarm":                    {"name": "Statut de l'alarme"},
+            "ignitionstatus":           {"name": "Statut de l'allumage"},
+            "doorstatus":               {"name": "Statut des portes"},
+            "windowposition":           {"name": "Position des vitres"},
+            "lastrefresh":              {"name": "Dernière actualisation"},
+            "elveh":                    {"name": "Véhicule électrique"},
+            "elvehplug":                {"name": "Prise VE"},
+            "elvehcharging":            {"name": "Charge VE"},
+            "speed":                    {"name": "Vitesse"},
+            "enginespeed":              {"name": "Régime moteur"},
+            "gearleverposition":        {"name": "Position du levier de vitesse"},
+            "indicators":               {"name": "Clignotants"},
+            "coolanttemp":              {"name": "Température du liquide de refroidissement"},
+            "outsidetemp":              {"name": "Température extérieure"},
+            "engineoiltemp":            {"name": "Température de l'huile moteur"},
+            "deepsleep":                {"name": "Mode veille"},
+            "firmwareupginprogress":    {"name": "Mise à jour du firmware en cours"},
+            "remotestartstatus":        {"name": "RC (❄|☀): Statut démarrage à distance"},
+            "zonelighting":             {"name": "Éclairage zonal"},
+            "messages":                 {"name": "Messages"},
+            "dieselsystemstatus":       {"name": "Statut du système diesel"},
+            "exhaustfluidlevel":        {"name": "Niveau AdBlue"},
+            "events":                   {"name": "Événements"},
+            "metrics":                  {"name": "Mesures"},
+            "states":                   {"name": "États"},
+            "vehicles":                 {"name": "Véhicules"},
+
+            "soc":                      {"name": "État de charge"},
+            "evccstatus":               {"name": "Code statut EVCC"},
+            "seatbelt":                 {"name": "Statut de la ceinture"},
+            "deviceconnectivity":       {"name": "Connectivité"},
+
+            "yawrate":                  {"name": "Taux de lacet"},
+            "acceleration":             {"name": "Accélération"},
+            "brakepedalstatus":         {"name": "Statut de la pédale de frein"},
+            "braketorque":              {"name": "Couple de frein"},
+            "acceleratorpedalposition": {"name": "Position de la pédale d'accélérateur"},
+            "parkingbrakestatus":       {"name": "Statut du frein de stationnement"},
+            "torqueattransmission":     {"name": "Couple à la transmission"},
+            "wheeltorquestatus":        {"name": "Statut du couple roue"},
+            "cabintemperature":         {"name": "Température de l'habitacle"},
+            "lastenergyconsumed":       {"name": "Consommation d'énergie VE (dernier trajet)"},
+            "energytransferlogentry":   {"name": "Dernière session de charge VE"},
+            "remotestartcountdown":     {"name": "RC (❄|☀): Temps restant"},
+            "doorlock":                 {"name": "Fermeture des portes"}
+        },
+        "select": {
+            "zonelighting": {
+                "name": "Éclairage zonal",
+                "state": {
+                    "0": "MARCHE",
+                    "1": "Avant",
+                    "2": "Arrière",
+                    "3": "Conducteur",
+                    "4": "Passager",
+                    "off": "ARRÊT"
+                }
+            },
+            "rcctemperature": {
+                "name": "RC (❄|☀): Température [RemoteControl]",
+                "state": {"lo": "BASSE",
+                          "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
+                          "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",
+                          "26": "78.8°F", "26_5": "79.7°F", "27": "80.6°F", "27_5": "81.5°F", "28": "82.4°F", "28_5": "83.3°F", "29": "84.2°F", "29_5": "85.1°F", "30": "86.0°F",
+                          "hi": "HAUTE"}
+            },
+            "rcctemperaturefahrenheit": {
+                "name": "RC (❄|☀): Température [RemoteControl]",
+                "state": {"lo": "BASSE",
+                          "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
+                          "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",
+                          "26": "78.8°F", "26_5": "79.7°F", "27": "80.6°F", "27_5": "81.5°F", "28": "82.4°F", "28_5": "83.3°F", "29": "84.2°F", "29_5": "85.1°F", "30": "86.0°F",
+                          "hi": "HAUTE"}
+            },
+            "rccseatrearleft": {
+                "name": "RC (❄|☀): Siège arrière gauche [RemoteControl]",
+                "state": { "off": "Arrêt", "cooled1": "Refroidissement I", "cooled2": "Refroidissement II", "cooled3": "Refroidissement III", "heated1": "Chauffage I", "heated2": "Chauffage II", "heated3": "Chauffage III"}
+            },
+            "rccseatrearright": {
+                "name": "RC (❄|☀): Siège arrière droit [RemoteControl]",
+                "state": { "off": "Arrêt", "cooled1": "Refroidissement I", "cooled2": "Refroidissement II", "cooled3": "Refroidissement III", "heated1": "Chauffage I", "heated2": "Chauffage II", "heated3": "Chauffage III"}
+            },
+            "rccseatfrontleft": {
+                "name": "RC (❄|☀): Siège avant gauche [RemoteControl]",
+                "state": { "off": "Arrêt", "cooled1": "Refroidissement I", "cooled2": "Refroidissement II", "cooled3": "Refroidissement III", "heated1": "Chauffage I", "heated2": "Chauffage II", "heated3": "Chauffage III"}
+            },
+            "rccseatfrontright": {
+                "name": "RC (❄|☀): Siège avant droit [RemoteControl]",
+                "state": { "off": "Arrêt", "cooled1": "Refroidissement I", "cooled2": "Refroidissement II", "cooled3": "Refroidissement III", "heated1": "Chauffage I", "heated2": "Chauffage II", "heated3": "Chauffage III"}
+            },
+            "elvehtargetcharge": {
+                "name": "Niveau cible de charge",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt1": {
+                "name": "Niveau cible de charge [emplacement alternatif 1]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt2": {
+                "name": "Niveau cible de charge [emplacement alternatif 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "globaltargetsoc": { 
+                "name": "Général: Niveau cible de charge",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            }
+        }
+    }
+}
