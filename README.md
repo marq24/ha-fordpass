@@ -268,9 +268,17 @@ This service will contact the modem in the vehicle and request to sync data betw
 | Status Wheel Torque                |       ✔       |   ✔    |         ✔         |
 | Cabin Temperature                  |       ✔       |   ✔    |         ✔         |
 
-Many sensors provide more detail information as attributes of sensors. These attributes are available by expanding the panel at the bottom of the sensor view (marked by green border).
+Many sensors provide more detail information as attributes of sensors. These attributes are available by:
 
-![image](./images/012.png)
+#### since HA 2026.2:
+click on the 3 dot's (upper right corner) menu of the sensor in the HA UI and then select `Attributes` from the menu.
+
+![image](./images/012_ha2026.2.png)
+
+#### before HA 2026.2:
+expanding the panel at the bottom of the sensor view (marked by green border).
+
+![image](./images/012_ha2025.png)
 
 You can find more details about the individual sensors when accessing your HA via `http://[your-ha-ip-here]/developer-tools/state` and then selecting the individual sensor from the dropdown list, then you can see all the attributes of the sensor.
 
