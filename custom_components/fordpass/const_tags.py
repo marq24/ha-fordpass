@@ -512,7 +512,7 @@ SENSORS = [
     ExtSensorEntityDescription(
         tag=Tag.ELVEH_CHARGING_POWER,
         key=Tag.ELVEH_CHARGING_POWER.key,
-        icon="mdi:ev-plug",
+        icon="mdi:ev-plug-ccs2",
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
