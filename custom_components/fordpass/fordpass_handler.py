@@ -842,6 +842,15 @@ class FordpassDataHandler:
         return attrs
 
 
+    # ELVEH_CHARGING_KW state
+    def get_elveh_charging_kw_state(data, prev_state=None):
+        """Get the charging kW value from attributes."""
+        attrs = FordpassDataHandler.get_elveh_charging_attrs(data, None)
+        if attrs and "chargingkW" in attrs:
+            return attrs["chargingkW"]
+        return None
+
+
     # ELVEH_PLUG attributes
     def get_elveh_plug_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
