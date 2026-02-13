@@ -251,7 +251,8 @@
             "lastrefresh":              {"name": "Dernière actualisation"},
             "elveh":                    {"name": "Véhicule électrique"},
             "elvehplug":                {"name": "Prise VE"},
-            "elvehcharging":            {"name": "Charge VE"},
+            "elvehcharging":            {"name": "État de charge VE"},
+            "elvehchargingpower":       {"name": "Charge KW VE"},
             "speed":                    {"name": "Vitesse"},
             "enginespeed":              {"name": "Régime moteur"},
             "gearleverposition":        {"name": "Position du levier de vitesse"},
@@ -346,7 +347,7 @@
                 "name": "Niveau cible de charge [emplacement alternatif 2]",
                 "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
             },
-            "globaltargetsoc": { 
+            "globaltargetsoc": {
                 "name": "Général: Niveau cible de charge",
                 "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
             }

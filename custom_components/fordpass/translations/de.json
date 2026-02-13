@@ -252,6 +252,7 @@
             "elveh":                    {"name": "EV Daten"},
             "elvehplug":                {"name": "EV Steckerstatus"},
             "elvehcharging":            {"name": "EV Ladestatus"},
+            "elvehchargingpower":       {"name": "EV geladen"},
             "speed":                    {"name": "Geschwindigkeit"},
             "enginespeed":              {"name": "Motordrehzahl"},
             "gearleverposition":        {"name": "Gang"},

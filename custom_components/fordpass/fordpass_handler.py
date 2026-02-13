@@ -755,6 +755,23 @@ class FordpassDataHandler:
             else:
                 return await vehicle.pause_charge()
 
+    def _get_eleveh_charging_power_from_metrics(data_metrics):
+        if "xevBatteryChargerVoltageOutput" in data_metrics and "xevBatteryChargerCurrentOutput" in data_metrics:
+            ch_volt = float(data_metrics.get("xevBatteryChargerVoltageOutput", {}).get("value", 0))
+            ch_amps = float(data_metrics.get("xevBatteryChargerCurrentOutput", {}).get("value", 0))
+            if isinstance(ch_volt, Number) and ch_volt != 0 and isinstance(ch_amps, Number) and ch_amps != 0:
+                return round((ch_volt * ch_amps) / 1000, 2)
+            elif isinstance(ch_volt, Number) and ch_volt != 0 and "xevBatteryIoCurrent" in data_metrics:
+                # Get Battery Io Current for DC Charging calculation
+                batt_amps = float(data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
+                # DC Charging calculation: Use absolute value for amperage to handle negative values
+                if isinstance(batt_amps, Number) and batt_amps != 0:
+                    return round((ch_volt * abs(batt_amps)) / 1000, 2)
+                else:
+                    return 0
+            else:
+                return 0
+        return None
 
     def get_elveh_charging_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
@@ -782,22 +799,9 @@ class FordpassDataHandler:
                 attrs[attr_name] = transform_fn(value, units)
 
         # handle the self-calculated custom metrics stuff
-        if "xevBatteryChargerVoltageOutput" in data_metrics and "xevBatteryChargerCurrentOutput" in data_metrics:
-            ch_volt = attrs.get("chargingVoltage", 0)
-            ch_amps = attrs.get("chargingAmperage", 0)
-
-            if isinstance(ch_volt, Number) and ch_volt != 0 and isinstance(ch_amps, Number) and ch_amps != 0:
-                attrs["chargingkW"] = round((ch_volt * ch_amps) / 1000, 2)
-            elif isinstance(ch_volt, Number) and ch_volt != 0 and "xevBatteryIoCurrent" in data_metrics:
-                # Get Battery Io Current for DC Charging calculation
-                batt_amps = float(data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
-                # DC Charging calculation: Use absolute value for amperage to handle negative values
-                if isinstance(batt_amps, Number) and batt_amps != 0:
-                    attrs["chargingkW"] = round((ch_volt * abs(batt_amps)) / 1000, 2)
-                else:
-                    attrs["chargingkW"] = 0
-            else:
-                attrs["chargingkW"] = 0
+        charging_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(data_metrics)
+        if charging_kw is not None:
+            attrs["chargingkW"] = charging_kw
 
         if "xevBatteryTimeToFullCharge" in data_metrics:
             cs_update_time = dt.parse_datetime(data_metrics.get("xevBatteryTimeToFullCharge", {}).get("updateTime", 0))
@@ -841,15 +845,12 @@ class FordpassDataHandler:
 
         return attrs
 
-
-    # ELVEH_CHARGING_KW state
-    def get_elveh_charging_kw_state(data, prev_state=None):
-        """Get the charging kW value from attributes."""
-        attrs = FordpassDataHandler.get_elveh_charging_attrs(data, None)
-        if attrs and "chargingkW" in attrs:
-            return attrs["chargingkW"]
+    # ELVEH_CHARGING_power state
+    def get_elveh_charging_power_state(data, prev_state=None):
+        charging_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(data_metrics = FordpassDataHandler.get_metrics(data))
+        if charging_kw is not None:
+            return charging_kw
         return None
-
 
     # ELVEH_PLUG attributes
     def get_elveh_plug_attrs(data, units:UnitSystem):
