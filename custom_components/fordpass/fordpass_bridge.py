@@ -1020,7 +1020,7 @@ class ConnectedFordPassVehicle:
                 if "DISCONNECTED" == new_ev_connect_state and new_ev_connect_state != self._last_ev_connect_state:
                     if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
                         self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
-                    _LOGGER.debug(f"{self.vli}ws(): EV connect state changed to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 2.5min)")
+                    _LOGGER.debug(f"{self.vli}ws(): EV connect state changed to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 3min)")
                     self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
 
                 elif "CONNECTED" == new_ev_connect_state:
@@ -1475,7 +1475,7 @@ class ConnectedFordPassVehicle:
         if self._energy_transfer_logs_supported:
             try:
                 _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): started")
-                # we will wait 2.5 minutes before we request the new energy_transfer_logs!
+                # we will wait 3 minutes before we request the new energy_transfer_logs!
                 await asyncio.sleep(180)
                 if self._energy_transfer_logs_supported:
                     _LOGGER.debug(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): starting the 'update_energy_transfer_logs_int()' update now")
