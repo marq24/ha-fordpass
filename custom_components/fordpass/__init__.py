@@ -11,16 +11,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers import entity_registry as the_entity_registry
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.typing import UNDEFINED, UndefinedType
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
-
 
 from .const import (
     DOMAIN,
@@ -52,6 +51,7 @@ from .const_shared import (
     RCC_SEAT_MODE_HEAT_AND_COOL
 )
 from .const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
+from .entity import CustomFriendlyNameEntity
 from .fordpass_bridge import ConnectedFordPassVehicle
 from .fordpass_handler import (
     UNSUPPORTED,
@@ -708,7 +708,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     #         json.dump(data, outfile)
 
 
-class FordPassEntity(CoordinatorEntity):
+class FordPassEntity(CustomFriendlyNameEntity):
     """Defines a base FordPass entity."""
     _attr_should_poll = False
     _attr_has_entity_name = True

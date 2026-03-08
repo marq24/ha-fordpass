@@ -125,15 +125,15 @@
                 }
             },
             "new_account_lincoln": {
-                  "data": {
-                      "password": "The Lincoln Way™ Passwort",
-                      "username": "The Lincoln Way™ Username (Email)",
-                      "region" : "The Lincoln Way™ Region"
-                  },
-                  "data_description": {
-                      "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
-                      "region": "Die Region, die Du auswählst, muss mit der Region übereinstimmen, für die Du dein The Lincoln Way™-Konto registriert hast. Weitere Details auf GitHub"
-                  }
+                "data": {
+                    "password": "The Lincoln Way™ Passwort",
+                    "username": "The Lincoln Way™ Username (Email)",
+                     "region" : "The Lincoln Way™ Region"
+                },
+                "data_description": {
+                    "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
+                    "region": "Die Region, die Du auswählst, muss mit der Region übereinstimmen, für die Du dein The Lincoln Way™-Konto registriert hast. Weitere Details auf GitHub"
+                }
             },
             "vehicle": {
                 "title": "Zum Hinzufügen ein Fahrzeug auswählen",

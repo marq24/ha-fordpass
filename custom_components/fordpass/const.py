@@ -21,7 +21,7 @@ UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-acces
 BRAND_OPTIONS = ["ford", "lincoln"]
 
 DEFAULT_REGION_FORD: Final = "rest_of_world"
-REGION_OPTIONS_FORD: Final = ["fra", "deu", "dnk", "ita", "nld", "esp", "nor", "pol", "gbr", "prt","rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS_FORD: Final = ["fra", "deu", "dnk", "ita", "nld", "esp", "nor", "pol", "gbr", "prt", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
 
 REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
 DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
