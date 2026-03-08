@@ -45,6 +45,7 @@
             "already_configured": "Account is al geconfigureerd",
             "no_vehicles": "Geen voertuigen in account of alle zijn al geconfigureerd",
             "reauth_successful": "Hernieuwde autorisatie is voltooid",
+            "reconfigure_successful": "De herconfiguratie is succesvol verlopen",
             "reauth_reload_failed": "Hernieuwde autorisatie is voltooid\n\nMaar de integratie kon niet opnieuw worden geladen. Herstart alstublieft Home Assistant om het herauthorisatieproces af te ronden of controleer uw logboek voor meer details",
             "reauth_unsuccessful": "Hernieuwde autorisatie MISLUKT\n\nControleer alstublieft het token en probeer het opnieuw",
             "reauth_not_possible": "Geen geldige regio gevonden\n\nHelaas moet u de integratie opnieuw configureren",

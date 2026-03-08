@@ -45,6 +45,7 @@
             "already_configured": "Le compte est déjà configuré",
             "no_vehicles": "Aucun véhicule sur le compte ou tous sont déjà configurés",
             "reauth_successful": "La ré-autorisation a été effectuée",
+            "reconfigure_successful": "La reconfiguration a été un succès",
             "reauth_reload_failed": "La ré-autorisation a été effectuée\n\nMais l'intégration n'a pas pu être rechargée. Veuillez redémarrer Home Assistant pour terminer le processus de ré-autorisation ou vérifiez les journaux pour plus de détails",
             "reauth_unsuccessful": "La ré-autorisation a ÉCHOUÉE\n\nVeuillez vérifier le jeton et réessayer",
             "reauth_not_possible": "Aucune région valide trouvée\n\nMalheureusement, vous devez reconfigurer l'intégration",

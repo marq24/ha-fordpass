@@ -613,7 +613,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             if vehicle:
                 self.cached_login_input[CONF_IS_SUPPORTED] = True
                 if self.source == config_entries.SOURCE_REAUTH:
-                    return self.async_update_reload_and_abort(self._get_reauth_entry(), data=self.cached_login_input)
+                    return self.async_update_reload_and_abort(self._get_reauth_entry(), data=self.cached_login_input, reason="reauth_successful")
 
                 # create the config entry without the vehicle type/name...
                 return self.async_create_entry(title=f"VIN: {user_input[CONF_VIN]}", data=self.cached_login_input)
@@ -630,7 +630,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
             self.cached_login_input[CONF_IS_SUPPORTED] = True
             if self.source == config_entries.SOURCE_REAUTH:
-                return self.async_update_reload_and_abort(self._get_reauth_entry(), data=self.cached_login_input)
+                return self.async_update_reload_and_abort(self._get_reauth_entry(), data=self.cached_login_input, reason="reauth_successful")
 
             if user_input[CONF_VIN] in self._vehicle_name:
                 a_title = f"{self._vehicle_name[user_input[CONF_VIN]]} [VIN: {user_input[CONF_VIN]}]"

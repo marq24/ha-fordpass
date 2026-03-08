@@ -45,6 +45,7 @@
             "already_configured": "Account is already configured",
             "no_vehicles": "No vehicles on account or all are configured already",
             "reauth_successful": "Re-Authorization was completed",
+            "reconfigure_successful": "Re-configuration was successful",
             "reauth_reload_failed": "Re-Authorization was completed\n\nBut the integration could not be reloaded. Please restart Home Assistant to complete the re-Authorization process or check your log for further details",
             "reauth_unsuccessful": "Re-Authorization FAILED\n\nPlease check the token and try again",
             "reauth_not_possible": "No valid region found\n\nUnfortunately you must reconfigure the integration",
