@@ -412,6 +412,7 @@ SENSORS = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        suggested_display_precision=0,
         has_entity_name=True,
     ),
     # Tag.FUEL: {"icon": "mdi:gas-station", "api_key": "fuelLevel", "measurement": PERCENTAGE},
