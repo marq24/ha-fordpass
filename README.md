@@ -49,7 +49,9 @@ If you currently have your integration configured, then you might be lucky and t
 >
 > Using FordConnect might be for you a better choice if you have issues with getting the required access token for this Fordpass integration (exacting it via the developer tools of your browser).
 > 
-> While the access-token-acquire-process is (IMHO) much simpler in the FordConnect integration, the registration of _application API credentials_ in the _EU Ford Developer Portal_ is required for this one. This process is also fully documented, but could be considered also as _a bit more complex_ than you might be used to, from other HA integration you are using so far.
+> While the access-token-acquire-process is (IMHO) much simpler in the FordConnect integration, the registration of _application API credentials_ in the _EU/UK/NorthAmerica Ford Developer Portal_ is required for this one. This process is also fully documented, but could be considered also as _a bit more complex_ than you might be used to, from other HA integration you are using so far.
+>
+> When you are unsure which one to choose, what are the main differences and the interoperability between the two integrations, then please read the [short comparison between the both of the integrations](https://github.com/marq24/ha-fordpass/blob/main/doc/FORDPASS_VS_FORDCONNECT.md) and then make your final decision.
 
 ---
 
@@ -99,6 +101,10 @@ If you currently have your integration configured, then you might be lucky and t
 > This is a HACS custom integration — not a Home Assistant Add-on. Don't try to add this repository as an add-on in Home Assistant.
 > 
 > The IMHO simplest way to install this integration is via the two buttons below ('_OPEN HACS REPOSITORY ON MY HA_' and '_ADD INTEGRATION TO MY HA_').
+
+
+## Comparison of ha-fordpass and ha-fordconnect-query integrations
+There is another Home Assistant integration for Ford Vehicles called [ha-fordconnect-query](https://github.com/marq24/ha-fordconnect-query). When you are unsure which one to choose, what are the main differences and the interoperability between the two integrations, then please read the [short comparison between the both of the integrations](https://github.com/marq24/ha-fordpass/blob/main/doc/FORDPASS_VS_FORDCONNECT.md) and then make your final decision.
 
 
 ## Installation Instructions (3 Steps)
