@@ -845,15 +845,15 @@ class ConnectedFordPassVehicle:
             if self.auto_access_token is None:
                 return None
 
+        # The FordPass app only sends Authorization on the WS connection.
+        # Extra headers like Application-Id, Content-Type, Accept-Encoding are
+        # NOT sent by the app and are a detectable fingerprint difference.
+        # OkHttp's WS client auto-adds User-Agent, so we include that too.
         headers_ws = {
-            **apiHeaders,
+            "User-Agent": "okhttp/4.12.0",
             "authorization": f"Bearer {self.auto_access_token}",
-            "Application-Id": self.app_id,
             "Connection": "Upgrade",
             "Upgrade": "websocket",
-            #"Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
-            #"Sec-WebSocket-Key": "QOX3XLqFRFO6N+kAyrhQKA==",
-            #"Sec-WebSocket-Version": "13"
         }
         web_socket_url = f"{AUTONOMIC_WS_URL}/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
 
@@ -1543,13 +1543,24 @@ class ConnectedFordPassVehicle:
                 "authorization": f"Bearer {self.auto_access_token}",
                 "Application-Id": self.app_id,
             }
-            params_state = {
-                "lrdt": "01-01-1970 00:00:00"
+            # The FordPass app uses POST to the v1beta :query endpoint with an
+            # includeMetrics body, not GET to v1. Using GET /v1/ is a detectable
+            # difference that Ford could use to identify non-app API clients.
+            telemetry_body = {
+                "includeMetrics": [
+                    "metrics",
+                    "customMetrics",
+                    "configurations",
+                    "states",
+                    "events",
+                    "commands",
+                    "messages",
+                ]
             }
-            response_state = await self.session.get(
-                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
-                params=params_state,
+            response_state = await self.session.post(
+                f"{AUTONOMIC_BETA_URL}/telemetry/sources/fordpass/vehicles/{self.vin}:query",
                 headers=headers_state,
+                data=json.dumps(telemetry_body),
                 timeout=self.timeout
             )
 
