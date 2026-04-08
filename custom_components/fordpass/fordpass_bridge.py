@@ -90,8 +90,8 @@ LOG_DATA: Final = False
 # BASE_URL: Final = "https://usapi.cv.ford.com/api"
 # SSO_URL: Final = "https://sso.ci.ford.com"
 
-# hopefully also not used anylonger...
-# GUARD_URL: Final = "https://api.mps.ford.com/api"
+# Guard mode uses the Ford MPS API, not Autonomic
+GUARD_URL: Final = "https://api.mps.ford.com/api"
 
 AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
 AUTONOMIC_BETA_URL: Final = "https://api.autonomic.ai/v1beta"
@@ -845,15 +845,35 @@ class ConnectedFordPassVehicle:
             if self.auto_access_token is None:
                 return None
 
+        # The FordPass app calls the vehicle inventory endpoint before opening
+        # a WebSocket connection. This validates the vehicle is authorized and
+        # mimics the app's API call sequence (a behavioral fingerprint).
+        try:
+            inv_headers = {
+                **apiHeaders,
+                "authorization": f"Bearer {self.auto_access_token}",
+                "Application-Id": self.app_id,
+            }
+            inv_response = await self.session.get(
+                f"{AUTONOMIC_URL}/inventory/vehicles:getByVin",
+                params={"vin": self.vin, "includeRelations": "groups"},
+                headers=inv_headers,
+                timeout=self.timeout,
+            )
+            if inv_response.status != 200:
+                _LOGGER.debug(f"{self.vli}ws_connect() - inventory pre-check returned {inv_response.status}")
+        except Exception as e:
+            _LOGGER.debug(f"{self.vli}ws_connect() - inventory pre-check failed: {e}")
+
+        # The FordPass app only sends Authorization on the WS connection.
+        # Extra headers like Application-Id, Content-Type, Accept-Encoding are
+        # NOT sent by the app and are a detectable fingerprint difference.
+        # OkHttp's WS client auto-adds User-Agent, so we include that too.
         headers_ws = {
-            **apiHeaders,
+            "User-Agent": "okhttp/4.12.0",
             "authorization": f"Bearer {self.auto_access_token}",
-            "Application-Id": self.app_id,
             "Connection": "Upgrade",
             "Upgrade": "websocket",
-            #"Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
-            #"Sec-WebSocket-Key": "QOX3XLqFRFO6N+kAyrhQKA==",
-            #"Sec-WebSocket-Version": "13"
         }
         web_socket_url = f"{AUTONOMIC_WS_URL}/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
 
@@ -1543,13 +1563,24 @@ class ConnectedFordPassVehicle:
                 "authorization": f"Bearer {self.auto_access_token}",
                 "Application-Id": self.app_id,
             }
-            params_state = {
-                "lrdt": "01-01-1970 00:00:00"
+            # The FordPass app uses POST to the v1beta :query endpoint with an
+            # includeMetrics body, not GET to v1. Using GET /v1/ is a detectable
+            # difference that Ford could use to identify non-app API clients.
+            telemetry_body = {
+                "includeMetrics": [
+                    "metrics",
+                    "customMetrics",
+                    "configurations",
+                    "states",
+                    "events",
+                    "commands",
+                    "messages",
+                ]
             }
-            response_state = await self.session.get(
-                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
-                params=params_state,
+            response_state = await self.session.post(
+                f"{AUTONOMIC_BETA_URL}/telemetry/sources/fordpass/vehicles/{self.vin}:query",
                 headers=headers_state,
+                data=json.dumps(telemetry_body),
                 timeout=self.timeout
             )
 
@@ -2067,60 +2098,8 @@ class ConnectedFordPassVehicle:
 
 
 
-    # ***********************************************************
-    # ***********************************************************
-    # ***********************************************************
-    # async def guard_status(self):
-    #     """Retrieve guard status from API"""
-    #     await self.__ensure_valid_tokens()
-    #     if self._HAS_COM_ERROR:
-    #         _LOGGER.debug(f"{self.vli}guard_status() - COMM ERROR")
-    #         return None
-    #     else:
-    #         _LOGGER.debug(f"{self.vli}guard_status() - access_token exist? {self.access_token is not None}")
-    #
-    #     headers_gs = {
-    #         **apiHeaders,
-    #         "auth-token": self.access_token,
-    #         "Application-Id": self.app_id,
-    #     }
-    #     params_gs = {"lrdt": "01-01-1970 00:00:00"}
-    #
-    #     response_gs = await self.session.get(
-    #         f"{GUARD_URL}/guardmode/v1/{self.vin}/session",
-    #         params=params_gs,
-    #         headers=headers_gs,
-    #         timeout=self.timeout
-    #     )
-    #     return await response_gs.json()
-    #
-    # async def enable_guard(self):
-    #     """
-    #     Enable Guard mode on supported models
-    #     """
-    #     await self.__ensure_valid_tokens()
-    #     if self._HAS_COM_ERROR:
-    #         return None
-    #
-    #     response = self.__make_request(
-    #         "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
-    #     )
-    #     _LOGGER.debug(f"{self.vli}enable_guard: {await response.text()}")
-    #     return response
-    #
-    # async def disable_guard(self):
-    #     """
-    #     Disable Guard mode on supported models
-    #     """
-    #     await self.__ensure_valid_tokens()
-    #     if self._HAS_COM_ERROR:
-    #         return None
-    #
-    #     response = self.__make_request(
-    #         "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
-    #     )
-    #     _LOGGER.debug(f"{self.vli}disable_guard: {await response.text()}")
-    #     return response
+    # Guard mode implementation moved to the command methods section below
+    # (enable_guard, disable_guard, guard_status) using corrected API paths.
 
 
 
@@ -2345,6 +2324,171 @@ class ConnectedFordPassVehicle:
         """Send request to vehicle for update"""
         status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
+
+    # ── Departure times ────────────────────────────────────────────────
+
+    async def enable_departure_times(self, schedules: list):
+        """Enable departure times with the given schedule list.
+
+        schedules: list of dicts with keys:
+            dayOfWeek (str): e.g. "MONDAY"
+            schedules (list): each with locationId, preconditionTemperature
+                ("LOW"|"MEDIUM"|"HIGH"|"OFF"), scheduleId, scheduleStatus
+                ("ON"|"OFF"), timeOfDay ({hours, minutes})
+        """
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="enableDepartureTimesCommand",
+            properties={"isDepartureTimeEnabled": True, "departureSchedules": schedules},
+        )
+
+    async def disable_departure_times(self):
+        """Disable all departure times."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="disableDepartureTimesCommand",
+            properties={"isDepartureTimeEnabled": False, "departureSchedules": []},
+            data_version="2",
+        )
+
+    async def update_departure_times(self, schedules: list):
+        """Update departure time schedules (see enable_departure_times for format)."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="updateDepartureTimesCommand",
+            properties={"isDepartureTimeEnabled": True, "departureSchedules": schedules},
+        )
+
+    # ── On-demand preconditioning ──────────────────────────────────────
+
+    async def start_preconditioning(self):
+        """Start cabin preconditioning (independent of remote start)."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="startOnDemandPreconditioningCommand",
+            properties={"preconditioningDuration": 0, "vehiclePreconditionSetting": 2},
+            data_version="1",
+        )
+
+    async def extend_preconditioning(self):
+        """Extend active preconditioning session."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="extendOnDemandPreconditioningCommand",
+            properties={"preconditioningDuration": 0, "vehiclePreconditionSetting": 2},
+            data_version="1",
+        )
+
+    async def stop_preconditioning(self):
+        """Stop active preconditioning session."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="stopOnDemandPreconditioningCommand",
+            properties={"preconditioningDuration": 0, "vehiclePreconditionSetting": 1},
+        )
+
+    # ── Trailer light check ────────────────────────────────────────────
+
+    async def start_trailer_light_check(self):
+        """Flash trailer lights to verify connection."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_URL,
+            write_command="startTrailerLightCheck",
+        )
+
+    async def stop_trailer_light_check(self):
+        """Stop trailer light check."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_URL,
+            write_command="stopTrailerLightCheck",
+        )
+
+    # ── PPO (Programmable Parameter Override) ──────────────────────────
+
+    async def ppo_refresh(self):
+        """One-shot PPO refresh."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="ppoRefreshCommand",
+        )
+
+    async def ppo_refresh_continuous(self, frequency: int = 3, duration: int = 10):
+        """Start continuous PPO refresh (default: every 3 min for 10 min)."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="ppoRefreshContinuousCommand",
+            properties={"frequencyAndDuration": {"frequency": frequency, "duration": duration}},
+        )
+
+    async def ppo_refresh_cancel(self):
+        """Cancel continuous PPO refresh."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="ppoRefreshContinuousCancelCommand",
+            properties={"frequencyAndDuration": {"frequency": 0, "duration": 0}},
+        )
+
+    # ── Guard mode (Ford MPS API, not Autonomic) ──────────────────────
+
+    async def guard_status(self):
+        """Retrieve guard mode session status."""
+        await self.__ensure_valid_tokens()
+        if self._HAS_COM_ERROR:
+            _LOGGER.debug(f"{self.vli}guard_status() - COMM ERROR")
+            return None
+        headers = {
+            **apiHeaders,
+            "auth-token": self.access_token,
+            "Application-Id": self.app_id,
+            "X-Vin": self.vin,
+        }
+        response = await self.session.get(
+            f"{GUARD_URL}/gmfi/v1/session",
+            headers=headers,
+            timeout=self.timeout,
+        )
+        if response.status == 200:
+            return await response.json()
+        _LOGGER.warning(f"{self.vli}guard_status(): status_code={response.status}")
+        return None
+
+    async def enable_guard(self):
+        """Enable Guard mode on supported models."""
+        await self.__ensure_valid_tokens()
+        if self._HAS_COM_ERROR:
+            return None
+        headers = {
+            **apiHeaders,
+            "auth-token": self.access_token,
+            "Application-Id": self.app_id,
+            "X-Vin": self.vin,
+        }
+        response = await self.session.put(
+            f"{GUARD_URL}/gmfi/v1/session",
+            headers=headers,
+            timeout=self.timeout,
+        )
+        _LOGGER.debug(f"{self.vli}enable_guard: status={response.status}")
+        return response.status == 200
+
+    async def disable_guard(self):
+        """Disable Guard mode on supported models."""
+        await self.__ensure_valid_tokens()
+        if self._HAS_COM_ERROR:
+            return None
+        headers = {
+            **apiHeaders,
+            "auth-token": self.access_token,
+            "Application-Id": self.app_id,
+            "X-Vin": self.vin,
+        }
+        response = await self.session.delete(
+            f"{GUARD_URL}/gmfi/v1/session",
+            headers=headers,
+            timeout=self.timeout,
+        )
+        _LOGGER.debug(f"{self.vli}disable_guard: status={response.status}")
+        return response.status == 200
 
 
     async def __request_command(self, command:str, post_data=None, vin=None):
