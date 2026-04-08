@@ -282,7 +282,9 @@
             "msgdeleteall":         {"name": "Messages: Delete All"},
             "msgdeletelast":        {"name": "Messages: Delete Last"},
             "trailerlightcheckon":  {"name": "Trailer Light Check: ON"},
-            "trailerlightcheckoff": {"name": "Trailer Light Check: OFF"}
+            "trailerlightcheckoff": {"name": "Trailer Light Check: OFF"},
+            "openwindows":          {"name": "Open All Windows"},
+            "closewindows":         {"name": "Close All Windows"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
         "lock":             {"doorlock":{"name": "Doors"}},
@@ -357,7 +359,22 @@
             "remotestartcountdown":     {"name": "RC (❄|☀): Remaining Time"},
             "doorlock":                 {"name": "State Locks"},
 
-            "departureschedules":       {"name": "Next scheduled Departure"}
+            "departureschedules":       {"name": "Next scheduled Departure"},
+
+            "batteryvoltage":           {"name": "Battery Voltage (12V)"},
+            "batteryloadstatus":        {"name": "Battery Load Status (12V)"},
+            "driverwindow":             {"name": "Driver Window"},
+            "passengerwindow":          {"name": "Passenger Window"},
+            "reardriverwindow":         {"name": "Rear Driver Window"},
+            "rearpassengerwindow":      {"name": "Rear Passenger Window"},
+            "checkenginelight":         {"name": "Check Engine Light"},
+            "brakesystemwarning":       {"name": "Brake System Warning"},
+            "abswarning":               {"name": "ABS Warning"},
+            "airbagwarning":            {"name": "Airbag Warning"},
+            "lowfuelwarning":           {"name": "Low Fuel Warning"},
+            "lowbatterywarning":        {"name": "Low Battery Warning"},
+            "tractioncontrolwarning":   {"name": "Traction Control Warning"},
+            "enginefaultindicator":     {"name": "Engine Fault Warning"}
         },
         "select": {
             "zonelighting": {

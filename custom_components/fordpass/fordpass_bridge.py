@@ -2403,6 +2403,15 @@ class ConnectedFordPassVehicle:
         status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
+    # BOTH COMMANDS cause a HTTP 400 -> so they DOES NOT WORK!
+    # async def open_all_windows(self):
+    #     """Open all windows (master reset)"""
+    #     return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="openMasterResetWindow")
+    #
+    # async def close_all_windows(self):
+    #     """Close all windows (master reset)"""
+    #     return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="closeMasterResetWindow")
+
     # MARQ24: the following commands have been added by PR#205 (https://github.com/marq24/ha-fordpass/pull/215)
     # Unfortunately, some of these commands currently work for me (or they had been modified).
     #

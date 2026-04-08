@@ -543,6 +543,37 @@ class FordpassDataHandler:
 
         return attrs
 
+    #@staticmethod
+    # def get_specific_window_position(data, window_type: str, side: str, prev_state=None):
+    #     """Get the position for a specific window. window_type: 'FRONT' or 'REAR', side: 'DRIVER' or 'PASSENGER'"""
+    #     data_metrics = FordpassDataHandler.get_metrics(data)
+    #     for window in data_metrics.get("windowStatus", []):
+    #         vehicle_window = window.get("vehicleWindow", "").upper()
+    #         vehicle_side = window.get("vehicleSide", "").upper()
+    #
+    #         # Match window type (FRONT/REAR) and side (DRIVER/PASSENGER)
+    #         is_front = window_type.upper() == "FRONT" and "FRONT" in vehicle_window
+    #         is_rear = window_type.upper() == "REAR" and "REAR" in vehicle_window
+    #         is_matching_side = side.upper() == vehicle_side
+    #
+    #         if (is_front or is_rear) and is_matching_side:
+    #             windowrange = window.get("value", {}).get("doubleRange", {})
+    #             if windowrange.get("lowerBound", 0.0) != 0.0 or windowrange.get("upperBound", 0.0) != 0.0:
+    #                 return "Open"
+    #             return "Closed"
+    #     return None
+    #
+    # def get_driver_window_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_specific_window_position(data, "FRONT", "DRIVER")
+    #
+    # def get_passenger_window_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_specific_window_position(data, "FRONT", "PASSENGER")
+    #
+    # def get_rear_driver_window_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_specific_window_position(data, "REAR", "DRIVER")
+    #
+    # def get_rear_passenger_window_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_specific_window_position(data, "REAR", "PASSENGER")
 
     # LAST_REFRESH state
     def get_last_refresh_state(data, prev_state=None):
@@ -1065,6 +1096,36 @@ class FordpassDataHandler:
 
         return attrs or None
 
+    # @staticmethod
+    # def get_indicator_state(data, indicator_key: str, prev_state=None):
+    #     """Get state of a specific indicator warning flag."""
+    #     data_metrics = FordpassDataHandler.get_metrics(data)
+    #     return data_metrics.get("indicators", {}).get(indicator_key, {}).get("value")
+    #
+    # # Individual indicator warning sensors
+    # def get_check_engine_light_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "checkEngineLight")
+    #
+    # def get_brake_system_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "brakeSystemWarning")
+    #
+    # def get_abs_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "absWarning")
+    #
+    # def get_airbag_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "airbagWarning")
+    #
+    # def get_low_fuel_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "lowFuelWarning")
+    #
+    # def get_low_battery_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "lowBatteryWarning")
+    #
+    # def get_traction_control_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "tractionControlWarning")
+    #
+    # def get_engine_fault_warning_state(data, prev_state=None):
+    #     return FordpassDataHandler.get_indicator_state(data, "engineFaultIndicator")
 
     # OUTSIDE_TEMP attributes
     def get_outside_temp_attrs(data, units:UnitSystem):
@@ -1125,6 +1186,22 @@ class FordpassDataHandler:
                     attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
         return attrs or None
 
+
+    # # BATTERY_VOLTAGE state (12V primary battery)
+    # def get_battery_voltage_state(data, prev_state=None):
+    #     data_metrics = FordpassDataHandler.get_metrics(data)
+    #     if "batteryVoltage" in data_metrics:
+    #         if data_metrics["batteryVoltage"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
+    #             return FordpassDataHandler.get_value_for_metrics_key(data, "batteryVoltage")
+    #     return None
+    #
+    # # BATTERY_LOAD_STATUS state (12V primary battery)
+    # def get_battery_load_status_state(data, prev_state=None):
+    #     data_metrics = FordpassDataHandler.get_metrics(data)
+    #     if "batteryLoadStatus" in data_metrics:
+    #         if data_metrics["batteryLoadStatus"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
+    #             return FordpassDataHandler.get_value_for_metrics_key(data, "batteryLoadStatus")
+    #     return None
 
     # LAST_ENERGY_TRANSFER_LOG_ENTRY state + attributes (from energy_transfer_logs)
     def get_energy_transfer_log_state(data, prev_state=None):
@@ -1816,6 +1893,13 @@ class FordpassDataHandler:
         else:
             _LOGGER.debug(f"messages_delete_id_from_service(): no messages found in coordinator.data")
         return False
+
+    # # Window control handlers (master open/close all windows)
+    # async def open_all_windows(coordinator, vehicle):
+    #     return await vehicle.open_all_windows()
+    #
+    # async def close_all_windows(coordinator, vehicle):
+    #     return await vehicle.close_all_windows()
 
     # just for development purposes...
     async def start_charge_vehicle(coordinator, vehicle):

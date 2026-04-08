@@ -568,10 +568,20 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             region_key = DEFAULT_REGION_FORD
         _LOGGER.debug(f"generate_url(): selected REGIONS object: {REGIONS[region_key]}")
 
-        cc_object = self.generate_code_challenge()
-        code_challenge = cc_object["code_challenge"].decode("utf-8")
-        code_challenge_method = cc_object["code_challenge_method"]
-        self.code_verifier = cc_object["code_verifier"]
+        # Only generate new code_verifier/challenge if we don't already have one
+        # (prevents regeneration on error screen, which breaks PKCE matching)
+        if self.code_verifier is None:
+            cc_object = self.generate_code_challenge()
+            code_challenge = cc_object["code_challenge"].decode("utf-8")
+            code_challenge_method = cc_object["code_challenge_method"]
+            self.code_verifier = cc_object["code_verifier"]
+        else:
+            _LOGGER.debug(f"generate_url(): Reusing existing code_verifier (error recovery)")
+            # Recalculate the challenge from the existing verifier
+            hashed_verifier = hashlib.sha256(self.code_verifier.encode("utf-8"))
+            code_challenge_bytes = urlsafe_b64encode(hashed_verifier.digest())
+            code_challenge = code_challenge_bytes.rstrip(b"=").decode("utf-8")
+            code_challenge_method = "S256"
 
         # LINCOLN
         # https://login.lincoln.com/4566605f-43a7-400a-946e-89cc9fdb0bd7/B2C_1A_SignInSignUp_Lincoln_en-US/oauth2/v2.0/authorize?redirect_uri=lincolnapp%3A%2F%2Fuserauthorized&response_type=code&scope=09852200-05fd-41f6-8c21-d36d3497dc64%20openid&max_age=3600&login_hint=eyJyZWFsbSI6ICJjbG91ZElkZW50aXR5UmVhbG0ifQ%3D%3D&code_challenge=K2WtKFhDWmbkkx__9U9b4LhI1z_QvEGb6VvZ1RGX45I&code_challenge_method=S256&client_id=09852200-05fd-41f6-8c21-d36d3497dc64&language_code=en-US&ford_application_id=45133B88-0671-4AAF-B8D1-99E684ED4E45&country_code=USA
