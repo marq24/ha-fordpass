@@ -2323,8 +2323,315 @@ class ConnectedFordPassVehicle:
         status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
+    # MARQ24: the following commands have been added by PR#205 (https://github.com/marq24/ha-fordpass/pull/215)
+    # Unfortunately some of these commands currently work for me (or they had been modified).
+    #
+    # I am quite confident that all `write_command` should not have the suffix `Command` - at least when I
+    # enable/disable the departure time (via the app) then the actual type property is:
+    # `"type": "updateDepartureTimes"` [and not updateDepartureTimesCommand as it was suggested in the PR]
 
-    ###############################
+    # ── Departure times ────────────────────────────────────────────────
+
+    async def departure_times_disable(self):
+        """Disable all departure times."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="disableDepartureTimes",
+            properties={},
+            data_version="1",
+            #properties={"isDepartureTimeEnabled": False, "departureSchedules": []},
+            #data_version="2",
+        )
+
+    async def departure_times_enable(self):
+        """Enable departure times with the given schedule list."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="enableDepartureTimes",
+            properties={},
+            data_version="1"
+        )
+
+    async def departure_times_update(self, schedules: list):
+        """Update departure time schedules (see enable_departure_times for format).
+
+        schedules: list of dicts with keys:
+            dayOfWeek (str): e.g. "MONDAY"
+            schedules (list): each with locationId, preconditionTemperature
+                ("LOW"|"MEDIUM"|"HIGH"|"OFF"), scheduleId, scheduleStatus
+                ("ON"|"OFF"), timeOfDay ({hours, minutes})
+        """
+
+        # TODO: we must find a place where we can get our 'schedules' from...
+
+        # APP will 'delete' a schedule via POST:
+        # sample_data = {
+        #     "properties": {
+        #         "departureSchedules": [
+        #             {
+        #                 "dayOfWeek": "MONDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 1,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 2,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             },
+        #             {
+        #                 "dayOfWeek": "TUESDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 3,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 4,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             },
+        #             {
+        #                 "dayOfWeek": "WEDNESDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 5,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 6,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             },
+        #             {
+        #                 "dayOfWeek": "THURSDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 7,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 8,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             },
+        #             {
+        #                 "dayOfWeek": "FRIDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 9,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 10,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             },
+        #             {
+        #                 "dayOfWeek": "SATURDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 11,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 12,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             },
+        #             {
+        #                 "dayOfWeek": "SUNDAY",
+        #                 "schedules": [
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 13,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     },
+        #                     {
+        #                         "locationId": 0,
+        #                         "preconditionTemperature": "OFF",
+        #                         "scheduleId": 14,
+        #                         "scheduleStatus": "OFF",
+        #                         "timeOfDay": {
+        #                             "hours": 24,
+        #                             "minutes": 0
+        #                         }
+        #                     }
+        #                 ]
+        #             }
+        #         ],
+        #         "isDepartureTimeEnabled": True
+        #     },
+        #     "tags": {},
+        #     "type": "updateDepartureTimes",
+        #     "version": "1",
+        #     "wakeUp": True
+        # }
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="updateDepartureTimes",
+            properties={"isDepartureTimeEnabled": True, "departureSchedules": schedules},
+        )
+
+    # ── On-demand preconditioning ──────────────────────────────────────
+    # MARQ24 none of these commands work for me...
+
+    async def preconditioning_start(self):
+        """Start cabin preconditioning (independent of remote start)."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="startOnDemandPreconditioning",
+            properties={"preconditioningDuration": 0, "vehiclePreconditionSetting": 2},
+            data_version="1",
+        )
+
+    async def preconditioning_extend(self):
+        """Extend active preconditioning session."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="extendOnDemandPreconditioning",
+            properties={"preconditioningDuration": 0, "vehiclePreconditionSetting": 2},
+            data_version="1",
+        )
+
+    async def preconditioning_stop(self):
+        """Stop active preconditioning session."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="stopOnDemandPreconditioning",
+            properties={"preconditioningDuration": 0, "vehiclePreconditionSetting": 1},
+        )
+
+    # ── Trailer light check ────────────────────────────────────────────
+    # MARQ24 none of these commands wok for me...
+
+    async def trailer_light_check_start(self):
+        """Flash trailer lights to verify connection."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_URL,
+            write_command="startTrailerLightCheck",
+        )
+
+    async def trailer_light_check_stop(self):
+        """Stop trailer light check."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_URL,
+            write_command="stopTrailerLightCheck",
+        )
+
+    # ── PPO (Programmable Parameter Override) ──────────────────────────
+    # MARQ24 none of these commands work for me...
+
+    async def ppo_refresh(self):
+        """One-shot PPO refresh."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="ppoRefresh",
+        )
+
+    async def ppo_refresh_continuous(self, frequency: int = 3, duration: int = 10):
+        """Start continuous PPO refresh (default: every 3 min for 10 min)."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="ppoRefreshContinuous",
+            properties={"frequencyAndDuration": {"frequency": frequency, "duration": duration}},
+        )
+
+    async def ppo_refresh_cancel(self):
+        """Cancel continuous PPO refresh."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="ppoRefreshContinuousCancel",
+            properties={"frequencyAndDuration": {"frequency": 0, "duration": 0}},
+        )
+
+    # ***********************************************************
+    # ***********************************************************
+    # ***********************************************************
 
     async def __request_command(self, command:str, post_data=None, vin=None):
         try:
@@ -2647,18 +2954,25 @@ class ConnectedFordPassVehicle:
                         # Remove the original commands dictionary
                         del states["commands"]
 
+                    command_key = state_command_str
+                    # ONLY append 'Command' to the state_command_str, if the plain state_command_str cannot
+                    # be found in the states dict... e.g., for disableDepartureTimes & enableDepartureTimes
+                    # the state_command_str is without the 'Command' suffix in the states[]!
+                    if not state_command_str.endswith("Command") and command_key not in states:
+                        command_key = f"{state_command_str}Command"
+
                     # ok now we can check if our command is in the (updated) states dict
-                    command_key = state_command_str if state_command_str.endswith("Command") else f"{state_command_str}Command"
                     if command_key in states:
                         resp_command_obj = states[command_key]
                         #_LOGGER.debug(f"{self.vli}__wait_for_state(): Found command object")
                         #_LOGGER.info(f"{resp_command_obj}")
 
                         if command_id is None or ("commandId" in resp_command_obj and resp_command_obj["commandId"] == command_id):
-                            #_LOGGER.debug(f"{self.vli}__wait_for_state(): Found the commandId")
+                            #_LOGGER.info(f"{self.vli}__wait_for_state(): Found the commandId")
 
                             if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
                                 to_state = resp_command_obj["value"]["toState"].upper()
+
 
                                 if to_state in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): EXCELLENT! Command succeeded")
