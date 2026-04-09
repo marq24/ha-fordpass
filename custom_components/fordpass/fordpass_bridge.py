@@ -56,7 +56,7 @@ INTEGRATION_INIT: Final = "INTG_INIT"
 
 defaultHeadersDec2025 = {
     "Accept-Encoding": "gzip",
-    "Connection": "Keep-Alive",
+    "Connection": "keep-alive",
     "User-Agent": "okhttp/4.12.0",
 }
 
@@ -77,21 +77,14 @@ apiHeaders = {
 # Kudos to Rik for providing this info
 loginHeadersOct2025 = {
     "Accept-Encoding": "gzip",
-    "Connection": "Keep-Alive",
+    "Connection": "keep-alive",
     "Content-Type": "application/x-www-form-urlencoded",
     "User-Agent": "okhttp/4.12.0",
-    #"Host": "login.ford.com" # looks like that this info is not required (which makes my live easier)
+    #"Host": "login.ford.com" # looks like that this info is not required (which makes my life easier)
 }
 
 MAX_401_RESPONSE_COUNT: Final = 10
 LOG_DATA: Final = False
-
-# DEPRECATED - do not use anymore!
-# BASE_URL: Final = "https://usapi.cv.ford.com/api"
-# SSO_URL: Final = "https://sso.ci.ford.com"
-
-# hopefully also not used anylonger...
-# GUARD_URL: Final = "https://api.mps.ford.com/api"
 
 AUTONOMIC_URL: Final = "https://api.autonomic.ai/v1"
 AUTONOMIC_BETA_URL: Final = "https://api.autonomic.ai/v1beta"
@@ -829,8 +822,38 @@ class ConnectedFordPassVehicle:
         self._is_reauth_required = True
 
 
+    async def req_vehicles_inventory_check_int(self):
+        # The FordPass app calls the vehicle inventory endpoint shortly BEFORE or AFTER
+        # opening a WebSocket connection. This validates the vehicle is authorized and
+        # mimics the app's API call sequence (a behavioral fingerprint).
+        try:
+            inv_headers = {
+                **defaultHeadersDec2025,
+                "Authorization": f"Bearer {self.auto_access_token}",
+                #"Host": "api.autonomic.ai"
+            }
+            inv_response = await self.session.get(
+                f"{AUTONOMIC_URL}/inventory/vehicles:getByVin",
+                params={"vin": self.vin, "includeRelations": "groups"},
+                headers=inv_headers,
+                timeout=self.timeout,
+            )
+            if 200 <= inv_response.status <= 205:
+                inventory_data = await inv_response.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("inventory_vehicles", inventory_data)
+                _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() FINE")
+                return True
+            else:
+                _LOGGER.info(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check returned {inv_response.status}")
+                return False
+
+        except Exception as e:
+            _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check failed: {e}")
+            return False
+
     # the WebSocket related handling...
-    async def ws_connect(self):
+    async def ws_connect(self, do_inventory_check:bool=False):
         _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
         await self.__ensure_valid_tokens()
@@ -845,12 +868,17 @@ class ConnectedFordPassVehicle:
             if self.auto_access_token is None:
                 return None
 
+        if do_inventory_check:
+            if not await self.req_vehicles_inventory_check_int():
+                _LOGGER.debug(f"{self.vli}ws_connect() - ws_pre_connect_int() failed, will not establish WebSocket connection")
+                return None
+
         headers_ws = {
-            **apiHeaders,
-            "authorization": f"Bearer {self.auto_access_token}",
-            "Application-Id": self.app_id,
-            "Connection": "Upgrade",
+            **defaultHeadersDec2025,
+            "Connection": "Upgrade", # this will overwrite the "Keep-Alive" from the defaultHeadersDec2025
+            "Authorization": f"Bearer {self.auto_access_token}",
             "Upgrade": "websocket",
+            #"Host": "api.autonomic.ai"
             #"Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
             #"Sec-WebSocket-Key": "QOX3XLqFRFO6N+kAyrhQKA==",
             #"Sec-WebSocket-Version": "13"
@@ -1399,7 +1427,6 @@ class ConnectedFordPassVehicle:
 
         return data
 
-
     async def update_remote_climate_int(self):
         # only update remote climate data if not present yet
         if self._remote_climate_control_supported:
@@ -1408,7 +1435,6 @@ class ConnectedFordPassVehicle:
 
             if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
-
 
     async def update_preferred_charge_times_int(self):
         # only update remote climate data if not present yet
@@ -1521,7 +1547,7 @@ class ConnectedFordPassVehicle:
     #         _LOGGER.warning(f"{self.vli}req_handle_energy_transfer_logs_result_async(): Error during processing list_data {list_data} - {type(ex).__name__} - {ex}")
 
 
-    async def req_status(self):
+    async def req_status(self, do_as_post:bool=False):
         """Get Vehicle status from API"""
         global _AUTO_FOUR_NULL_ONE_COUNTER
         try:
@@ -1531,27 +1557,58 @@ class ConnectedFordPassVehicle:
 
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}req_status(): - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_status(): [as POST? {do_as_post}] - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}req_status(): - auto_access_token exist? {self.auto_access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_status(): [as POST? {do_as_post}] - auto_access_token exist? {self.auto_access_token is not None}")
                 if self.auto_access_token is None:
                     return None
 
-            headers_state = {
-                **apiHeaders,
-                "authorization": f"Bearer {self.auto_access_token}",
-                "Application-Id": self.app_id,
-            }
-            params_state = {
-                "lrdt": "01-01-1970 00:00:00"
-            }
-            response_state = await self.session.get(
-                f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
-                params=params_state,
-                headers=headers_state,
-                timeout=self.timeout
-            )
+            if do_as_post:
+                # 2026/04/09 @bapirex THIS is currently not working for me [from GERMANY]
+                # {"code":502,"error":"bad gateway","message":"A TMC service returned an invalid response","messageTemplate":"A TMC service returned an invalid response","timestamp":"2026-04-09T10:07:31.960128Z","referenceId":"ID-HERE"}
+
+                # The FordPass app uses POST to the v1beta :query endpoint with an
+                # includeMetrics body, not GET to v1. Using GET /v1/ is a detectable
+                # difference that Ford could use to identify non-app API clients.
+                headers_state = {
+                    **apiHeaders,
+                    "Authorization": f"Bearer {self.auto_access_token}",
+                    "Application-Id": self.app_id,
+                }
+                telemetry_body = {
+                    "includeMetrics": [
+                        "metrics",
+                        "customMetrics",
+                        "configurations",
+                        "states",
+                        "events",
+                        "commands",
+                        "messages",
+                    ]
+                }
+                response_state = await self.session.post(
+                    f"{AUTONOMIC_BETA_URL}/telemetry/sources/fordpass/vehicles/{self.vin}:query",
+                    headers=headers_state,
+                    data=json.dumps(telemetry_body),
+                    timeout=self.timeout
+                )
+            else:
+                # the classic way as GET...
+                headers_state = {
+                    **apiHeaders,
+                    "Authorization": f"Bearer {self.auto_access_token}",
+                    "Application-Id": self.app_id,
+                }
+                params_state = {
+                    "lrdt": "01-01-1970 00:00:00"
+                }
+                response_state = await self.session.get(
+                    f"{AUTONOMIC_URL}/telemetry/sources/fordpass/vehicles/{self.vin}",
+                    params=params_state,
+                    headers=headers_state,
+                    timeout=self.timeout
+                )
 
             if response_state.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
@@ -1564,10 +1621,10 @@ class ConnectedFordPassVehicle:
             elif response_state.status == 401:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
                 if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                    _LOGGER.error(f"{self.vli}req_status(): status_code: 401 - mark_re_auth_required()")
+                    _LOGGER.error(f"{self.vli}req_status(): [as POST? {do_as_post}] status_code: 401 - mark_re_auth_required()")
                     self.mark_re_auth_required()
                 else:
-                    (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_status(): status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}req_status(): [as POST? {do_as_post}] status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
                 return None
             elif response_state.status == 403:
@@ -1580,24 +1637,24 @@ class ConnectedFordPassVehicle:
 
                     # if the message is not the 'NOT AUTHORIZED', then we at least must also return the
                     # default error
-                    _LOGGER.debug(f"{self.vli}req_status():  status_code: 403 - response: '{msg}'")
+                    _LOGGER.debug(f"{self.vli}req_status(): [as POST? {do_as_post}] status_code: 403 - response: '{msg}'")
                     self._HAS_COM_ERROR = True
                     return None
                 except BaseException as e:
-                    _LOGGER.debug(f"{self.vli}req_status():  status_code: 403 - Error while handle 'response' - {type(e).__name__} - {e}")
+                    _LOGGER.debug(f"{self.vli}req_status(): [as POST? {do_as_post}] status_code: 403 - Error while handle 'response' - {type(e).__name__} - {e}")
                     self._HAS_COM_ERROR = True
                     return None
                 pass
             else:
-                _LOGGER.info(f"{self.vli}req_status(): status_code : {response_state.status} - {response_state.real_url} - Received response: {await response_state.text()}")
+                _LOGGER.info(f"{self.vli}req_status(): [as POST? {do_as_post}] status_code : {response_state.status} - {response_state.real_url} - Received response: {await response_state.text()}")
                 self._HAS_COM_ERROR = True
                 return None
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
-                _LOGGER.warning(f"{self.vli}req_status(): Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
+                _LOGGER.warning(f"{self.vli}req_status(): [as POST? {do_as_post}] Error while '_request_token' for vehicle {self.vin} - {type(e).__name__} - {e}")
             else:
-                _LOGGER.info(f"{self.vli}req_status(): RuntimeError - Session was closed occurred - but a new Session could be generated")
+                _LOGGER.info(f"{self.vli}req_status(): [as POST? {do_as_post}] RuntimeError - Session was closed occurred - but a new Session could be generated")
             self._HAS_COM_ERROR = True
             return None
 
@@ -2346,7 +2403,6 @@ class ConnectedFordPassVehicle:
         status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
-
     async def __request_command(self, command:str, post_data=None, vin=None):
         try:
             await self.__ensure_valid_tokens()
@@ -2473,7 +2529,7 @@ class ConnectedFordPassVehicle:
 
             headers = {
                 **apiHeaders,
-                "authorization": f"Bearer {self.auto_access_token}",
+                "Authorization": f"Bearer {self.auto_access_token}",
                 "Application-Id": self.app_id # a bit unusual, that Application-id will be provided for an autonomic endpoint?!
             }
 
