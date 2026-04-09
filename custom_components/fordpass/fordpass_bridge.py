@@ -821,38 +821,11 @@ class ConnectedFordPassVehicle:
         # but when we cleared the tokens... we must mark us as 're-auth' required...
         self._is_reauth_required = True
 
+    # ***********************************************************
+    # ***********************************************************
+    # ***********************************************************
 
-    async def req_vehicles_inventory_check_int(self):
-        # The FordPass app calls the vehicle inventory endpoint shortly BEFORE or AFTER
-        # opening a WebSocket connection. This validates the vehicle is authorized and
-        # mimics the app's API call sequence (a behavioral fingerprint).
-        try:
-            inv_headers = {
-                **defaultHeadersDec2025,
-                "Authorization": f"Bearer {self.auto_access_token}",
-                #"Host": "api.autonomic.ai"
-            }
-            inv_response = await self.session.get(
-                f"{AUTONOMIC_URL}/inventory/vehicles:getByVin",
-                params={"vin": self.vin, "includeRelations": "groups"},
-                headers=inv_headers,
-                timeout=self.timeout,
-            )
-            if 200 <= inv_response.status <= 205:
-                inventory_data = await inv_response.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("inventory_vehicles", inventory_data)
-                _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() FINE")
-                return True
-            else:
-                _LOGGER.info(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check returned {inv_response.status}")
-                return False
-
-        except Exception as e:
-            _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check failed: {e}")
-            return False
-
-    # the WebSocket related handling...
+    # the WebSocket-related handling...
     async def ws_connect(self, do_inventory_check:bool=False):
         _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
@@ -870,7 +843,7 @@ class ConnectedFordPassVehicle:
 
         if do_inventory_check:
             if not await self.req_vehicles_inventory_check_int():
-                _LOGGER.debug(f"{self.vli}ws_connect() - ws_pre_connect_int() failed, will not establish WebSocket connection")
+                _LOGGER.debug(f"{self.vli}ws_connect() - req_vehicles_inventory_check_int() failed, will not establish WebSocket connection")
                 return None
 
         headers_ws = {
@@ -1514,38 +1487,9 @@ class ConnectedFordPassVehicle:
             except BaseException as ex:
                 _LOGGER.warning(f"{self.vli}_ws_debounce_update_energy_transfer_logs(): Error during 'energy_transfer_logs' data refresh - {type(ex).__name__} - {ex}")
 
-    # async def req_handle_energy_transfer_logs_result_async(self, list_data:list):
-    #     try:
-    #         if self.coordinator is not None:
-    #             _LOGGER.debug(f"{self.vli}req_handle_energy_transfer_logs_result_async(): started")
-    #             prev_last_id = self.coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID
-    #             new_last_id = None
-    #             for item in list_data:
-    #                 _LOGGER.info(f"{item}")
-    #                 a_item_id = item["id"]
-    #
-    #                 # for the first entry in the list we store it for later...
-    #                 if new_last_id is None:
-    #                     new_last_id == a_item_id
-    #
-    #                 # when we have reached an entry, that is already the last handled log entry, then we
-    #                 # can skipp the handling...
-    #                 if prev_last_id == a_item_id:
-    #                     break
-    #                 else:
-    #                     # for the given entry we must create a "log" entry for the corresponding sensor in HA
-    #                     if hasattr(self.coordinator, 'create_energy_transfer_log_entry'):
-    #                         await self.coordinator.create_energy_transfer_log_entry(item)
-    #
-    #             # all energy_transfer items are processed...
-    #             if new_last_id is not None and new_last_id != prev_last_id:
-    #                 self.coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = new_last_id
-    #
-    #     except CancelledError:
-    #         _LOGGER.debug(f"{self.vli}req_handle_energy_transfer_logs_result_async(): was canceled - all good")
-    #     except BaseException as ex:
-    #         _LOGGER.warning(f"{self.vli}req_handle_energy_transfer_logs_result_async(): Error during processing list_data {list_data} - {type(ex).__name__} - {ex}")
-
+    # ***********************************************************
+    # ***********************************************************
+    # ***********************************************************
 
     async def req_status(self, do_as_post:bool=False):
         """Get Vehicle status from API"""
@@ -1574,7 +1518,7 @@ class ConnectedFordPassVehicle:
                 headers_state = {
                     **apiHeaders,
                     "Authorization": f"Bearer {self.auto_access_token}",
-                    "Application-Id": self.app_id,
+                    #"Application-Id": self.app_id, # AUTONOMIC Endpoints don't need the Application-Id
                 }
                 telemetry_body = {
                     "includeMetrics": [
@@ -1598,7 +1542,7 @@ class ConnectedFordPassVehicle:
                 headers_state = {
                     **apiHeaders,
                     "Authorization": f"Bearer {self.auto_access_token}",
-                    "Application-Id": self.app_id,
+                    #"Application-Id": self.app_id, # AUTONOMIC Endpoints don't need the Application-Id
                 }
                 params_state = {
                     "lrdt": "01-01-1970 00:00:00"
@@ -1837,6 +1781,36 @@ class ConnectedFordPassVehicle:
 
             self._HAS_COM_ERROR = True
             return None
+
+    async def req_vehicles_inventory_check_int(self):
+        # The FordPass app calls the vehicle inventory endpoint shortly BEFORE or AFTER
+        # opening a WebSocket connection. This validates the vehicle is authorized and
+        # mimics the app's API call sequence (a behavioral fingerprint).
+        try:
+            inv_headers = {
+                **defaultHeadersDec2025,
+                "Authorization": f"Bearer {self.auto_access_token}",
+                #"Host": "api.autonomic.ai"
+            }
+            inv_response = await self.session.get(
+                f"{AUTONOMIC_URL}/inventory/vehicles:getByVin",
+                params={"vin": self.vin, "includeRelations": "groups"},
+                headers=inv_headers,
+                timeout=self.timeout,
+            )
+            if 200 <= inv_response.status <= 205:
+                inventory_data = await inv_response.json()
+                if self._LOCAL_LOGGING:
+                    await self._local_logging("inventory_vehicles", inventory_data)
+                _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() FINE")
+                return True
+            else:
+                _LOGGER.info(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check returned {inv_response.status}")
+                return False
+
+        except Exception as e:
+            _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check failed: {e}")
+            return False
 
     async def req_remote_climate(self):
         global _FOUR_NULL_ONE_COUNTER
@@ -2122,64 +2096,9 @@ class ConnectedFordPassVehicle:
             self._HAS_COM_ERROR = True
             return None
 
-
-
     # ***********************************************************
     # ***********************************************************
     # ***********************************************************
-    # async def guard_status(self):
-    #     """Retrieve guard status from API"""
-    #     await self.__ensure_valid_tokens()
-    #     if self._HAS_COM_ERROR:
-    #         _LOGGER.debug(f"{self.vli}guard_status() - COMM ERROR")
-    #         return None
-    #     else:
-    #         _LOGGER.debug(f"{self.vli}guard_status() - access_token exist? {self.access_token is not None}")
-    #
-    #     headers_gs = {
-    #         **apiHeaders,
-    #         "auth-token": self.access_token,
-    #         "Application-Id": self.app_id,
-    #     }
-    #     params_gs = {"lrdt": "01-01-1970 00:00:00"}
-    #
-    #     response_gs = await self.session.get(
-    #         f"{GUARD_URL}/guardmode/v1/{self.vin}/session",
-    #         params=params_gs,
-    #         headers=headers_gs,
-    #         timeout=self.timeout
-    #     )
-    #     return await response_gs.json()
-    #
-    # async def enable_guard(self):
-    #     """
-    #     Enable Guard mode on supported models
-    #     """
-    #     await self.__ensure_valid_tokens()
-    #     if self._HAS_COM_ERROR:
-    #         return None
-    #
-    #     response = self.__make_request(
-    #         "PUT", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
-    #     )
-    #     _LOGGER.debug(f"{self.vli}enable_guard: {await response.text()}")
-    #     return response
-    #
-    # async def disable_guard(self):
-    #     """
-    #     Disable Guard mode on supported models
-    #     """
-    #     await self.__ensure_valid_tokens()
-    #     if self._HAS_COM_ERROR:
-    #         return None
-    #
-    #     response = self.__make_request(
-    #         "DELETE", f"{GUARD_URL}/guardmode/v1/{self.vin}/session", None, None
-    #     )
-    #     _LOGGER.debug(f"{self.vli}disable_guard: {await response.text()}")
-    #     return response
-
-
 
     # public final GenericCommand<CommandStateActuation> actuationCommand;
     # public final GenericCommand<CommandStateActuation> antiTheft;
@@ -2227,6 +2146,7 @@ class ConnectedFordPassVehicle:
             return {"url":      template.format(url_param=url_param_value),
                     "command":  FORD_COMMAND_MAP.get(command_key, None)}
         return None
+
 
     # operations
     async def start_charge(self):
@@ -2403,6 +2323,9 @@ class ConnectedFordPassVehicle:
         status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 
+
+    ###############################
+
     async def __request_command(self, command:str, post_data=None, vin=None):
         try:
             await self.__ensure_valid_tokens()
@@ -2530,7 +2453,7 @@ class ConnectedFordPassVehicle:
             headers = {
                 **apiHeaders,
                 "Authorization": f"Bearer {self.auto_access_token}",
-                "Application-Id": self.app_id # a bit unusual, that Application-id will be provided for an autonomic endpoint?!
+                #"Application-Id": self.app_id # AUTONOMIC Endpoints don't need the Application-Id
             }
 
             data = {
