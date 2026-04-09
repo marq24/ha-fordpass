@@ -94,6 +94,8 @@ AUTONOMIC_ACCOUNT_URL: Final = "https://accounts.autonomic.ai/v1"
 #FORD_LOGIN_URL: Final = "https://login.ford.com"
 FORD_FOUNDATIONAL_API: Final = "https://api.foundational.ford.com/api"
 FORD_VEHICLE_API: Final = "https://api.vehicle.ford.com/api"
+FORD_MPS: Final = "https://api.mps.ford.com"
+FORD_MPS_API: Final = f"{FORD_MPS}/api"
 ERROR: Final = "ERROR"
 
 START_CHARGE_KEY:Final      = "START_CHARGE"
@@ -1491,7 +1493,7 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
     # ***********************************************************
 
-    async def req_status(self, do_as_post:bool=False):
+    async def req_status(self, do_as_post=False):
         """Get Vehicle status from API"""
         global _AUTO_FOUR_NULL_ONE_COUNTER
         try:
@@ -2147,8 +2149,10 @@ class ConnectedFordPassVehicle:
                     "command":  FORD_COMMAND_MAP.get(command_key, None)}
         return None
 
+    # ***********************************************************
+    # __request_and_poll_command_ford
+    # ***********************************************************
 
-    # operations
     async def start_charge(self):
         # VALUE_CHARGE, CHARGE_NOW, CHARGE_DT, CHARGE_DT_COND, CHARGE_SOLD, HOME_CHARGE_NOW, HOME_STORE_CHARGE, HOME_CHARGE_DISCHARGE
         # START_GLOBAL_CHARGE
@@ -2161,6 +2165,11 @@ class ConnectedFordPassVehicle:
     async def pause_charge(self):
         # PAUSE_GLOBAL_CHARGE
         return await self.__request_and_poll_command_ford(command_key=PAUSE_CHARGE_KEY)
+
+
+    # ***********************************************************
+    # __request_command (@FORD)
+    # ***********************************************************
 
     async def set_zone_lighting(self, target_option:str, current_option=None):
         if target_option is None or str(target_option) == ZONE_LIGHTS_VALUE_OFF:
@@ -2276,6 +2285,27 @@ class ConnectedFordPassVehicle:
 
         return result
 
+    # ── Guard mode (Ford MPS API, not Autonomic) ──────────────────────
+    async def get_guard_mode(self):
+        """Retrieve guard mode session status."""
+        # for MARQ24 this just returns
+        # {'returnCode': 200, 'returnMessage': 'The request was Successful.'}
+        return await self.__request_command("getGuardMode", include_xvin_in_header=True)
+
+    async def set_guard_mode(self):
+        """Enable Guard mode on supported models."""
+        return await self.__request_command("setGuardMode", include_xvin_in_header=True)
+
+    async def del_guard_mode(self):
+        """Disable Guard mode on supported models."""
+        # for MARQ24 this just returns
+        # {'returnCode': 300, 'returnMessage': 'Enrollment is still in progress.'}
+        return await self.__request_command("delGuardMode", include_xvin_in_header=True)
+
+    # ***********************************************************
+    # __request_and_poll_command_autonomic
+    # ***********************************************************
+
     # NOT USED YET
     # def start_engine(self):
     #     return self.__request_and_poll_command(command="startEngine")
@@ -2324,13 +2354,22 @@ class ConnectedFordPassVehicle:
         return status
 
     # MARQ24: the following commands have been added by PR#205 (https://github.com/marq24/ha-fordpass/pull/215)
-    # Unfortunately some of these commands currently work for me (or they had been modified).
+    # Unfortunately, some of these commands currently work for me (or they had been modified).
     #
     # I am quite confident that all `write_command` should not have the suffix `Command` - at least when I
     # enable/disable the departure time (via the app) then the actual type property is:
     # `"type": "updateDepartureTimes"` [and not updateDepartureTimesCommand as it was suggested in the PR]
 
     # ── Departure times ────────────────────────────────────────────────
+
+    async def departure_times_enable(self):
+        """Enable departure times with the given schedule list."""
+        return await self.__request_and_poll_command_autonomic(
+            baseurl=AUTONOMIC_BETA_URL,
+            write_command="enableDepartureTimes",
+            properties={},
+            data_version="1"
+        )
 
     async def departure_times_disable(self):
         """Disable all departure times."""
@@ -2341,15 +2380,6 @@ class ConnectedFordPassVehicle:
             data_version="1",
             #properties={"isDepartureTimeEnabled": False, "departureSchedules": []},
             #data_version="2",
-        )
-
-    async def departure_times_enable(self):
-        """Enable departure times with the given schedule list."""
-        return await self.__request_and_poll_command_autonomic(
-            baseurl=AUTONOMIC_BETA_URL,
-            write_command="enableDepartureTimes",
-            properties={},
-            data_version="1"
         )
 
     async def departure_times_update(self, schedules: list):
@@ -2633,7 +2663,7 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
     # ***********************************************************
 
-    async def __request_command(self, command:str, post_data=None, vin=None):
+    async def __request_command(self, command:str, post_data=None, include_xvin_in_header=False, return_response_content=False):
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
@@ -2649,28 +2679,27 @@ class ConnectedFordPassVehicle:
                 "auth-token": self.access_token,
                 "Application-Id": self.app_id,
             }
-            # do we want to overwrite the vin?!
-            if vin is None:
-                vin = self.vin
+            if include_xvin_in_header:
+                headers["X-Vin"] = self.vin
 
             request_type = None
             check_command = None
             if command == "turnZoneLightsOff":
                 request_type = "DELETE"
-                command_url = f"https://api.mps.ford.com/vehicles/vpfi/zonelightingactivation"
-                post_data = {"vin": vin}
+                command_url = f"{FORD_MPS}/vehicles/vpfi/zonelightingactivation"
+                post_data = {"vin": self.vin}
 
             elif command == "turnZoneLightsOn":
                 request_type = "PUT"
-                command_url = f"https://api.mps.ford.com/vehicles/vpfi/zonelightingactivation"
-                post_data = {"vin": vin}
+                command_url = f"{FORD_MPS}/vehicles/vpfi/zonelightingactivation"
+                post_data = {"vin": self.vin}
 
             elif command == "setZoneLightsMode":
                 # if we can't get the target mode, we assume the default mode '0' (= ALL)
                 target_zone = post_data.get("zone", "0")
                 request_type = "PUT"
-                command_url = f"https://api.mps.ford.com/vehicles/vpfi/{target_zone}/zonelightingzone"
-                post_data = {"vin": vin}
+                command_url = f"{FORD_MPS}/vehicles/vpfi/{target_zone}/zonelightingzone"
+                post_data = {"vin": self.vin}
 
             # remote climate control stuff...
             elif command == "setRemoteClimateControl":
@@ -2678,12 +2707,22 @@ class ConnectedFordPassVehicle:
                 request_type = "PUT"
                 # Unfortunately, the PUT request will only return an object like this:
                 # {"status": 200} - so there is no id, command_id or anything else present
-                # that could be used,to verify if your data update was successful.
+                # that could be used to verify if your data update was successful.
                 # But I saw in the 'states:commands:publishProfilePreferencesR2Command' - so
                 # at the end of the day the request will be received by the vehicle.
                 # Using a timestamp will be also not perfect, because we can/will send muliple
                 # UpdateProfile requests...
                 check_command = "publishProfilePreferencesR2"
+
+            # guard-mode stuff...
+            elif command.endswith("GuardMode"):
+                command_url = f"{FORD_MPS_API}/gmfi/v1/session"
+                if command == "getGuardMode":
+                    request_type = "GET"
+                if command == "setGuardMode":
+                    request_type = "PUT"
+                if command == "delGuardMode":
+                    request_type = "DELETE"
 
             if command_url is None:
                 _LOGGER.warning(f"{self.vli}__request_command() - command '{command}' is not supported by the integration")
@@ -2694,7 +2733,7 @@ class ConnectedFordPassVehicle:
             else:
                 json_post_data = None
 
-            if request_type is None or request_type not in ["POST", "PUT", "DELETE"]:
+            if request_type is None or request_type not in ["GET", "POST", "PUT", "DELETE"]:
                 _LOGGER.warning(f"{self.vli}__request_command() - Unsupported request type '{request_type}' for command '{command}'")
                 return False
 
@@ -2714,6 +2753,11 @@ class ConnectedFordPassVehicle:
                                                 data=json_post_data,
                                                 headers=headers,
                                                 timeout=self.timeout)
+            elif request_type == "GET":
+                req = await self.session.get(f"{command_url}",
+                                                data=json_post_data,
+                                                headers=headers,
+                                                timeout=self.timeout)
 
             if req is not None:
                 if not (200 <= req.status <= 205):
@@ -2729,12 +2773,15 @@ class ConnectedFordPassVehicle:
 
                 _LOGGER.debug(f"{self.vli}__request_command(): '{command}' response: {response}")
 
-                # not used yet - since we do not have a command_id or similar
+                # not used yet - since we do not have a command_id or similar,
                 # see: 'elif command == "setRemoteClimateControl":'
                 #if check_command is not None:
                 #    await self.__wait_for_state(command_id=None, state_command_str=check_command, use_websocket=self.ws_connected)
 
-                return True
+                if return_response_content:
+                    return response
+                else:
+                    return True
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -2972,7 +3019,6 @@ class ConnectedFordPassVehicle:
 
                             if "value" in resp_command_obj and "toState" in resp_command_obj["value"]:
                                 to_state = resp_command_obj["value"]["toState"].upper()
-
 
                                 if to_state in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): EXCELLENT! Command succeeded")
