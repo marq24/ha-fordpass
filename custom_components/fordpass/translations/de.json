@@ -231,7 +231,8 @@
             "autosoftwareupdates":      {"name": "Automatische Software Aktualisierungen"},
             "rccdefrostrear":           {"name": "RC (❄|☀): Heckscheibenheizung [RemoteControl]"},
             "rccdefrostfront":          {"name": "RC (❄|☀): Frontscheibenheizung [RemoteControl]"},
-            "rccsteeringwheel":         {"name": "RC (❄|☀): Lenkradheizung [RemoteControl]"}
+            "rccsteeringwheel":         {"name": "RC (❄|☀): Lenkradheizung [RemoteControl]"},
+            "departuretimes":           {"name": "Abfahrtszeiten"}
         },
         "number": {
             "rcctemperature":       {"name": "RC (❄|☀): Temperatur [RemoteControl]"},

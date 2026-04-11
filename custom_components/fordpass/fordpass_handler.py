@@ -646,7 +646,7 @@ class FordpassDataHandler:
                             if a_schedule.get("scheduleStatus", "OFF").upper() == "ON":
                                 a_schedule_obj = a_schedule.get("schedule", {})
                                 if len(a_schedule_obj) > 0:
-                                    _LOGGER.debug(f"{a_schedule_obj}")
+                                    #_LOGGER.debug(f"A schedule object: {a_schedule_obj}")
                                     time_obj = a_schedule_obj.get("weeklySchedule", {})
                                     day_of_week = time_obj.get("dayOfWeek", UNSUPPORTED).upper()
                                     time_of_day = time_obj.get("timeOfDay", UNSUPPORTED)
@@ -1428,6 +1428,28 @@ class FordpassDataHandler:
             return "DISCONNECTED"
         else:
             return state
+
+    def get_departure_times_state(data, prev_state=None):
+        departure_schedules_setting_obj = FordpassDataHandler.get_metrics_dict(data, "configurations").get("xevDepartureSchedulesSetting", {}).get("value", {})
+        if departure_schedules_setting_obj.get("departureScheduleFeatureStatus", "ON").upper() == "OFF":
+            return False
+        else:
+            # the 'departureScheduleFeatureStatus' is ON - but we must check at least one of the entries
+            # of the `departureLocations:departureSchedules` is 'ON' - if all entries are 'OFF', then
+            # the state should be off
+            for a_departure_location in departure_schedules_setting_obj.get("departureLocations", []):
+                for a_departure_schedule_obj in a_departure_location.get("departureSchedules", []):
+                    if a_departure_schedule_obj.get("scheduleStatus", "OFF").upper() == "ON":
+                        return True
+
+            return False
+
+    async def on_off_departure_times(data, vehicle, turn_on:bool) -> bool:
+        if turn_on:
+            return await vehicle.departure_times_enable()
+        else:
+            return await vehicle.departure_times_disable()
+
 
     #####################################
     ## CURRENTLY UNSUPPORTED CALLABLES ##

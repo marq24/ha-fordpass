@@ -153,6 +153,9 @@ class Tag(ApiKey, Enum):
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_rcc_state(data, rcc_key="RccHeatedSteeringWheel_Rq"),
                                  on_off_fn=FordpassDataHandler.on_off_rcc_RccHeatedSteeringWheel_Rq)
 
+    DEPARTURE_TIMES     = ApiKey(key="departureTimes",
+                                 state_fn=FordpassDataHandler.get_departure_times_state,
+                                 on_off_fn=FordpassDataHandler.on_off_departure_times)
 
     # SELECTS
     ZONE_LIGHTING       = ApiKey(key="zoneLighting",
@@ -825,6 +828,8 @@ SWITCHES = {
     Tag.RCC_STEERING_WHEEL: {"icon": "mdi:steering"},
     Tag.RCC_DEFROST_FRONT: {"icon": "mdi:car-defrost-front"},
     Tag.RCC_DEFROST_REAR: {"icon": "mdi:car-defrost-rear"},
+
+    Tag.DEPARTURE_TIMES: {"icon": "mdi:car-clock"}
 }
 
 BUTTONS = [
