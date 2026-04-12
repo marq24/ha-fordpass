@@ -293,7 +293,9 @@
             "lastenergyconsumed":       {"name": "EV Energieverbrauch (letzte Fahrt)"},
             "energytransferlogentry":   {"name": "EV Letzter Ladevorgang"},
             "remotestartcountdown":     {"name": "RC (❄|☀): Verbleibende Zeit"},
-            "doorlock":                 {"name": "Status Verriegelung"}
+            "doorlock":                 {"name": "Status Verriegelung"},
+
+            "departureschedules":       {"name": "Nächste Abfahrtszeit"}
         },
         "select": {
             "zonelighting": {

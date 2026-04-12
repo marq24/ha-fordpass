@@ -798,8 +798,12 @@ class FordPassEntity(CustomFriendlyNameEntity):
             return name
 
         device_name = device_entry.name_by_user or device_entry.name
-        if name is None and self.use_device_name:
-            return device_name
+        if name is None:
+            if hasattr(self, 'use_device_name') and self.use_device_name:
+                return device_name
+            else:
+                _LOGGER.warning(f"Missing attribute 'use_device_name' for {self._tag.key}")
+                return self._tag.key
 
         # check if there is a user specified entity name (overwritten)
         if registry_entry := self.registry_entry:

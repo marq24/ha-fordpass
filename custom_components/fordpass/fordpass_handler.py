@@ -121,7 +121,10 @@ class FordpassDataHandler:
             try:
                 if not isinstance(value, Number):
                     value = float(value)
-                return units.length(value, UnitOfLength.KILOMETERS)
+                if units is not None:
+                    return units.length(value, UnitOfLength.KILOMETERS)
+                else:
+                    return value
             except ValueError as ve:
                 _LOGGER.debug(f"Invalid distance value: '{value}' caused {ve}")
             except BaseException as e:
@@ -134,7 +137,10 @@ class FordpassDataHandler:
             try:
                 if not isinstance(value, Number):
                     value = float(value)
-                return units.temperature(value, UnitOfTemperature.CELSIUS)
+                if units is not None:
+                    return units.temperature(value, UnitOfTemperature.CELSIUS)
+                else:
+                    return value
             except ValueError as ve:
                 _LOGGER.debug(f"Invalid temperature value: '{value}' caused {ve}")
             except BaseException as e:
@@ -1429,6 +1435,7 @@ class FordpassDataHandler:
         else:
             return state
 
+    # DEPARTURE_SCHEDULE ON/OFF SWITCH
     def get_departure_times_state(data, prev_state=None):
         departure_schedules_setting_obj = FordpassDataHandler.get_metrics_dict(data, "configurations").get("xevDepartureSchedulesSetting", {}).get("value", {})
         if departure_schedules_setting_obj.get("departureScheduleFeatureStatus", "ON").upper() == "OFF":
@@ -1449,6 +1456,242 @@ class FordpassDataHandler:
             return await vehicle.departure_times_enable()
         else:
             return await vehicle.departure_times_disable()
+
+    # DEPARTURE_SCHEDULE SENSOR & SERVICE stuff
+    def get_departure_schedules_state(data, prev_state=None):
+        ev_attrs = FordpassDataHandler.get_elveh_attrs(data, units=None)
+        if ev_attrs is not None and len(ev_attrs) > 0:
+            # 2026-04-13 10:30:00
+            val = ev_attrs.get("nextScheduledDepartureTime", None)
+            if val is not None:
+                if isinstance(val, datetime):
+                    if val.tzinfo is None:
+                        local_tz = datetime.now().astimezone().tzinfo
+                        return val.replace(tzinfo=local_tz)
+                    else:
+                        return val
+
+                elif isinstance(val, str):
+                    if val is not None and val != UNDEFINED:
+                        try:
+                            return dt.as_local(dt.parse_datetime(val))
+                        except BaseException as ex:
+                            _LOGGER.debug(f"get_departure_schedules_state(): could not parse datetime: '{val}', error: {ex}")
+        return None
+
+    def get_departure_schedules_attrs(data, units:UnitSystem):
+        departure_schedules_list = FordpassDataHandler._convert_departure_schedules_setting(data)
+        if departure_schedules_list is not None:
+            return {"schedule": {
+                day['dayOfWeek']: {
+                    'scheduleId': s['scheduleId'],
+                    'timeOfDay': s['timeOfDay']
+                }
+                for day in departure_schedules_list
+                for s in day['schedules']
+                if s['scheduleStatus'] == 'ON'
+            }}
+        else:
+            return {}
+
+    def _convert_departure_schedules_setting(data, location_id_filter="0"):
+        departure_schedules_setting_obj = FordpassDataHandler.get_metrics_dict(data, "configurations").get("xevDepartureSchedulesSetting", {}).get("value", {})
+
+        days_order =  list(DAYS_MAP.keys()) # creating a list ["MONDAY", "TUESDAY", ... "SUNDAY"]
+
+        # Pre-process: group entries by day and keep location context
+        source_entries = {day: [] for day in days_order}
+        departure_location_list = departure_schedules_setting_obj.get("departureLocations", [])
+
+        for a_departure_location in departure_location_list:
+            current_loc_id = str(a_departure_location.get("locationId", ""))
+            if location_id_filter is not None and current_loc_id != str(location_id_filter):
+                continue
+
+            loc_id_int = int(a_departure_location.get("locationId", 0))
+            for entry in a_departure_location.get("departureSchedules", []):
+                day = entry.get("schedule", {}).get("weeklySchedule", {}).get("dayOfWeek")
+                if day in source_entries:
+                    source_entries[day].append((entry, loc_id_int))
+
+        departure_schedules_list = []
+
+        # Step 1: Create the day groups and sort them
+        for day in days_order:
+            day_schedules = []
+            entries_for_day = source_entries.get(day, [])
+
+            for entry, loc_id in entries_for_day:
+                time_str = entry.get("schedule", {}).get("weeklySchedule", {}).get("timeOfDay", "00:00")
+                h, m = map(int, time_str.split(":"))
+
+                if h == 0 and m == 0:
+                    h = 24
+
+                if entry.get("scheduleStatus", "OFF").upper() == "ON":
+                    schedule_item = {
+                        "locationId": loc_id,
+                        "preconditionTemperature": entry.get("oemData", {}).get("chrg_go_t_prcond_d_stat", {}).get("stringValue", "OFF").upper(),
+                        "scheduleId": 0, # just as placeholder - the value will be set in Step 2
+                        "scheduleStatus": "ON",
+                        "timeOfDay": {
+                            "hours": h,
+                            "minutes": m
+                        }
+                    }
+                    # make sure that all schedules have max 2 entries
+                    if len(day_schedules) < 2:
+                        day_schedules.append(schedule_item)
+                    else:
+                        _LOGGER.debug(f"_convert_departure_schedules_setting(): skipping {day} (cause already two active exists) - {day_schedules}")
+
+            # make sure that all schedules have min 2 entries-
+            while len(day_schedules) < 2:
+                day_schedules.append(
+                    {
+                        "locationId": loc_id,
+                        "preconditionTemperature": "OFF",
+                        "scheduleId": 0, # just as placeholder - the value will be set in Step 2
+                        "scheduleStatus": "OFF",
+                        "timeOfDay": {"hours": 24, "minutes": 0}
+                    }
+                )
+
+            # Rule: Sort by state (ON first), then by time
+            day_schedules.sort(key=lambda x: (
+                x["scheduleStatus"] != "ON",
+                x["timeOfDay"]["hours"] * 60 + x["timeOfDay"]["minutes"]
+            ))
+
+            departure_schedules_list.append({
+                "dayOfWeek": day,
+                "schedules": day_schedules
+            })
+
+        # Step 2: Global ID numbering at the end of all other processes...
+        global_id_counter = 1
+        for day_group in departure_schedules_list:
+            for schedule in day_group["schedules"]:
+                schedule["scheduleId"] = global_id_counter
+                global_id_counter += 1
+
+        return departure_schedules_list
+
+    def _update_departure_schedule_int(data, enable_schedule:bool, days_list:list, schedule_id_list:list=None, hour=0, minute=0, precon_temperature="OFF", location_id_filter="0"):
+        # 1. Get current state (sorted and indexed)
+        departure_schedules_list = FordpassDataHandler._convert_departure_schedules_setting(data, location_id_filter)
+        any_changes = False
+
+        # 2. Time Validation & Rounding (calculated once for all days)
+        rounded_minute = int(round(minute / 5.0) * 5)
+        if rounded_minute >= 60:
+            hour += 1
+            rounded_minute = 0
+
+        if hour >= 24:
+            if hour > 24 or (hour == 24 and rounded_minute > 0):
+                _LOGGER.debug(f"update_departure_schedule(): Time {hour}:{minute} capped to 24:00")
+            hour, rounded_minute = 24, 0
+        elif hour == 0 and rounded_minute == 0:
+            hour = 24
+
+        # make sure that we get a valid list of days that we want to modify...
+        if days_list is not None and len(days_list)>0:
+            # Normalize days_list to uppercase
+            days_to_mod = [d.upper() for d in days_list]
+        elif schedule_id_list is not None and len(schedule_id_list)>0:
+            # ok we must go though all days of our list (and must check if the
+            # scheduleId is in the schedule_id_list)
+            days_to_mod = list(DAYS_MAP.keys())
+        else:
+            # for safety reasons we do not modify and day if day_list or schedule_id_list are empty
+            days_to_mod = []
+
+        # 3. Process each day in the list
+        for day_name in days_to_mod:
+            target_day = next((d for d in departure_schedules_list if d["dayOfWeek"] == day_name), None)
+
+            if not target_day:
+                _LOGGER.info(f"update_departure_schedule(): Day {day_name} not found.")
+                continue
+
+            schedules = target_day["schedules"]
+            if schedule_id_list is not None and len(schedule_id_list) > 0:
+                # SCHEDULE_ID_LIST mode...
+                for a_schedule in schedules:
+                    if a_schedule["scheduleId"] in schedule_id_list:
+                        if a_schedule["scheduleStatus"].upper() == ("ON" if enable_schedule else "OFF"):
+                            _LOGGER.debug(f"update_departure_schedule(): SKIPP Day {day_name} (ID: {a_schedule['scheduleId']}), since already {'ON' if enable_schedule else 'OFF'}.")
+                            continue
+                        else:
+                            # 4. Apply changes to the OFF slot
+                            a_schedule.update({
+                                "scheduleStatus": "ON" if enable_schedule else "OFF",
+                                "preconditionTemperature": precon_temperature.upper(),
+                                "timeOfDay": {"hours": hour, "minutes": rounded_minute}
+                            })
+                            any_changes = True
+                            _LOGGER.debug(f"update_departure_schedule(): UPDATE Day {day_name} (ID: {a_schedule['scheduleId']}) to {"ON" if enable_schedule else "OFF"}.")
+
+            else:
+                # DAY_LIST mode...
+                # Rule: Find a slot with status OFF/ON (that can be toggled)
+                target_slot = next((s for s in schedules if s["scheduleStatus"] == ("OFF" if enable_schedule else "ON")), None)
+
+                if target_slot is None:
+                    # Rule 3: Day already has two ON/OFF slots -> ignore and log
+                    _LOGGER.info(f"update_departure_schedule(): Day {day_name} already has two {"ON" if enable_schedule else "OFF"} slots. Skipping.")
+                    continue
+
+                # 4. Apply changes to the OFF slot
+                target_slot.update({
+                    "scheduleStatus": "ON" if enable_schedule else "OFF",
+                    "preconditionTemperature": precon_temperature.upper(),
+                    "timeOfDay": {"hours": hour, "minutes": rounded_minute}
+                })
+                any_changes = True
+                _LOGGER.debug(f"update_departure_schedule(): Updated slot on {day_name} (ID: {target_slot['scheduleId']}) to {"ON" if enable_schedule else "OFF"}.")
+
+        # checking if we have manipulated the departure_schedules_list
+        if not any_changes:
+            return False, departure_schedules_list
+
+        # 5. Final Re-Sort and Re-Index after all changes are done
+        for day_group in departure_schedules_list:
+            day_group["schedules"].sort(key=lambda x: (
+                x["scheduleStatus"] != "ON",
+                x["timeOfDay"]["hours"] * 60 + x["timeOfDay"]["minutes"]
+            ))
+
+        # Re-number all IDs globally to ensure 1, 2, 3... order
+        new_id_counter = 1
+        for day_group in departure_schedules_list:
+            for s in day_group["schedules"]:
+                s["scheduleId"] = new_id_counter
+                new_id_counter += 1
+
+        return True, departure_schedules_list
+
+    def update_departure_schedule(data, vehicle, days_list, hour, minute, precon_temperature):
+        any_change, day_schedules_list = FordpassDataHandler._update_departure_schedule_int(data, True, days_list, None, hour, minute, precon_temperature)
+        if day_schedules_list is not None and any_change:
+            vehicle.update_departure_schedule_result(day_schedules_list)
+        else:
+            _LOGGER.warning(f"Failed to update departure schedule for day(s) {days_list}, hour {hour}, minute {minute} with precondition temperature {precon_temperature} - NO FREE SLOTS")
+
+    def delete_departure_schedule_by_days(data, vehicle, days_list):
+        any_change, day_schedules_list = FordpassDataHandler._update_departure_schedule_int(data, False, days_list)
+        if day_schedules_list is not None and any_change:
+            vehicle.update_departure_schedule_result(day_schedules_list)
+        else:
+            _LOGGER.warning(f"Failed to update departure schedule for day(s) {days_list}")
+
+    def delete_departure_schedule_by_schedule_ids(data, vehicle, schedule_id_list):
+        any_change, day_schedules_list = FordpassDataHandler._update_departure_schedule_int(data, False, None, schedule_id_list)
+        if day_schedules_list is not None and any_change:
+            vehicle.update_departure_schedule_result(day_schedules_list)
+        else:
+            _LOGGER.warning(f"Failed to update departure schedule for day(s) {schedule_id_list}")
 
 
     #####################################

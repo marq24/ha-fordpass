@@ -329,6 +329,10 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_energy_transfer_log_state,
                                  attrs_fn=FordpassDataHandler.get_energy_transfer_log_attrs)
 
+    DEPARTURE_SCHEDULES = ApiKey(key="departureSchedules",
+                                 state_fn=FordpassDataHandler.get_departure_schedules_state,
+                                 attrs_fn=FordpassDataHandler.get_departure_schedules_attrs)
+
 
     # Debug Sensors (Disabled by default)
     EVENTS = ApiKey(key="events",
@@ -734,7 +738,7 @@ SENSORS = [
     ExtSensorEntityDescription(
         tag=Tag.DEVICECONNECTIVITY,
         key=Tag.DEVICECONNECTIVITY.key,
-        icon="mdi:connection",
+        icon="mdi:wifi",
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -754,6 +758,22 @@ SENSORS = [
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.DOOR_LOCK,
+        key=Tag.DOOR_LOCK.key,
+        icon="mdi:car-door-lock",
+        has_entity_name=True,
+        entity_registry_enabled_default=True
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.DEPARTURE_SCHEDULES,
+        key=Tag.DEPARTURE_SCHEDULES.key,
+        icon="mdi:car-clock",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        skip_existence_check=True,
+        has_entity_name=True,
+        entity_registry_enabled_default=True
     ),
 
 
@@ -797,13 +817,6 @@ SENSORS = [
         skip_existence_check=True,
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    ExtSensorEntityDescription(
-        tag=Tag.DOOR_LOCK,
-        key=Tag.DOOR_LOCK.key,
-        icon="mdi:car-door-lock",
-        has_entity_name=True,
-        entity_registry_enabled_default=True
     ),
 ]
 

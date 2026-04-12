@@ -341,6 +341,7 @@ class ConnectedFordPassVehicle:
                 ssl=True,
                 timeout=self.timeout
             )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response.request_info.method} {response.request_info.url}")
 
             # do not check the status code here - since it's not always return http 200!
             token_data = await response.json()
@@ -377,6 +378,7 @@ class ConnectedFordPassVehicle:
             ssl=True,
             timeout=self.timeout
         )
+        _LOGGER.debug(f"{self.vli}REQUEST: {response.request_info.method} {response.request_info.url}")
 
         # do not check the status code here - since it's not always return http 200!
         final_access_token = await response.json()
@@ -417,7 +419,7 @@ class ConnectedFordPassVehicle:
         # Fetch and refresh a token as needed
         # with get_sync_lock_for_user_and_region(self.username, self.region_key, self.vli):
 
-        _LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
+        #_LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
         self._HAS_COM_ERROR = False
         # If a file exists, read in the token file and check it's valid
 
@@ -428,11 +430,11 @@ class ConnectedFordPassVehicle:
             prev_token_data = await self._read_token_from_storage()
             if prev_token_data is None:
                 # no token data could be read!
-                _LOGGER.info(f"{self.vli}__ensure_valid_tokens: Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
+                _LOGGER.info(f"{self.vli}__ensure_valid_tokens(): Tokens are INVALID!!! - mark_re_auth_required() should have occurred?")
                 return
 
             self.use_token_data_from_memory = True
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token data read from fs - size: {len(prev_token_data)}")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): token data read from fs - size: {len(prev_token_data)}")
 
             self.access_token = prev_token_data["access_token"]
             self.refresh_token = prev_token_data["refresh_token"]
@@ -443,7 +445,7 @@ class ConnectedFordPassVehicle:
                 self.auto_refresh_token = prev_token_data["auto_refresh_token"]
                 self.auto_expires_at = prev_token_data["auto_expiry_date"]
             else:
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token not set (or incomplete) in file")
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto-token not set (or incomplete) in file")
                 self.auto_access_token = None
                 self.auto_refresh_token = None
                 self.auto_expires_at = None
@@ -461,33 +463,33 @@ class ConnectedFordPassVehicle:
             now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
 
         if self.expires_at and now_time > self.expires_at:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
             refreshed_token = await self.refresh_token_func(prev_token_data)
             if self._HAS_COM_ERROR:
-                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: skipping 'auto_token_refresh' - COMM ERROR")
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): skipping 'auto_token_refresh' - COMM ERROR")
             else:
                 if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
-                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: result for new token: {len(refreshed_token)}")
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): result for new token: {len(refreshed_token)}")
                     await self.refresh_auto_token_func(refreshed_token)
                 else:
-                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: result for new token: ERROR, None or False")
+                    _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): result for new token: ERROR, None or False")
 
         if self.auto_access_token is None or self.auto_expires_at is None:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         if self.auto_expires_at and now_time > self.auto_expires_at:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         # it could be that there has been 'exceptions' when trying to update the tokens
         if self._HAS_COM_ERROR:
-            _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: COMM ERROR")
+            _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): COMM ERROR")
         else:
             if self.access_token is None:
-                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens: self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
+                _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): self.access_token is None! - but we don't do anything now [the '_request_token()' or '_request_auto_token()' will trigger mark_re_auth_required() when this is required!]")
             else:
-                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens: Tokens are valid")
+                _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): Tokens are valid")
 
     async def refresh_token_func(self, prev_token_data):
         """Refresh token if still valid"""
@@ -535,7 +537,7 @@ class ConnectedFordPassVehicle:
             return ERROR
         else:
             try:
-                _LOGGER.debug(f"{self.vli}_request_token() - {_FOUR_NULL_ONE_COUNTER[self.vin]}")
+                _LOGGER.debug(f"{self.vli}_request_token(): counter {_FOUR_NULL_ONE_COUNTER[self.vin]}")
 
                 headers = {
                     **apiHeaders,
@@ -550,17 +552,18 @@ class ConnectedFordPassVehicle:
                     headers=headers,
                     timeout=self.timeout
                 )
+                _LOGGER.debug(f"{self.vli}REQUEST: {response.request_info.method} {response.request_info.url}")
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
                     _FOUR_NULL_ONE_COUNTER[self.vin] = 0
                     result = await response.json()
-                    _LOGGER.debug(f"{self.vli}_request_token: status OK")
+                    _LOGGER.debug(f"{self.vli}_request_token(): status OK")
                     return result
                 elif response.status == 401 or response.status == 400:
                     _FOUR_NULL_ONE_COUNTER[self.vin] += 1
                     if _FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.error(f"{self.vli}_request_token: status_code: {response.status} - mark_re_auth_required()")
+                        _LOGGER.error(f"{self.vli}_request_token(): status_code: {response.status} - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
                         # some new checking for the error message...
@@ -573,16 +576,16 @@ class ConnectedFordPassVehicle:
                                 if "invalid" in a_msg or "expired token" in a_msg:
                                     is_invalid_msg = True
                             if is_invalid_msg or ("errorCode" in msg and msg["errorCode"] == "460"):
-                                _LOGGER.warning(f"{self.vli}_request_token: status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
+                                _LOGGER.warning(f"{self.vli}_request_token(): status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
                                 _FOUR_NULL_ONE_COUNTER[self.vin] = MAX_401_RESPONSE_COUNT + 1
                         except BaseException as e:
-                            _LOGGER.debug(f"{self.vli}_request_token: status_code: {response.status} - could not read from response - {type(e).__name__} - {e}")
+                            _LOGGER.debug(f"{self.vli}_request_token(): status_code: {response.status} - could not read from response - {type(e).__name__} - {e}")
 
-                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_token: status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
+                    (_LOGGER.warning if _FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_token(): status_code: {response.status} - counter: {_FOUR_NULL_ONE_COUNTER}")
                     await asyncio.sleep(5)
                     return False
                 else:
-                    _LOGGER.info(f"{self.vli}_request_token: status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
+                    _LOGGER.info(f"{self.vli}_request_token(): status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
@@ -601,10 +604,10 @@ class ConnectedFordPassVehicle:
             self.auto_access_token = None
             self.auto_refresh_token = None
             self.auto_expires_at = None
-            (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}refresh_auto_token_func: FAILED!")
+            (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}refresh_auto_token_func(): FAILED!")
 
         elif auto_token == ERROR:
-            _LOGGER.warning(f"{self.vli}refresh_auto_token_func: COMM ERROR")
+            _LOGGER.warning(f"{self.vli}refresh_auto_token_func(): COMM ERROR")
         else:
             # it looks like that the auto token could be requested successfully...
             if "expires_in" in auto_token:
@@ -627,7 +630,7 @@ class ConnectedFordPassVehicle:
             self.auto_refresh_token = auto_token["refresh_token"]
             self.auto_expires_at = auto_token["expiry_date"]
 
-            _LOGGER.debug(f"{self.vli}refresh_auto_token_func: OK")
+            _LOGGER.debug(f"{self.vli}refresh_auto_token_func(): OK")
 
     async def _request_auto_token(self):
         """Get token from new autonomic API"""
@@ -656,25 +659,26 @@ class ConnectedFordPassVehicle:
                     headers=headers,
                     timeout=self.timeout
                 )
+                _LOGGER.debug(f"{self.vli}REQUEST: {response.request_info.method} {response.request_info.url}")
 
                 if response.status == 200:
                     # ok first resetting the counter for 401 errors (if we had any)
                     _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                     result = await response.json()
-                    _LOGGER.debug(f"{self.vli}_request_auto_token: status OK")
+                    _LOGGER.debug(f"{self.vli}_request_auto_token(): status OK")
                     return result
                 elif response.status == 401:
                     _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
                     if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > MAX_401_RESPONSE_COUNT:
-                        _LOGGER.error(f"{self.vli}_request_auto_token: status_code: 401 - mark_re_auth_required()")
+                        _LOGGER.error(f"{self.vli}_request_auto_token(): status_code: 401 - mark_re_auth_required()")
                         self.mark_re_auth_required()
                     else:
-                        (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_auto_token: status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
+                        (_LOGGER.warning if _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] > 2 else _LOGGER.info)(f"{self.vli}_request_auto_token(): status_code: 401 - AUTO counter: {_AUTO_FOUR_NULL_ONE_COUNTER}")
                         await asyncio.sleep(5)
                     return False
                 else:
-                    _LOGGER.info(f"{self.vli}_request_auto_token: status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
+                    _LOGGER.info(f"{self.vli}_request_auto_token(): status_code: {response.status} - {response.real_url} - Received response: {await response.text()}")
                     self._HAS_COM_ERROR = True
                     return ERROR
 
@@ -828,24 +832,28 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
 
     # the WebSocket-related handling...
-    async def ws_connect(self, do_inventory_check:bool=False):
+    async def ws_connect(self, do_inventory_check:bool=False, skipp_init:bool=False):
         _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
+
         await self.__ensure_valid_tokens()
         if self._HAS_COM_ERROR:
-            _LOGGER.debug(f"{self.vli}ws_connect() - COMM ERROR - skipping WebSocket connection")
-            return None
-        elif len(self._data_container.get(ROOT_METRICS, {})) == 0:
-            _LOGGER.warning(f"{self.vli}ws_connect() - no metrics data available - skipping WebSocket connection")
+            _LOGGER.warning(f"{self.vli}ws_connect(): COMM ERROR - skipping WebSocket connection")
             return None
         else:
-            _LOGGER.debug(f"{self.vli}ws_connect() - auto_access_token exist? {self.auto_access_token is not None}")
+            _LOGGER.debug(f"{self.vli}ws_connect(): auto_access_token exist? {self.auto_access_token is not None}")
             if self.auto_access_token is None:
                 return None
 
+        if len(self._data_container.get(ROOT_METRICS, {})) == 0:
+            _LOGGER.info(f"{self.vli}ws_connect(): no metrics data available - need to init our data-container")
+            self._data_container[ROOT_METRICS] = {}
+            if not skipp_init:
+                await self._update_others(self._data_container)
+
         if do_inventory_check:
             if not await self.req_vehicles_inventory_check_int():
-                _LOGGER.debug(f"{self.vli}ws_connect() - req_vehicles_inventory_check_int() failed, will not establish WebSocket connection")
+                _LOGGER.debug(f"{self.vli}ws_connect(): req_vehicles_inventory_check_int() failed, will not establish WebSocket connection")
                 return None
 
         headers_ws = {
@@ -863,8 +871,9 @@ class ConnectedFordPassVehicle:
         self._ws_in_use_access_token = self.auto_access_token
         try:
             async with self.session.ws_connect(url=web_socket_url, headers=headers_ws, timeout=self.timeout) as ws:
-                self.ws_connected = True
+                _LOGGER.debug(f"{self.vli}REQUEST: WS_CONNECT {web_socket_url}")
 
+                self.ws_connected = True
                 _LOGGER.info(f"{self.vli}connected to websocket: {web_socket_url}")
                 async for msg in ws:
                     # store the last time we heard from the websocket
@@ -1301,106 +1310,108 @@ class ConnectedFordPassVehicle:
     async def update_all(self):
         data = await self.req_status()
         if data is not None:
-            # Temporarily removed due to Ford backend API changes
-            # data["guardstatus"] = await self.hass.async_add_executor_job(self.guard_status)
-            msg_data = await self.req_messages()
-            if msg_data is not None:
-                data[ROOT_MESSAGES] = msg_data
-
-            # only update vehicle data if not present yet
-            if self._cached_vehicles_data is None or len(self._cached_vehicles_data) == 0:
-                _LOGGER.debug(f"{self.vli}update_all(): request vehicle data...")
-                self._cached_vehicles_data = await self.req_vehicles()
-
-            if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
-                data[ROOT_VEHICLES] = self._cached_vehicles_data
-
-                if not self._vehicle_options_init_complete:
-                    if "vehicleProfile" in self._cached_vehicles_data:
-                        for a_vehicle_profile in self._cached_vehicles_data["vehicleProfile"]:
-                            if a_vehicle_profile["VIN"] == self.vin:
-
-                                # we must check if the vehicle supports 'remote climate control'...
-                                if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
-                                    self._remote_climate_control_supported = True
-                                    self._remote_climate_control_forced = True
-                                else:
-                                    self._remote_climate_control_forced = False
-                                    if "remoteClimateControl" in a_vehicle_profile:
-                                        self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
-                                    elif "remoteHeatingCooling" in a_vehicle_profile:
-                                        self._remote_climate_control_supported = a_vehicle_profile["remoteHeatingCooling"]
-                                    else:
-                                        self._remote_climate_control_supported = False
-
-                                if "showEVBatteryLevel" in a_vehicle_profile:
-                                    self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
-                                    #self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
-
-                                    # I would like to have a more specific check here...
-                                    self._energy_transfer_logs_supported = a_vehicle_profile["showEVBatteryLevel"]
-                                else:
-                                    self._preferred_charge_times_supported = False
-                                    self._energy_transfer_status_supported = False
-                                    self._energy_transfer_logs_supported = True
-
-                                # tripAndChargeLogs is not present in the 'a_vehicle_profile'
-                                # if "tripAndChargeLogs" in a_vehicle_profile:
-                                #     val = a_vehicle_profile["tripAndChargeLogs"]
-                                #     if (isinstance(val, bool) and val) or val.upper() == "DISPLAY":
-                                #         _LOGGER.warning(f"AAA: {val}")
-                                #         self._energy_transfer_logs_supported = True
-                                #     else:
-                                #         _LOGGER.warning(f"BBB: {val}")
-                                #         self._energy_transfer_logs_supported = False
-                                # else:
-                                #     _LOGGER.warning(f"CCC: {a_vehicle_profile}")
-                                #     self._energy_transfer_logs_supported = False
-
-                                # ok record that we do not read the vehicle profile data again - since the init for this
-                                # VIN is completed...
-                                self._vehicle_options_init_complete = True
-                                break
-
-            # only update remote climate data if not present yet
-            if self._remote_climate_control_supported:
-                if self._cached_rcc_data is None or len(self._cached_rcc_data) == 0:
-                    _LOGGER.debug(f"{self.vli}update_all(): request 'remote climate control' data...")
-                    self._cached_rcc_data = await self.req_remote_climate()
-
-                if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
-                    data[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
-
-            # only update energy-status if not present yet
-            if self._preferred_charge_times_supported:
-                if self._cached_pct_data is None or len(self._cached_pct_data) == 0:
-                    _LOGGER.debug(f"{self.vli}update_all(): request 'preferred_charge_times' data...")
-                    self._cached_pct_data = await self.req_preferred_charge_times()
-
-                if self._cached_pct_data is not None and len(self._cached_pct_data) > 0:
-                    data[ROOT_PREFERRED_CHARGE_TIMES] = self._cached_pct_data
-
-            if self._energy_transfer_status_supported:
-                if self._cached_ets_data is None or len(self._cached_ets_data) == 0:
-                    _LOGGER.debug(f"{self.vli}update_all(): request 'energy_transfer_status' data...")
-                    self._cached_ets_data = await self.req_energy_transfer_status()
-
-                if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
-                    data[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
-
-            # when we are e EV vehicle, then we get the last 20 entries from the energy_transfer_logs
-            if self._energy_transfer_logs_supported:
-                if self._cached_etl_data is None or len(self._cached_etl_data) == 0:
-                    _LOGGER.debug(f"{self.vli}update_all(): request 'energy_transfer_logs' data...")
-                    self._cached_etl_data = await self.req_energy_transfer_logs()
-
-                if self._cached_etl_data is not None and len(self._cached_etl_data) > 0:
-                    data[ROOT_ENERGY_TRANSFER_LOGS] = self._cached_etl_data
-
-            # ok finally store the data in our main data container...
-            self._data_container = data
-
+            await self._update_others(data)
         return data
+
+    async def _update_others(self, data):
+        # Temporarily removed due to Ford backend API changes
+        # data["guardstatus"] = await self.hass.async_add_executor_job(self.guard_status)
+        msg_data = await self.req_messages()
+        if msg_data is not None:
+            data[ROOT_MESSAGES] = msg_data
+
+        # only update vehicle data if not present yet
+        if self._cached_vehicles_data is None or len(self._cached_vehicles_data) == 0:
+            _LOGGER.debug(f"{self.vli}_update_others(): request vehicle data...")
+            self._cached_vehicles_data = await self.req_vehicles()
+
+        if self._cached_vehicles_data is not None and len(self._cached_vehicles_data) > 0:
+            data[ROOT_VEHICLES] = self._cached_vehicles_data
+
+            if not self._vehicle_options_init_complete:
+                if "vehicleProfile" in self._cached_vehicles_data:
+                    for a_vehicle_profile in self._cached_vehicles_data["vehicleProfile"]:
+                        if a_vehicle_profile["VIN"] == self.vin:
+
+                            # we must check if the vehicle supports 'remote climate control'...
+                            if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
+                                self._remote_climate_control_supported = True
+                                self._remote_climate_control_forced = True
+                            else:
+                                self._remote_climate_control_forced = False
+                                if "remoteClimateControl" in a_vehicle_profile:
+                                    self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
+                                elif "remoteHeatingCooling" in a_vehicle_profile:
+                                    self._remote_climate_control_supported = a_vehicle_profile["remoteHeatingCooling"]
+                                else:
+                                    self._remote_climate_control_supported = False
+
+                            if "showEVBatteryLevel" in a_vehicle_profile:
+                                self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
+                                #self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
+
+                                # I would like to have a more specific check here...
+                                self._energy_transfer_logs_supported = a_vehicle_profile["showEVBatteryLevel"]
+                            else:
+                                self._preferred_charge_times_supported = False
+                                self._energy_transfer_status_supported = False
+                                self._energy_transfer_logs_supported = True
+
+                            # tripAndChargeLogs is not present in the 'a_vehicle_profile'
+                            # if "tripAndChargeLogs" in a_vehicle_profile:
+                            #     val = a_vehicle_profile["tripAndChargeLogs"]
+                            #     if (isinstance(val, bool) and val) or val.upper() == "DISPLAY":
+                            #         _LOGGER.warning(f"AAA: {val}")
+                            #         self._energy_transfer_logs_supported = True
+                            #     else:
+                            #         _LOGGER.warning(f"BBB: {val}")
+                            #         self._energy_transfer_logs_supported = False
+                            # else:
+                            #     _LOGGER.warning(f"CCC: {a_vehicle_profile}")
+                            #     self._energy_transfer_logs_supported = False
+
+                            # ok record that we do not read the vehicle profile data again - since the init for this
+                            # VIN is completed...
+                            self._vehicle_options_init_complete = True
+                            break
+
+        # only update remote climate data if not present yet
+        if self._remote_climate_control_supported:
+            if self._cached_rcc_data is None or len(self._cached_rcc_data) == 0:
+                _LOGGER.debug(f"{self.vli}_update_others(): request 'remote climate control' data...")
+                self._cached_rcc_data = await self.req_remote_climate()
+
+            if self._cached_rcc_data is not None and len(self._cached_rcc_data) > 0:
+                data[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
+
+        # only update energy-status if not present yet
+        if self._preferred_charge_times_supported:
+            if self._cached_pct_data is None or len(self._cached_pct_data) == 0:
+                _LOGGER.debug(f"{self.vli}_update_others(): request 'preferred_charge_times' data...")
+                self._cached_pct_data = await self.req_preferred_charge_times()
+
+            if self._cached_pct_data is not None and len(self._cached_pct_data) > 0:
+                data[ROOT_PREFERRED_CHARGE_TIMES] = self._cached_pct_data
+
+        if self._energy_transfer_status_supported:
+            if self._cached_ets_data is None or len(self._cached_ets_data) == 0:
+                _LOGGER.debug(f"{self.vli}_update_others(): request 'energy_transfer_status' data...")
+                self._cached_ets_data = await self.req_energy_transfer_status()
+
+            if self._cached_ets_data is not None and len(self._cached_ets_data) > 0:
+                data[ROOT_ENERGY_TRANSFER_STATUS] = self._cached_ets_data
+
+        # when we are e EV vehicle, then we get the last 20 entries from the energy_transfer_logs
+        if self._energy_transfer_logs_supported:
+            if self._cached_etl_data is None or len(self._cached_etl_data) == 0:
+                _LOGGER.debug(f"{self.vli}_update_others(): request 'energy_transfer_logs' data...")
+                self._cached_etl_data = await self.req_energy_transfer_logs()
+
+            if self._cached_etl_data is not None and len(self._cached_etl_data) > 0:
+                data[ROOT_ENERGY_TRANSFER_LOGS] = self._cached_etl_data
+
+        # ok finally store the data in our main data container...
+        self._data_container = data
 
     async def update_remote_climate_int(self):
         # only update remote climate data if not present yet
@@ -1555,6 +1566,7 @@ class ConnectedFordPassVehicle:
                     headers=headers_state,
                     timeout=self.timeout
                 )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_state.request_info.method} {response_state.request_info.url}")
 
             if response_state.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
@@ -1623,6 +1635,8 @@ class ConnectedFordPassVehicle:
                 "Application-Id": self.app_id,
             }
             response_msg = await self.session.get(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/messages", headers=headers_msg, timeout=self.timeout)
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_msg.request_info.method} {response_msg.request_info.url}")
+
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1678,6 +1692,8 @@ class ConnectedFordPassVehicle:
                 "messageIds": delete_list
             }
             response_msg = await self.session.delete(f"{FORD_FOUNDATIONAL_API}/messagecenter/v3/user/messages", data=json.dumps(post_data), headers=headers_msg, timeout=self.timeout)
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_msg.request_info.method} {response_msg.request_info.url}")
+
             if response_msg.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1716,7 +1732,7 @@ class ConnectedFordPassVehicle:
                 _LOGGER.debug(f"{self.vli}req_vehicles(): - COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}req_vehicles(): - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_vehicles(): access_token exist? {self.access_token is not None}")
                 if self.access_token is None:
                     return None
 
@@ -1736,6 +1752,8 @@ class ConnectedFordPassVehicle:
                 data=json.dumps(data_veh),
                 timeout=self.timeout
             )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_veh.request_info.method} {response_veh.request_info.url}")
+
             if response_veh.status == 207 or response_veh.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1794,20 +1812,22 @@ class ConnectedFordPassVehicle:
                 "Authorization": f"Bearer {self.auto_access_token}",
                 #"Host": "api.autonomic.ai"
             }
-            inv_response = await self.session.get(
+            response_inv = await self.session.get(
                 f"{AUTONOMIC_URL}/inventory/vehicles:getByVin",
                 params={"vin": self.vin, "includeRelations": "groups"},
                 headers=inv_headers,
                 timeout=self.timeout,
             )
-            if 200 <= inv_response.status <= 205:
-                inventory_data = await inv_response.json()
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_inv.request_info.method} {response_inv.request_info.url}")
+
+            if 200 <= response_inv.status <= 205:
+                inventory_data = await response_inv.json()
                 if self._LOCAL_LOGGING:
                     await self._local_logging("inventory_vehicles", inventory_data)
                 _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() FINE")
                 return True
             else:
-                _LOGGER.info(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check returned {inv_response.status}")
+                _LOGGER.info(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check returned {response_inv.status}")
                 return False
 
         except Exception as e:
@@ -1819,10 +1839,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}req_remote_climate(): - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_remote_climate(): COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}req_remote_climate(): - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_remote_climate(): access_token exist? {self.access_token is not None}")
                 if self.access_token is None:
                     return None
 
@@ -1840,6 +1860,8 @@ class ConnectedFordPassVehicle:
                 data=json.dumps(data_veh),
                 timeout=self.timeout
             )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_rcc.request_info.method} {response_rcc.request_info.url}")
+
             if response_rcc.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1898,10 +1920,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_preferred_charge_times(): access_token exist? {self.access_token is not None}")
                 if self.access_token is None:
                     return None
 
@@ -1917,6 +1939,8 @@ class ConnectedFordPassVehicle:
                 headers=headers_veh,
                 timeout=self.timeout
             )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_pct.request_info.method} {response_pct.request_info.url}")
+
             if response_pct.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -1978,10 +2002,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_status(): access_token exist? {self.access_token is not None}")
                 if self.access_token is None:
                     return None
 
@@ -1998,6 +2022,8 @@ class ConnectedFordPassVehicle:
                 headers=headers_veh,
                 timeout=self.timeout
             )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_ets.request_info.method} {response_ets.request_info.url}")
+
             if response_ets.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -2037,10 +2063,10 @@ class ConnectedFordPassVehicle:
         try:
             await self.__ensure_valid_tokens()
             if self._HAS_COM_ERROR:
-                _LOGGER.debug(f"{self.vli}req_energy_transfer_logs(): - COMM ERROR")
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_logs(): COMM ERROR")
                 return None
             else:
-                _LOGGER.debug(f"{self.vli}req_energy_transfer_logs(): - access_token exist? {self.access_token is not None}")
+                _LOGGER.debug(f"{self.vli}req_energy_transfer_logs(): access_token exist? {self.access_token is not None}")
                 if self.access_token is None:
                     return None
 
@@ -2060,6 +2086,8 @@ class ConnectedFordPassVehicle:
                 headers=headers_veh,
                 timeout=self.timeout
             )
+            _LOGGER.debug(f"{self.vli}REQUEST: {response_etl.request_info.method} {response_etl.request_info.url}")
+
             if response_etl.status == 200:
                 # ok first resetting the counter for 401 errors (if we had any)
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
@@ -2384,208 +2412,20 @@ class ConnectedFordPassVehicle:
 
     async def departure_times_update(self, schedules: list):
         """Update departure time schedules (see enable_departure_times for format).
-
         schedules: list of dicts with keys:
             dayOfWeek (str): e.g. "MONDAY"
             schedules (list): each with locationId, preconditionTemperature
                 ("LOW"|"MEDIUM"|"HIGH"|"OFF"), scheduleId, scheduleStatus
                 ("ON"|"OFF"), timeOfDay ({hours, minutes})
         """
-
-        # TODO: we must find a place where we can get our 'schedules' from...
-
-        # APP will 'delete' a schedule via POST:
-        # sample_data = {
-        #     "properties": {
-        #         "departureSchedules": [
-        #             {
-        #                 "dayOfWeek": "MONDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 1,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 2,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             },
-        #             {
-        #                 "dayOfWeek": "TUESDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 3,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 4,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             },
-        #             {
-        #                 "dayOfWeek": "WEDNESDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 5,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 6,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             },
-        #             {
-        #                 "dayOfWeek": "THURSDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 7,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 8,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             },
-        #             {
-        #                 "dayOfWeek": "FRIDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 9,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 10,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             },
-        #             {
-        #                 "dayOfWeek": "SATURDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 11,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 12,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             },
-        #             {
-        #                 "dayOfWeek": "SUNDAY",
-        #                 "schedules": [
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 13,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     },
-        #                     {
-        #                         "locationId": 0,
-        #                         "preconditionTemperature": "OFF",
-        #                         "scheduleId": 14,
-        #                         "scheduleStatus": "OFF",
-        #                         "timeOfDay": {
-        #                             "hours": 24,
-        #                             "minutes": 0
-        #                         }
-        #                     }
-        #                 ]
-        #             }
-        #         ],
-        #         "isDepartureTimeEnabled": True
-        #     },
-        #     "tags": {},
-        #     "type": "updateDepartureTimes",
-        #     "version": "1",
-        #     "wakeUp": True
-        # }
-        return await self.__request_and_poll_command_autonomic(
-            baseurl=AUTONOMIC_BETA_URL,
-            write_command="updateDepartureTimes",
-            properties={"isDepartureTimeEnabled": True, "departureSchedules": schedules},
-        )
+        if schedules is not None:
+            return await self.__request_and_poll_command_autonomic(
+                baseurl=AUTONOMIC_BETA_URL,
+                write_command="updateDepartureTimes",
+                properties={"departureSchedules": schedules, "isDepartureTimeEnabled": True},
+                data_version="1"
+            )
+        return False
 
     # ── On-demand preconditioning ──────────────────────────────────────
     # MARQ24 none of these commands work for me...
@@ -2760,6 +2600,8 @@ class ConnectedFordPassVehicle:
                                                 timeout=self.timeout)
 
             if req is not None:
+                _LOGGER.debug(f"{self.vli}REQUEST: {req.request_info.method} {req.request_info.url}")
+
                 if not (200 <= req.status <= 205):
                     if req.status in (401, 402, 403, 404, 405):
                         _LOGGER.info(f"{self.vli}__request_command(): '{command}' returned '{req.status}' status code - wtf!")
@@ -2829,6 +2671,7 @@ class ConnectedFordPassVehicle:
                                     headers=headers,
                                     timeout=self.timeout
                                     )
+            _LOGGER.debug(f"{self.vli}REQUEST: {post_req.request_info.method} {post_req.request_info.url}")
 
             return await self.__request_and_poll_comon(request_obj=post_req,
                                                  state_command_str=write_command,
@@ -2885,6 +2728,7 @@ class ConnectedFordPassVehicle:
                                                data=json_post_data,
                                                headers=headers,
                                                timeout=self.timeout)
+            _LOGGER.debug(f"{self.vli}REQUEST: {post_req.request_info.method} {post_req.request_info.url}")
 
             return await self.__request_and_poll_comon(request_obj=post_req,
                                                  state_command_str=command,
