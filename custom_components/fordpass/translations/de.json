@@ -38,6 +38,25 @@
                 "ford": "Ford Fahrzeuge - FordPass™ App",
                 "lincoln": "Lincoln Fahrzeuge - The Lincoln Way™ App"
             }
+        },
+        "schedule_days": {
+            "options": {
+                "MONDAY": "01 Montag",
+                "TUESDAY": "02 Dienstag",
+                "WEDNESDAY": "03 Mittwoch",
+                "THURSDAY": "04 Donnerstag",
+                "FRIDAY": "05 Freitag",
+                "SATURDAY": "06 Samstag",
+                "SUNDAY": "07 Sonntag"
+            }
+        },
+        "precondition_temperature": {
+            "options": {
+                "LOW": "Niedrig",
+                "MEDIUM": "Mittel",
+                "HIGH": "Hoch",
+                "OFF": "Aus"
+            }
         }
     },
     "config": {
@@ -129,7 +148,7 @@
                 "data": {
                     "password": "The Lincoln Way™ Passwort",
                     "username": "The Lincoln Way™ Username (Email)",
-                     "region" : "The Lincoln Way™ Region"
+                    "region": "The Lincoln Way™ Region"
                 },
                 "data_description": {
                     "username": "Wenn Du ein Mobiltelefon statt einer E-Mail-Adresse verwendest, gib bitte Deine Nummer (ohne die anfängliche 0) sowie + und die Landesvorwahl ein (z. B. +99123456789).",
@@ -202,6 +221,47 @@
                 "msgid": {
                     "name": "Message ID",
                     "description": "Gib eine gültige Nachrichten ID an"
+                }
+            }
+        },
+        "update_departure_schedule": {
+            "name": "Abfahrtspläne festlegen/aktualisieren",
+            "description": "Lege für ausgewählte(n) Tag(e) eine Abfahrtszeit und eine Vorklimatisierungstemperatur fest.",
+            "fields": {
+                "hour": {
+                    "name": "Stunde",
+                    "description": "Abfahrt Stunden bis (0-23)"
+                },
+                "minute": {
+                    "name": "Minute",
+                    "description": "Abfahrt Minuten - in 5min Schritten (0-55)"
+                },
+                "precondition_temperature": {
+                    "name": "Klimatisierungseinstellungen"
+                },
+                "schedule_days": {
+                    "name": "Tage",
+                    "description": "Wähle einen oder mehrere Wochentage"
+                }
+            }
+        },
+        "delete_departure_schedule_by_days": {
+            "name": "Abfahrtspläne an bestimmten Tage löschen",
+            "description": "Löscht den ersten Abfahrtsplan an dem ausgewählten Wochentag.",
+            "fields": {
+                "schedule_days": {
+                    "name": "Tage",
+                    "description": "Wähle einen oder mehrere Wochentage"
+                }
+            }
+        },
+        "delete_departure_schedule_by_ids": {
+            "name": "Abfahrtspläne nach IDs löschen",
+            "description": "Löscht Abfahrtspläne anhand von Schedule-IDs. (Siehe das 'schedule' Attribute des 'Nächste Abfahrtszeit' Sensors)",
+            "fields": {
+                "schedule_ids": {
+                    "name": "Schedule-IDs",
+                    "description": "Gib eine oder mehrere Schedule-IDs als Liste (z. B. [1,2,3]) oder als komma-separierten String (z. B. 1,2,3) an"
                 }
             }
         }

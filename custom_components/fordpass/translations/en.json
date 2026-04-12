@@ -38,6 +38,25 @@
                 "ford": "Ford Vehicles - FordPass™ App",
                 "lincoln": "Lincoln Vehicles - The Lincoln Way™ App"
             }
+        },
+        "precondition_temperature": {
+            "options": {
+                "LOW": "Cool",
+                "MEDIUM": "Medium",
+                "HIGH": "Warm",
+                "OFF": "Off"
+            }
+        },
+        "schedule_days": {
+            "options": {
+                "MONDAY": "01 Monday",
+                "TUESDAY": "02 Tuesday",
+                "WEDNESDAY": "03 Wednesday",
+                "THURSDAY": "04 Thursday",
+                "FRIDAY": "05 Friday",
+                "SATURDAY": "06 Saturday",
+                "SUNDAY": "07 Sunday"
+            }
         }
     },
     "config": {
@@ -118,7 +137,7 @@
                 "data": {
                     "password": "FordPass™ Password",
                     "username": "FordPass™ Username (Email)",
-                    "region" : "FordPass™ Region"
+                    "region": "FordPass™ Region"
                 },
                 "data_description": {
                     "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
@@ -129,7 +148,7 @@
                 "data": {
                     "password": "The Lincoln Way™ Password",
                     "username": "The Lincoln Way™ Username (Email)",
-                    "region" : "The Lincoln Way™ Region"
+                    "region": "The Lincoln Way™ Region"
                 },
                 "data_description": {
                     "username": "If using a mobile instead of email please enter your number (minus initial 0) also include + and the country code (e.g. +99123456789)",
@@ -202,6 +221,47 @@
                 "msgid": {
                     "name": "Message ID",
                     "description": "Enter a valid Message ID to delete a specific message"
+                }
+            }
+        },
+        "update_departure_schedule": {
+            "name": "Update Departure Schedule",
+            "description": "Set a departure schedule time and preconditioning temperature for selected days.",
+            "fields": {
+                "hour": {
+                    "name": "Hour",
+                    "description": "Departure hour (0-23)"
+                },
+                "minute": {
+                    "name": "Minute",
+                    "description": "Departure minute - in 5min steps (0-55)"
+                },
+                "precondition_temperature": {
+                    "name": "Preconditioning Temperature"
+                },
+                "schedule_days": {
+                    "name": "Days",
+                    "description": "Select one or more weekdays"
+                }
+            }
+        },
+        "delete_departure_schedule_by_days": {
+            "name": "Delete Departure Schedules by Days",
+            "description": "Delete the first departure schedule for the selected weekdays.",
+            "fields": {
+                "schedule_days": {
+                    "name": "Days",
+                    "description": "Select one or more weekdays"
+                }
+            }
+        },
+        "delete_departure_schedule_by_ids": {
+            "name": "Delete Departure Schedules by IDs",
+            "description": "Delete departure schedules by it's scheduleIDs. (see the 'schedule' attribute from the 'Next scheduled Departure' sensors)",
+            "fields": {
+                "schedule_ids": {
+                    "name": "Schedule IDs",
+                    "description": "Provide one or more scheduleIDs as list (e.g. [1,2,3]) or comma-separated string (e.g. 1,2,3)"
                 }
             }
         }

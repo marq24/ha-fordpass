@@ -1672,26 +1672,26 @@ class FordpassDataHandler:
 
         return True, departure_schedules_list
 
-    def update_departure_schedule(data, vehicle, days_list, hour, minute, precon_temperature):
+    async def update_departure_schedule(data, vehicle, days_list, hour, minute, precon_temperature):
         any_change, day_schedules_list = FordpassDataHandler._update_departure_schedule_int(data, True, days_list, None, hour, minute, precon_temperature)
         if day_schedules_list is not None and any_change:
-            vehicle.update_departure_schedule_result(day_schedules_list)
+            await vehicle.departure_times_update(day_schedules_list)
         else:
-            _LOGGER.warning(f"Failed to update departure schedule for day(s) {days_list}, hour {hour}, minute {minute} with precondition temperature {precon_temperature} - NO FREE SLOTS")
+            _LOGGER.warning(f"update_departure_schedule(): Failed to update departure schedule for day(s) {days_list}, hour {hour}, minute {minute} with precondition temperature {precon_temperature} - NO FREE SLOTS")
 
-    def delete_departure_schedule_by_days(data, vehicle, days_list):
+    async def delete_departure_schedule_by_days(data, vehicle, days_list):
         any_change, day_schedules_list = FordpassDataHandler._update_departure_schedule_int(data, False, days_list)
         if day_schedules_list is not None and any_change:
-            vehicle.update_departure_schedule_result(day_schedules_list)
+            await vehicle.departure_times_update(day_schedules_list)
         else:
-            _LOGGER.warning(f"Failed to update departure schedule for day(s) {days_list}")
+            _LOGGER.warning(f"delete_departure_schedule_by_days(): Failed to update departure schedule for day(s) {days_list}")
 
-    def delete_departure_schedule_by_schedule_ids(data, vehicle, schedule_id_list):
+    async def delete_departure_schedule_by_schedule_ids(data, vehicle, schedule_id_list):
         any_change, day_schedules_list = FordpassDataHandler._update_departure_schedule_int(data, False, None, schedule_id_list)
         if day_schedules_list is not None and any_change:
-            vehicle.update_departure_schedule_result(day_schedules_list)
+            await vehicle.departure_times_update(day_schedules_list)
         else:
-            _LOGGER.warning(f"Failed to update departure schedule for day(s) {schedule_id_list}")
+            _LOGGER.warning(f"delete_departure_schedule_by_schedule_ids(): Failed to update departure schedule for day(s) {schedule_id_list}")
 
 
     #####################################

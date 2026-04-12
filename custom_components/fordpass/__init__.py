@@ -48,7 +48,8 @@ from .const_shared import (
     PRESSURE_UNITS,
     RCC_SEAT_MODE_NONE,
     RCC_SEAT_MODE_HEAT_ONLY,
-    RCC_SEAT_MODE_HEAT_AND_COOL
+    RCC_SEAT_MODE_HEAT_AND_COOL,
+    DAYS_MAP,
 )
 from .const_tags import Tag, EV_ONLY_TAGS, FUEL_OR_PEV_ONLY_TAGS, RCC_TAGS
 from .entity import CustomFriendlyNameEntity
@@ -271,11 +272,127 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             _LOGGER.warning(f"async_delete_message_service: No 'msgid' was provided!")
             return False
 
+    async def async_update_departure_schedule_service(call: ServiceCall):
+        _LOGGER.debug(f"Running Service 'update_departure_schedule'")
+
+        hour = call.data.get("hour", None)
+        minute = call.data.get("minute", None)
+        precon_temperature = str(call.data.get("precondition_temperature", "OFF")).upper()
+        days = call.data.get("schedule_days", [])
+
+        if hour is None or minute is None:
+            _LOGGER.warning("async_update_departure_schedule_service(): 'hour' and 'minute' are required")
+            return False
+
+        if isinstance(days, str):
+            days = [days]
+        elif not isinstance(days, list):
+            _LOGGER.warning(f"async_update_departure_schedule_service(): invalid 'days' format: {type(days).__name__}")
+            return False
+
+        validated_days = []
+        for day in days:
+            day_name = str(day).upper()
+            if day_name in DAYS_MAP:
+                validated_days.append(day_name)
+
+        if len(validated_days) == 0:
+            _LOGGER.warning("async_update_departure_schedule_service(): No valid days were provided")
+            return False
+
+        if precon_temperature not in ["LOW", "MEDIUM", "HIGH", "OFF"]:
+            _LOGGER.warning(f"async_update_departure_schedule_service(): invalid precon_temperature '{precon_temperature}' - fallback to OFF")
+            precon_temperature = "OFF"
+
+        try:
+            await FordpassDataHandler.update_departure_schedule(coordinator.data, coordinator.bridge,
+                validated_days, int(hour), int(minute), precon_temperature
+            )
+        except ValueError:
+            _LOGGER.warning(f"async_update_departure_schedule_service(): invalid hour/minute values: hour={hour}, minute={minute}")
+            return False
+
+        #await asyncio.sleep(2)
+        #await coordinator.async_request_refresh_force_classic_requests()
+        return True
+
+    async def async_delete_departure_schedule_by_days_service(call: ServiceCall):
+        _LOGGER.debug(f"Running Service 'delete_departure_schedule_by_days'")
+
+        days = call.data.get("schedule_days", [])
+        if isinstance(days, str):
+            days = [days]
+        elif not isinstance(days, list):
+            _LOGGER.warning(f"async_delete_departure_schedule_by_days_service(): invalid 'schedule_days' format: {type(days).__name__}")
+            return False
+
+        validated_days = []
+        for day in days:
+            day_name = str(day).upper()
+            if day_name in DAYS_MAP:
+                validated_days.append(day_name)
+
+        if len(validated_days) == 0:
+            _LOGGER.warning("async_delete_departure_schedule_by_days_service(): No valid days were provided")
+            return False
+
+        try:
+            await FordpassDataHandler.delete_departure_schedule_by_days(coordinator.data, coordinator.bridge,
+                validated_days
+            )
+        except ValueError:
+            _LOGGER.warning(f"async_delete_departure_schedule_by_days_service(): invalid values: validated_days={validated_days}")
+            return False
+
+        return True
+
+    async def async_delete_departure_schedule_by_ids_service(call: ServiceCall):
+        _LOGGER.debug(f"Running Service 'delete_departure_schedule_by_ids'")
+
+        raw_ids = call.data.get("schedule_ids", [])
+        if isinstance(raw_ids, int):
+            schedule_ids = [raw_ids]
+        elif isinstance(raw_ids, str):
+            parts = [p.strip() for p in raw_ids.split(",") if p.strip()]
+            try:
+                schedule_ids = [int(p) for p in parts]
+            except ValueError:
+                _LOGGER.warning(f"async_delete_departure_schedule_by_ids_service(): invalid 'schedule_ids' string: {raw_ids}")
+                return False
+        elif isinstance(raw_ids, list):
+            schedule_ids = []
+            for value in raw_ids:
+                try:
+                    schedule_ids.append(int(value))
+                except (TypeError, ValueError):
+                    _LOGGER.warning(f"async_delete_departure_schedule_by_ids_service(): invalid schedule id value: {value}")
+                    return False
+        else:
+            _LOGGER.warning(f"async_delete_departure_schedule_by_ids_service(): invalid 'schedule_ids' format: {type(raw_ids).__name__}")
+            return False
+
+        if len(schedule_ids) == 0:
+            _LOGGER.warning("async_delete_departure_schedule_by_ids_service(): No schedule IDs were provided")
+            return False
+
+        try:
+            await FordpassDataHandler.delete_departure_schedule_by_schedule_ids(coordinator.data, coordinator.bridge,
+                schedule_ids
+            )
+        except ValueError:
+            _LOGGER.warning(f"async_delete_departure_schedule_by_ids_service(): invalid values: schedule_ids={schedule_ids}")
+            return False
+
+        return True
+
     hass.services.async_register(DOMAIN, "refresh_status", async_refresh_status_service)
     hass.services.async_register(DOMAIN, "clear_tokens", async_clear_tokens_service)
     hass.services.async_register(DOMAIN, "poll_api", poll_api_service)
     hass.services.async_register(DOMAIN, "reload", handle_reload_service)
     hass.services.async_register(DOMAIN, "delete_message", async_delete_message_service)
+    hass.services.async_register(DOMAIN, "update_departure_schedule", async_update_departure_schedule_service)
+    hass.services.async_register(DOMAIN, "delete_departure_schedule_by_days", async_delete_departure_schedule_by_days_service)
+    hass.services.async_register(DOMAIN, "delete_departure_schedule_by_ids", async_delete_departure_schedule_by_ids_service)
 
     config_entry.async_on_unload(config_entry.add_update_listener(entry_update_listener))
     return True
@@ -313,6 +430,9 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         hass.services.async_remove(DOMAIN, "poll_api")
         hass.services.async_remove(DOMAIN, "reload")
         hass.services.async_remove(DOMAIN, "delete_message")
+        hass.services.async_remove(DOMAIN, "update_departure_schedule")
+        hass.services.async_remove(DOMAIN, "delete_departure_schedule_by_days")
+        hass.services.async_remove(DOMAIN, "delete_departure_schedule_by_ids")
 
     return unload_ok
 

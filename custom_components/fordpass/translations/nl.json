@@ -38,6 +38,25 @@
                 "ford": "Ford voertuigen - FordPass™ app",
                 "lincoln": "Lincoln voertuigen - The Lincoln Way™ app"
             }
+        },
+        "schedule_days": {
+            "options": {
+                "MONDAY": "01 Maandag",
+                "TUESDAY": "02 Dinsdag",
+                "WEDNESDAY": "03 Woensdag",
+                "THURSDAY": "04 Donderdag",
+                "FRIDAY": "05 Vrijdag",
+                "SATURDAY": "06 Zaterdag",
+                "SUNDAY": "07 Zondag"
+            }
+        },
+        "precondition_temperature": {
+            "options": {
+                "LOW": "Koel",
+                "MEDIUM": "Gemiddeld",
+                "HIGH": "Warm",
+                "OFF": "Uit"
+            }
         }
     },
     "config": {
@@ -118,7 +137,7 @@
                 "data": {
                     "password": "FordPass™ wachtwoord",
                     "username": "FordPass™ gebruikersnaam (e-mail)",
-                    "region" : "FordPass™ regio"
+                    "region": "FordPass™ regio"
                 },
                 "data_description": {
                     "username": "Als u in plaats van een e-mailadres een mobiel nummer gebruikt, voer dan uw nummer in (zonder initiële 0) en voeg + en de landcode toe (bijv. +99123456789)",
@@ -126,16 +145,16 @@
                 }
             },
             "new_account_lincoln": {
-            "data": {
-              "password": "The Lincoln Way™ wachtwoord",
-              "username": "The Lincoln Way™ gebruikersnaam (e-mail)",
-              "region" : "The Lincoln Way™ regio"
+                "data": {
+                    "password": "The Lincoln Way™ wachtwoord",
+                    "username": "The Lincoln Way™ gebruikersnaam (e-mail)",
+                    "region": "The Lincoln Way™ regio"
+                },
+                "data_description": {
+                    "username": "Als u in plaats van een e-mailadres een mobiel nummer gebruikt, voer dan uw nummer in (zonder initiële 0) en voeg + en de landcode toe (bijv. +99123456789)",
+                    "region": "De regio die u selecteert, moet overeenkomen met de regio waarvoor u uw The Lincoln Way™-account hebt geregistreerd. Verdere details op GitHub"
+                }
             },
-            "data_description": {
-              "username": "Als u in plaats van een e-mailadres een mobiel nummer gebruikt, voer dan uw nummer in (zonder initiële 0) en voeg + en de landcode toe (bijv. +99123456789)",
-              "region": "De regio die u selecteert, moet overeenkomen met de regio waarvoor u uw The Lincoln Way™-account hebt geregistreerd. Verdere details op GitHub"
-            }
-          },
             "vehicle": {
                 "title": "Selecteer voertuig om toe te voegen",
                 "description": "Alleen voertuigen die nog niet zijn toegevoegd, worden weergegeven",
@@ -194,6 +213,47 @@
         "poll_api": {
             "name": "Poll API",
             "description": "Poll API handmatig voor gegevensupdate (Waarschuwing: als u dit te vaak doet, kan dit resulteren in een ban)"
+        },
+        "update_departure_schedule": {
+            "name": "Vertrekschema's",
+            "description": "Set a departure schedule time and preconditioning temperature for selected days.",
+            "fields": {
+                "hour": {
+                    "name": "Hour",
+                    "description": "Departure hour (0-23)"
+                },
+                "minute": {
+                    "name": "Minute",
+                    "description": "Departure minute - in 5min steps (0-55)"
+                },
+                "precondition_temperature": {
+                    "name": "Preconditioning Temperature"
+                },
+                "schedule_days": {
+                    "name": "Dagen",
+                    "description": "Selecteer een of meer weekdagen"
+                }
+            }
+        },
+        "delete_departure_schedule_by_days": {
+            "name": "Vertrekschema's per dag verwijderen",
+            "description": "Verwijdert vertrekschema's voor geselecteerde weekdagen.",
+            "fields": {
+                "schedule_days": {
+                    "name": "Dagen",
+                    "description": "Selecteer een of meer weekdagen"
+                }
+            }
+        },
+        "delete_departure_schedule_by_ids": {
+            "name": "Vertrekschema's per ID verwijderen",
+            "description": "Verwijdert vertrekschema's op basis van schema-ID's.",
+            "fields": {
+                "schedule_ids": {
+                    "name": "Schema-ID's",
+                    "description": "Geef een of meer ID's op als lijst (bijv. [1,2,3]) of als kommagescheiden tekst (bijv. 1,2,3)"
+                }
+            }
         }
     },
     "entity": {

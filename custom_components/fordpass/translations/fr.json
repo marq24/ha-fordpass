@@ -38,6 +38,25 @@
                 "ford": "Véhicules Ford - application FordPass™",
                 "lincoln": "Véhicules Lincoln - application The Lincoln Way™"
             }
+        },
+        "schedule_days": {
+            "options": {
+                "MONDAY": "01 Lundi",
+                "TUESDAY": "02 Mardi",
+                "WEDNESDAY": "03 Mercredi",
+                "THURSDAY": "04 Jeudi",
+                "FRIDAY": "05 Vendredi",
+                "SATURDAY": "06 Samedi",
+                "SUNDAY": "07 Dimanche"
+            }
+        },
+        "precondition_temperature": {
+            "options": {
+                "LOW": "Frais",
+                "MEDIUM": "Moyen",
+                "HIGH": "Chaud",
+                "OFF": "Arrêt"
+            }
         }
     },
     "config": {
@@ -202,6 +221,47 @@
                 "msgid": {
                     "name": "ID du message",
                     "description": "Saisissez un ID de message valide pour supprimer un message spécifique"
+                }
+            }
+        },
+        "update_departure_schedule": {
+            "name": "Supprimer les horaires de départ",
+            "description": "Set a departure schedule time and preconditioning temperature for selected days.",
+            "fields": {
+                "hour": {
+                    "name": "Hour",
+                    "description": "Departure hour (0-23)"
+                },
+                "minute": {
+                    "name": "Minute",
+                    "description": "Departure minute - in 5min steps (0-55)"
+                },
+                "precondition_temperature": {
+                    "name": "Preconditioning Temperature"
+                },
+                "schedule_days": {
+                    "name": "Jours",
+                    "description": "Sélectionnez un ou plusieurs jours de la semaine"
+                }
+            }
+        },
+        "delete_departure_schedule_by_days": {
+            "name": "Supprimer les horaires de départ par jours",
+            "description": "Supprime les horaires de départ pour les jours sélectionnés.",
+            "fields": {
+                "schedule_days": {
+                    "name": "Jours",
+                    "description": "Sélectionnez un ou plusieurs jours de la semaine"
+                }
+            }
+        },
+        "delete_departure_schedule_by_ids": {
+            "name": "Supprimer les horaires de départ par IDs",
+            "description": "Supprime les horaires de départ à l'aide des IDs d'horaire.",
+            "fields": {
+                "schedule_ids": {
+                    "name": "IDs d'horaire",
+                    "description": "Fournissez un ou plusieurs IDs sous forme de liste (ex. [1,2,3]) ou chaîne séparée par des virgules (ex. 1,2,3)"
                 }
             }
         }

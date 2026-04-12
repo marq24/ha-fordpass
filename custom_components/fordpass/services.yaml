@@ -26,3 +26,90 @@ delete_message:
       selector:
         text:
           multiline: false
+
+update_departure_schedule:
+  name: "Update Departure Schedule"
+  description: "Set a departure schedule time and preconditioning temperature for selected days"
+  fields:
+    hour:
+      name: "Hour"
+      description: "Departure hour (0-23)"
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+          mode: box
+    minute:
+      name: "Minute"
+      description: "Departure minute (0-55)"
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 55
+          mode: box
+          step: 5
+    schedule_days:
+      name: "Days"
+      description: "Select one or more weekdays"
+      required: true
+      selector:
+        select:
+          multiple: true
+          sort: false
+          translation_key: "schedule_days"
+          options:
+            - "MONDAY"
+            - "TUESDAY"
+            - "WEDNESDAY"
+            - "THURSDAY"
+            - "FRIDAY"
+            - "SATURDAY"
+            - "SUNDAY"
+    precondition_temperature:
+      name: "Preconditioning Temperature"
+      description: "Preconditioning level"
+      required: true
+      selector:
+        select:
+          mode: dropdown
+          sort: false
+          translation_key: "precondition_temperature"
+          options:
+            - "LOW"
+            - "MEDIUM"
+            - "HIGH"
+            - "OFF"
+delete_departure_schedule_by_days:
+  name: "Delete Departure Schedules by Days"
+  description: "Delete departure schedules for selected weekdays"
+  fields:
+    schedule_days:
+      name: "Days"
+      description: "Select one or more weekdays"
+      required: true
+      selector:
+        select:
+          multiple: true
+          sort: false
+          translation_key: "schedule_days"
+          options:
+            - "MONDAY"
+            - "TUESDAY"
+            - "WEDNESDAY"
+            - "THURSDAY"
+            - "FRIDAY"
+            - "SATURDAY"
+            - "SUNDAY"
+delete_departure_schedule_by_ids:
+  name: "Delete Departure Schedules by IDs"
+  description: "Delete departure schedules by schedule IDs"
+  fields:
+    schedule_ids:
+      name: "Schedule IDs"
+      description: "Provide one or more schedule IDs as list (e.g. [1,2,3]) or comma-separated string (e.g. 1,2,3)"
+      required: true
+      selector:
+        text:
+          multiline: false
