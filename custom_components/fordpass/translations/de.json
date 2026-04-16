@@ -41,21 +41,21 @@
         },
         "schedule_days": {
             "options": {
-                "MONDAY": "01 Montag",
-                "TUESDAY": "02 Dienstag",
-                "WEDNESDAY": "03 Mittwoch",
-                "THURSDAY": "04 Donnerstag",
-                "FRIDAY": "05 Freitag",
-                "SATURDAY": "06 Samstag",
-                "SUNDAY": "07 Sonntag"
+                "monday": "01 Montag",
+                "tuesday": "02 Dienstag",
+                "wednesday": "03 Mittwoch",
+                "thursday": "04 Donnerstag",
+                "friday": "05 Freitag",
+                "saturday": "06 Samstag",
+                "sunday": "07 Sonntag"
             }
         },
         "precondition_temperature": {
             "options": {
-                "LOW": "Niedrig",
-                "MEDIUM": "Mittel",
-                "HIGH": "Hoch",
-                "OFF": "Aus"
+                "low": "Niedrig",
+                "medium": "Mittel",
+                "high": "Hoch",
+                "off": "Aus"
             }
         }
     },

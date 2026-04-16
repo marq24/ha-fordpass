@@ -41,21 +41,21 @@
         },
         "schedule_days": {
             "options": {
-                "MONDAY": "01 Maandag",
-                "TUESDAY": "02 Dinsdag",
-                "WEDNESDAY": "03 Woensdag",
-                "THURSDAY": "04 Donderdag",
-                "FRIDAY": "05 Vrijdag",
-                "SATURDAY": "06 Zaterdag",
-                "SUNDAY": "07 Zondag"
+                "monday": "01 Maandag",
+                "tuesday": "02 Dinsdag",
+                "wednesday": "03 Woensdag",
+                "thursday": "04 Donderdag",
+                "friday": "05 Vrijdag",
+                "saturday": "06 Zaterdag",
+                "sunday": "07 Zondag"
             }
         },
         "precondition_temperature": {
             "options": {
-                "LOW": "Koel",
-                "MEDIUM": "Gemiddeld",
-                "HIGH": "Warm",
-                "OFF": "Uit"
+                "low": "Koel",
+                "medium": "Gemiddeld",
+                "high": "Warm",
+                "off": "Uit"
             }
         }
     },
