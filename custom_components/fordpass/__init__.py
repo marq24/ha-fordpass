@@ -491,6 +491,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._engine_type = None
         self._number_of_lighting_zones = 0
         self._supports_GUARD_MODE = None
+        self._supports_DOOR_LOCK = None
         self._supports_REMOTE_START = None
         self._supports_ZONE_LIGHTING = None
         self._supports_ALARM = None
@@ -586,6 +587,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             if not self.bridge.ws_check_last_update():
                 self._check_for_ws_task_and_cancel_if_running()
 
+    # returns TRUE if the requested TAG is NOT SUPPORTED!!!
     def tag_not_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag in FUEL_OR_PEV_ONLY_TAGS:
             return self.supportFuel is False
@@ -614,6 +616,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                      Tag.GUARD_MODE,
                      Tag.ZONE_LIGHTING,
                      Tag.ALARM,
+                     Tag.DOOR_LOCK,
                      Tag.GEARLEVERPOSITION,
                      Tag.AUTO_UPDATES,
                      Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
@@ -717,6 +720,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                     for capability_obj in veh_data["vehicleCapabilities"]:
                         if capability_obj["VIN"] == self._vin:
                             self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
+                            self._supports_DOOR_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0

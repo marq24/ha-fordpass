@@ -18,16 +18,19 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add the lock from the config."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
     _LOGGER.debug(f"{coordinator.vli}LOCK async_setup_entry")
-    if coordinator.data is not None:
-        lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
-        if lock_state != UNSUPPORTED and lock_state.upper() != "ERROR":
-            async_add_entities([FordPassLock(coordinator)], False)
+
+    # first check if the 'vehicleCapabilities' have "remoteLock": "Display"
+    if not coordinator.tag_not_supported_by_vehicle(Tag.DOOR_LOCK):
+        if coordinator.data is not None:
+            lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
+            if lock_state != UNSUPPORTED and lock_state.upper() != "ERROR":
+                async_add_entities([FordPassLock(coordinator)], False)
+            else:
+                _LOGGER.debug(f"{coordinator.vli}Ford model doesn't support remote locking [lock_state: {lock_state}]")
         else:
-            _LOGGER.debug(f"{coordinator.vli}Ford model doesn't support remote locking")
+            _LOGGER.debug(f"{coordinator.vli}Ford model doesn't support remote locking [coordinator.data is None]")
     else:
-        _LOGGER.debug(f"{coordinator.vli}Ford model doesn't support remote locking")
-
-
+        _LOGGER.debug(f"{coordinator.vli}Ford model doesn't support remote locking [tag_not_supported_by_vehicle]")
 
 class FordPassLock(FordPassEntity, LockEntity):
     """Defines the vehicle's lock."""
