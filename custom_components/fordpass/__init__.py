@@ -491,7 +491,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._engine_type = None
         self._number_of_lighting_zones = 0
         self._supports_GUARD_MODE = None
-        self._supports_DOOR_LOCK = None
+        self._supports_REMOTE_LOCK = None
         self._supports_REMOTE_START = None
         self._supports_ZONE_LIGHTING = None
         self._supports_ALARM = None
@@ -617,6 +617,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                      Tag.ZONE_LIGHTING,
                      Tag.ALARM,
                      Tag.DOOR_LOCK,
+                     Tag.DOOR_UNLOCK,
                      Tag.GEARLEVERPOSITION,
                      Tag.AUTO_UPDATES,
                      Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
@@ -626,6 +627,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 support_ATTR_NAME = f"_supports_{Tag.REMOTE_START.name}"
             elif a_tag in [Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
                 support_ATTR_NAME = f"_supports_HAF"
+            elif a_tag in [Tag.DOOR_LOCK, Tag.DOOR_UNLOCK]:
+                support_ATTR_NAME = f"_supports_REMOTE_LOCK"
             else:
                 support_ATTR_NAME = f"_supports_{a_tag.name}"
 
@@ -720,7 +723,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                     for capability_obj in veh_data["vehicleCapabilities"]:
                         if capability_obj["VIN"] == self._vin:
                             self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
-                            self._supports_DOOR_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
+                            self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
