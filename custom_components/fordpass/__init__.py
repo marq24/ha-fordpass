@@ -493,6 +493,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_GUARD_MODE = None
         self._supports_REMOTE_LOCK = None
         self._supports_REMOTE_START = None
+        self._supports_TRAILER_LIGHT_CHECK = None
         self._supports_ZONE_LIGHTING = None
         self._supports_ALARM = None
         self._supports_GEARLEVERPOSITION = None
@@ -621,7 +622,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                      Tag.GEARLEVERPOSITION,
                      Tag.AUTO_UPDATES,
                      Tag.HAF_SHORT, Tag.HAF_DEFAULT, Tag.HAF_LONG]:
-            # just handling the unpleasant fact, that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
+            # just handling the unpleasant fact that for 'Tag.REMOTE_START_STATUS' and 'Tag.REMOTE_START' we just
             # share the same 'support_ATTR_NAME'...
             if a_tag == Tag.REMOTE_START_STATUS or a_tag == Tag.REMOTE_START_COUNTDOWN or a_tag == Tag.EXTEND_REMOTE_START:
                 support_ATTR_NAME = f"_supports_{Tag.REMOTE_START.name}"
@@ -629,6 +630,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 support_ATTR_NAME = f"_supports_HAF"
             elif a_tag in [Tag.DOOR_LOCK, Tag.DOOR_UNLOCK]:
                 support_ATTR_NAME = f"_supports_REMOTE_LOCK"
+            elif a_tag in [Tag.TRAILER_LIGHT_CHECK, Tag.TRAILER_LIGHT_CHECK_ON, Tag.TRAILER_LIGHT_CHECK_OFF]:
+                support_ATTR_NAME = f"_supports_TRAILER_LIGHT_CHECK"
             else:
                 support_ATTR_NAME = f"_supports_{a_tag.name}"
 
@@ -725,6 +728,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
                             self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
                             self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
+                            self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", capability_obj)
                             self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
                             self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capability_obj)

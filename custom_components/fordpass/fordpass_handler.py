@@ -1693,6 +1693,17 @@ class FordpassDataHandler:
         else:
             _LOGGER.warning(f"delete_departure_schedule_by_schedule_ids(): Failed to update departure schedule for day(s) {schedule_id_list}")
 
+    # TRAILER_LIGHT_CHECK stuff
+    def get_trailer_light_check_state(data, prev_state=None):
+        # currently it's unknown if the backend will provide the informaton if the trailer light check is
+        # running (or not)
+        return False
+
+    async def on_off_trailer_light_check(data, vehicle, turn_on:bool) -> bool:
+        if turn_on:
+            return await vehicle.trailer_light_check_enable()
+        else:
+            return await vehicle.trailer_light_check_disable()
 
     #####################################
     ## CURRENTLY UNSUPPORTED CALLABLES ##
@@ -1811,3 +1822,9 @@ class FordpassDataHandler:
         await vehicle.cancel_charge()
     async def pause_charge_vehicle(coordinator, vehicle):
         await vehicle.pause_charge()
+
+    async def trailer_light_check_enable(coordinator, vehicle):
+        await vehicle.trailer_light_check_enable()
+
+    async def trailer_light_check_disable(coordinator, vehicle):
+        await vehicle.trailer_light_check_disable()

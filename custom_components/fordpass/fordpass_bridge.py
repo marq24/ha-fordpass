@@ -2457,16 +2457,15 @@ class ConnectedFordPassVehicle:
         )
 
     # ── Trailer light check ────────────────────────────────────────────
-    # MARQ24 none of these commands wok for me...
-
-    async def trailer_light_check_start(self):
+    # MARQ24 none of these commands work for me...
+    async def trailer_light_check_enable(self):
         """Flash trailer lights to verify connection."""
         return await self.__request_and_poll_command_autonomic(
             baseurl=AUTONOMIC_URL,
             write_command="startTrailerLightCheck",
         )
 
-    async def trailer_light_check_stop(self):
+    async def trailer_light_check_disable(self):
         """Stop trailer light check."""
         return await self.__request_and_poll_command_autonomic(
             baseurl=AUTONOMIC_URL,
@@ -2475,7 +2474,6 @@ class ConnectedFordPassVehicle:
 
     # ── PPO (Programmable Parameter Override) ──────────────────────────
     # MARQ24 none of these commands work for me...
-
     async def ppo_refresh(self):
         """One-shot PPO refresh."""
         return await self.__request_and_poll_command_autonomic(

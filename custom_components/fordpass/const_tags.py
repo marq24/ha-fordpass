@@ -95,30 +95,35 @@ class Tag(ApiKey, Enum):
 
     # BUTTON
     ##################################################
-    UPDATE_DATA         = ApiKey(key="update_data",
-                                 press_fn=FordpassDataHandler.reload_data)
-    REQUEST_REFRESH     = ApiKey(key="request_refresh",
-                                 press_fn=FordpassDataHandler.request_update_and_reload)
-    DOOR_UNLOCK         = ApiKey(key="doorunlock",
-                                 press_fn=FordpassDataHandler.unlock_vehicle)
-    EV_START            = ApiKey(key="evstart",
-                                 press_fn=FordpassDataHandler.start_charge_vehicle)
-    EV_CANCEL           = ApiKey(key="evcancel",
-                                 press_fn=FordpassDataHandler.cancel_charge_vehicle)
-    EV_PAUSE            = ApiKey(key="evpause",
-                                 press_fn=FordpassDataHandler.pause_charge_vehicle)
-    HAF_SHORT           = ApiKey(key="hafshort",
-                                 press_fn=FordpassDataHandler.honk_and_light_short)
-    HAF_DEFAULT         = ApiKey(key="hafdefault",
-                                 press_fn=FordpassDataHandler.honk_and_light)
-    HAF_LONG            = ApiKey(key="haflong",
-                                 press_fn=FordpassDataHandler.honk_and_light_long)
-    EXTEND_REMOTE_START = ApiKey(key="extendRemoteStart",
-                                 press_fn=FordpassDataHandler.extend_remote_start)
-    MESSAGES_DELETE_LAST= ApiKey(key="msgdeletelast",
-                                 press_fn=FordpassDataHandler.messages_delete_last)
-    MESSAGES_DELETE_ALL= ApiKey(key="msgdeleteall",
-                                press_fn=FordpassDataHandler.messages_delete_all)
+    UPDATE_DATA             = ApiKey(key="update_data",
+                                    press_fn=FordpassDataHandler.reload_data)
+    REQUEST_REFRESH         = ApiKey(key="request_refresh",
+                                     press_fn=FordpassDataHandler.request_update_and_reload)
+    DOOR_UNLOCK             = ApiKey(key="doorunlock",
+                                     press_fn=FordpassDataHandler.unlock_vehicle)
+    EV_START                = ApiKey(key="evstart",
+                                     press_fn=FordpassDataHandler.start_charge_vehicle)
+    EV_CANCEL               = ApiKey(key="evcancel",
+                                     press_fn=FordpassDataHandler.cancel_charge_vehicle)
+    EV_PAUSE                = ApiKey(key="evpause",
+                                     press_fn=FordpassDataHandler.pause_charge_vehicle)
+    HAF_SHORT               = ApiKey(key="hafshort",
+                                     press_fn=FordpassDataHandler.honk_and_light_short)
+    HAF_DEFAULT             = ApiKey(key="hafdefault",
+                                     press_fn=FordpassDataHandler.honk_and_light)
+    HAF_LONG                = ApiKey(key="haflong",
+                                     press_fn=FordpassDataHandler.honk_and_light_long)
+    EXTEND_REMOTE_START     = ApiKey(key="extendRemoteStart",
+                                     press_fn=FordpassDataHandler.extend_remote_start)
+    MESSAGES_DELETE_LAST    = ApiKey(key="msgdeletelast",
+                                     press_fn=FordpassDataHandler.messages_delete_last)
+    MESSAGES_DELETE_ALL     = ApiKey(key="msgdeleteall",
+                                     press_fn=FordpassDataHandler.messages_delete_all)
+    TRAILER_LIGHT_CHECK_ON  = ApiKey(key="trailerLightCheckOn",
+                                     press_fn=FordpassDataHandler.trailer_light_check_enable)
+    TRAILER_LIGHT_CHECK_OFF = ApiKey(key="trailerLightCheckOff",
+                                     press_fn=FordpassDataHandler.trailer_light_check_disable)
+
     # LOCKS
     ##################################################
     DOOR_LOCK           = ApiKey(key="doorlock",
@@ -156,6 +161,10 @@ class Tag(ApiKey, Enum):
     DEPARTURE_TIMES     = ApiKey(key="departureTimes",
                                  state_fn=FordpassDataHandler.get_departure_times_state,
                                  on_off_fn=FordpassDataHandler.on_off_departure_times)
+
+    TRAILER_LIGHT_CHECK = ApiKey(key="trailerLightCheck",
+                                 state_fn=FordpassDataHandler.get_trailer_light_check_state,
+                                 on_off_fn=FordpassDataHandler.on_off_trailer_light_check)
 
     # SELECTS
     ZONE_LIGHTING       = ApiKey(key="zoneLighting",
@@ -930,6 +939,18 @@ BUTTONS = [
         icon="mdi:delete-alert",
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.TRAILER_LIGHT_CHECK_ON,
+        key=Tag.TRAILER_LIGHT_CHECK_ON.key,
+        icon="mdi:truck-trailer",
+        has_entity_name=True,
+    ),
+    ExtButtonEntityDescription(
+        tag=Tag.TRAILER_LIGHT_CHECK_OFF,
+        key=Tag.TRAILER_LIGHT_CHECK_OFF.key,
+        icon="mdi:truck-trailer",
+        has_entity_name=True
     )
 ]
 
