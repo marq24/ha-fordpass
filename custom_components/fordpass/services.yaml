@@ -94,13 +94,13 @@ delete_departure_schedule_by_days:
           sort: false
           translation_key: "schedule_days"
           options:
-            - "MONDAY"
-            - "TUESDAY"
-            - "WEDNESDAY"
-            - "THURSDAY"
-            - "FRIDAY"
-            - "SATURDAY"
-            - "SUNDAY"
+            - "monday"
+            - "tuesday"
+            - "wednesday"
+            - "thursday"
+            - "friday"
+            - "saturday"
+            - "sunday"
 delete_departure_schedule_by_ids:
   name: "Delete Departure Schedules by IDs"
   description: "Delete departure schedules by schedule IDs"
