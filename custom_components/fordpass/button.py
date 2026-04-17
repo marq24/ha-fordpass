@@ -1,4 +1,5 @@
 import logging
+from dataclasses import replace
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -6,7 +7,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import FordPassEntity, FordPassDataUpdateCoordinator
+from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
 from .const_tags import BUTTONS, Tag, ExtButtonEntityDescription
@@ -22,9 +23,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_
     for a_entity_description in BUTTONS:
         a_entity_description: ExtButtonEntityDescription
 
-        if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
+        if not coordinator.tag_supported_by_vehicle(a_entity_description.tag):
             _LOGGER.debug(f"{coordinator.vli}BUTTON '{a_entity_description.tag}' not supported for this engine-type/vehicle")
             continue
+
+        if a_entity_description.tag in [Tag.DOOR_LOCK, Tag.DOOR_UNLOCK]:
+            if coordinator.data is not None:
+                lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
+                if lock_state == UNSUPPORTED or lock_state.upper() == "ERROR":
+                    # when the LOCK entity is not supported, we enable the LOCK+UNLOCK Buttons by default
+                    a_entity_description = replace(a_entity_description, entity_registry_enabled_default=True)
 
         button = FordpassButton(coordinator, a_entity_description)
         entities.append(button)

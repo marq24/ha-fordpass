@@ -20,7 +20,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     _LOGGER.debug(f"{coordinator.vli}LOCK async_setup_entry")
 
     # first check if the 'vehicleCapabilities' have "remoteLock": "Display"
-    if not coordinator.tag_not_supported_by_vehicle(Tag.DOOR_LOCK):
+    if coordinator.tag_supported_by_vehicle(Tag.DOOR_LOCK):
         if coordinator.data is not None:
             lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
             if lock_state != UNSUPPORTED and lock_state.upper() != "ERROR":

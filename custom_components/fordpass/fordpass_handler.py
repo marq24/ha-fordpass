@@ -1481,9 +1481,13 @@ class FordpassDataHandler:
 
     def get_departure_schedules_attrs(data, units:UnitSystem):
         departure_schedules_list = FordpassDataHandler._convert_departure_schedules_setting(data)
+        # in the sensor attibute, we will display the 'dayOfWeek' in lower case, since
+        # in the service we also must user 'lc' in the options (in order to support translations)
+        # so at the end of the day, we are going to ly to our users (make them belive day of week
+        # must be lower case
         if departure_schedules_list is not None:
             return {"schedule": {
-                day['dayOfWeek']: {
+                day['dayOfWeek'].lower(): {
                     'scheduleId': s['scheduleId'],
                     'timeOfDay': s['timeOfDay']
                 }

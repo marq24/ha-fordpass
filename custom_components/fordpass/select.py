@@ -35,7 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     for a_entity_description in SELECTS:
         a_entity_description: ExtSelectEntityDescription
 
-        if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
+        if not coordinator.tag_supported_by_vehicle(a_entity_description.tag):
             _LOGGER.debug(f"{coordinator.vli}SELECT '{a_entity_description.tag}' not supported for this engine-type/vehicle")
             continue
 

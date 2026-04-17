@@ -60,16 +60,15 @@ update_departure_schedule:
           sort: false
           translation_key: "schedule_days"
           options:
-            - "MONDAY"
-            - "TUESDAY"
-            - "WEDNESDAY"
-            - "THURSDAY"
-            - "FRIDAY"
-            - "SATURDAY"
-            - "SUNDAY"
+            - "monday"
+            - "tuesday"
+            - "wednesday"
+            - "thursday"
+            - "friday"
+            - "saturday"
+            - "sunday"
     precondition_temperature:
       name: "Preconditioning Temperature"
-      description: "Preconditioning level"
       required: true
       selector:
         select:
@@ -77,10 +76,10 @@ update_departure_schedule:
           sort: false
           translation_key: "precondition_temperature"
           options:
-            - "LOW"
-            - "MEDIUM"
-            - "HIGH"
-            - "OFF"
+            - "low"
+            - "medium"
+            - "high"
+            - "off"
 delete_departure_schedule_by_days:
   name: "Delete Departure Schedules by Days"
   description: "Delete departure schedules for selected weekdays"

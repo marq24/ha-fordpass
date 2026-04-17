@@ -25,7 +25,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     for a_entity_description in NUMBERS:
         a_entity_description: ExtNumberEntityDescription
 
-        if coordinator.tag_not_supported_by_vehicle(a_entity_description.tag):
+        if not coordinator.tag_supported_by_vehicle(a_entity_description.tag):
             _LOGGER.debug(f"{coordinator.vli}NUMBER '{a_entity_description.tag}' not supported for this engine-type/vehicle")
             continue
 

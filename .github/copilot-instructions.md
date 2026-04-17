@@ -85,7 +85,7 @@ self._engine_type = None  # BEV, PHEV, HEV, ICE
 self._supports_REMOTE_CLIMATE_CONTROL = None
 self._supports_GUARD_MODE = None
 ```
-Use `coordinator.tag_not_supported_by_vehicle(tag)` to filter unsupported entities before creating them.
+Use `coordinator.tag_supported_by_vehicle(tag)` to filter unsupported entities before creating them.
 
 ### Engine Type Tags
 - **`EV_ONLY_TAGS`**: BEV/PHEV only (charging, SOC, etc.)
