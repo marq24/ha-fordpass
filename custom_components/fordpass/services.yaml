@@ -35,6 +35,7 @@ update_departure_schedule:
       name: "Hour"
       description: "Departure hour (0-23)"
       required: true
+      example: 9
       selector:
         number:
           min: 0
@@ -44,6 +45,7 @@ update_departure_schedule:
       name: "Minute"
       description: "Departure minute (0-55)"
       required: true
+      example: 30
       selector:
         number:
           min: 0
@@ -54,6 +56,7 @@ update_departure_schedule:
       name: "Days"
       description: "Select one or more weekdays"
       required: true
+      example: ["monday", "wednesday"]
       selector:
         select:
           multiple: true
@@ -70,6 +73,7 @@ update_departure_schedule:
     precondition_temperature:
       name: "Preconditioning Temperature"
       required: true
+      example: "medium"
       selector:
         select:
           mode: dropdown
@@ -88,6 +92,7 @@ delete_departure_schedule_by_days:
       name: "Days"
       description: "Select one or more weekdays"
       required: true
+      example: ["monday", "wednesday"]
       selector:
         select:
           multiple: true
@@ -109,6 +114,7 @@ delete_departure_schedule_by_ids:
       name: "Schedule IDs"
       description: "Provide one or more schedule IDs as list (e.g. [1,2,3]) or comma-separated string (e.g. 1,2,3)"
       required: true
+      example: "1, 5, 12"
       selector:
         text:
           multiline: false

@@ -52,9 +52,9 @@
         },
         "precondition_temperature": {
             "options": {
-                "low": "Niedrig",
+                "low": "Kühl",
                 "medium": "Mittel",
-                "high": "Hoch",
+                "high": "Warm",
                 "off": "Aus"
             }
         }
