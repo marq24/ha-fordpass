@@ -105,10 +105,10 @@ SET_CHARGE_TARGET_KEY:Final = "SET_CHARGE_TARGET"
 
 FORD_COMMAND_URL_TEMPLATES: Final = {
     # Templates with {vin} placeholder
-    START_CHARGE_KEY:       "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/START",
-    CANCEL_CHARGE_KEY:      "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/CANCEL",
-    PAUSE_CHARGE_KEY:       "/electrification/experiences/v1/vehicles/{url_param}/global-charge-command/PAUSE",
-    SET_CHARGE_TARGET_KEY:  "/electrification/experiences/v2/vehicles/preferred-charge-times/locations/{url_param}",
+    START_CHARGE_KEY:       "electrification/experiences/v1/vehicles/{url_param}/global-charge-command/START",
+    CANCEL_CHARGE_KEY:      "electrification/experiences/v1/vehicles/{url_param}/global-charge-command/CANCEL",
+    PAUSE_CHARGE_KEY:       "electrification/experiences/v1/vehicles/{url_param}/global-charge-command/PAUSE",
+    SET_CHARGE_TARGET_KEY:  "electrification/experiences/v2/vehicles/preferred-charge-times/locations/{url_param}",
 }
 FORD_COMMAND_MAP: Final ={
     # the code will always add 'Command' at the end!
@@ -2721,6 +2721,10 @@ class ConnectedFordPassVehicle:
                 json_post_data = json.dumps(post_data)
             else:
                 json_post_data = None
+
+            # make sure that the command_url_path does not start with any '/'
+            if command_url_part and command_url_part.startswith("/"):
+                command_url_part = command_url_part.lstrip('/')
 
             post_req = await self.session.post(f"{FORD_VEHICLE_API}/{command_url_part}",
                                                data=json_post_data,
