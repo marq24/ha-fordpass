@@ -15,6 +15,7 @@ from homeassistant.helpers import entity_registry as the_entity_registry
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -960,3 +961,13 @@ class FordPassEntity(CustomFriendlyNameEntity):
         #    return f"[fordpass] {name}"
         else:
             return name
+
+    @property
+    def icon(self):
+        """Return the icon."""
+        if self._tag == Tag.SOC and self.coordinator.has_ev_soc:
+            soc_value = FordpassDataHandler.get_soc_state(self.coordinator.data)
+            charge_display_status = FordpassDataHandler.get_value_for_metrics_key(self.coordinator.data, "xevBatteryChargeDisplayStatus")
+            return icon_for_battery_level(battery_level=soc_value, charging=charge_display_status.upper() == "IN_PROGRESS")
+
+        return super().icon()
