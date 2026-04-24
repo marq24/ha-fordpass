@@ -12,6 +12,6 @@
     "loggers": ["custom_components.fordpass"],
     "requirements": [],
     "ssdp": [],
-    "version": "2026.4.3",
+    "version": "2026.4.4",
     "zeroconf": []
   }

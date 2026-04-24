@@ -1868,11 +1868,11 @@ class ConnectedFordPassVehicle:
 
                 result_rcc = await response_rcc.json()
 
-                if self._remote_climate_control_forced:
-                    try:
-                        # check if there is a 'profile' in the result... and if not, we will create a default one!
-                        a_profiles_obj = result_rcc.get("rccUserProfiles", [])
-                        if a_profiles_obj is None or not isinstance(a_profiles_obj, Iterable) or len(a_profiles_obj) == 0:
+                try:
+                    # check if there is a 'profile' in the result... and if not, we will create a default one!
+                    a_profiles_obj = result_rcc.get("rccUserProfiles", [])
+                    if a_profiles_obj is None or not isinstance(a_profiles_obj, Iterable) or len(a_profiles_obj) == 0:
+                        if self._remote_climate_control_forced:
                             _LOGGER.info(f"{self.vli}req_remote_climate(): creating a default 'remote climate control' profile for the vehicle")
                             result_rcc["rccUserProfiles"] = [
                                 {"preferenceType": "RccHeatedWindshield_Rq", "preferenceValue": "Off"},
@@ -1884,8 +1884,11 @@ class ConnectedFordPassVehicle:
                                 {"preferenceType": "RccRightRearClimateSeat_Rq", "preferenceValue": "Off"},
                                 {"preferenceType": "SetPointTemp_Rq", "preferenceValue": "22_0"}
                             ]
-                    except BaseException as e:
-                        _LOGGER.info(f"{self.vli}req_remote_climate(): Error while check for empty 'rccUserProfiles' for vehicle {self.vin} - {type(e).__name__} - {e}")
+                        else:
+                            _LOGGER.warning(f"{self.vli}req_remote_climate(): NO 'remote climate control' profile for the vehicle exits - please create one vie the FordPass App - TIA")
+
+                except BaseException as e:
+                    _LOGGER.info(f"{self.vli}req_remote_climate(): Error while check for empty 'rccUserProfiles' for vehicle {self.vin} - {type(e).__name__} - {e}")
 
                 if self._LOCAL_LOGGING:
                     await self._local_logging("rcc", result_rcc)
@@ -2184,15 +2187,32 @@ class ConnectedFordPassVehicle:
     async def start_charge(self):
         # VALUE_CHARGE, CHARGE_NOW, CHARGE_DT, CHARGE_DT_COND, CHARGE_SOLD, HOME_CHARGE_NOW, HOME_STORE_CHARGE, HOME_CHARGE_DISCHARGE
         # START_GLOBAL_CHARGE
-        return await self.__request_and_poll_command_ford(command_key=START_CHARGE_KEY)
-
+        # worked till 2026/04/20...
+        # return await self.__request_and_poll_command_ford(command_key=START_CHARGE_KEY)
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
+                                                               write_command="startGlobalChargeCommand",
+                                                               properties=None,
+                                                               data_version="1.0.1",
+                                                               wait_for_state=True)
     async def cancel_charge(self):
         # CANCEL_GLOBAL_CHARGE
-        return await self.__request_and_poll_command_ford(command_key=CANCEL_CHARGE_KEY)
+        # worked till 2026/04/20...
+        # return await self.__request_and_poll_command_ford(command_key=CANCEL_CHARGE_KEY)
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
+                                                               write_command="cancelGlobalChargeCommand",
+                                                               properties=None,
+                                                               data_version="1.0.1",
+                                                               wait_for_state=True)
 
     async def pause_charge(self):
         # PAUSE_GLOBAL_CHARGE
-        return await self.__request_and_poll_command_ford(command_key=PAUSE_CHARGE_KEY)
+        # worked till 2026/04/20...
+        # return await self.__request_and_poll_command_ford(command_key=PAUSE_CHARGE_KEY)
+        return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_BETA_URL,
+                                                               write_command="pauseGlobalChargeCommand",
+                                                               properties=None,
+                                                               data_version="1.0.1",
+                                                               wait_for_state=True)
 
 
     # ***********************************************************
@@ -2657,6 +2677,9 @@ class ConnectedFordPassVehicle:
                 "version": data_version,
                 "wakeUp": True
             }
+
+            if properties == None:
+                data.pop("properties")
 
             # currently only the beta autonomic endpoint supports/needs the version tag
             if baseurl != AUTONOMIC_BETA_URL:
