@@ -965,9 +965,12 @@ class FordPassEntity(CustomFriendlyNameEntity):
     @property
     def icon(self):
         """Return the icon."""
-        if self._tag == Tag.SOC and self.coordinator.has_ev_soc:
-            soc_value = FordpassDataHandler.get_soc_state(self.coordinator.data)
-            charge_display_status = FordpassDataHandler.get_value_for_metrics_key(self.coordinator.data, "xevBatteryChargeDisplayStatus")
-            return icon_for_battery_level(battery_level=soc_value, charging=charge_display_status.upper() == "IN_PROGRESS")
+        try:
+            if self._tag == Tag.SOC and self.coordinator.has_ev_soc:
+                soc_value = FordpassDataHandler.get_soc_state(self.coordinator.data)
+                charge_display_status = FordpassDataHandler.get_value_for_metrics_key(self.coordinator.data, "xevBatteryChargeDisplayStatus")
+                return icon_for_battery_level(battery_level=soc_value, charging=charge_display_status.upper() == "IN_PROGRESS")
+        except BaseException as exc:
+            _LOGGER.debug(f"Error retrieving icon for {self._tag.key}: {exc}")
 
-        return super().icon()
+        return super().icon
