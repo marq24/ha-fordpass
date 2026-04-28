@@ -853,7 +853,6 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
 class FordPassEntity(CustomFriendlyNameEntity):
     """Defines a base FordPass entity."""
-    _attr_should_poll = False
     _attr_has_entity_name = True
     _attr_name_addon = None
 
@@ -886,10 +885,6 @@ class FordPassEntity(CustomFriendlyNameEntity):
     @property
     def device_id(self):
         return f"fordpass_did_{self.self.coordinator._vin.lower()}"
-
-    @property
-    def should_poll(self) -> bool:
-        return False
 
     @property
     def unique_id(self):
@@ -926,7 +921,6 @@ class FordPassEntity(CustomFriendlyNameEntity):
         #         "name": f"{self.coordinator.lang_map.get("account", "Account")}: {name} [{self.coordinator.lang_map.get(region, "Unknown")}]",
         #         "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD
         #     }
-
 
     def _friendly_name_internal(self) -> str | None:
         """Return the friendly name.
