@@ -1,0 +1,424 @@
+{
+    "selector": {
+        "region": {
+            "options": {
+                "aaa": "------ FORD-kjøretøy ------",
+                "deu": "Tyskland",
+                "dnk": "Danmark",
+                "fra": "Frankrike",
+                "nld": "Nederland",
+                "ita": "Italia",
+                "esp": "Spania",
+                "nor": "Norge",
+                "pol": "Polen",
+                "prt": "Portugal",
+                "gbr": "Storbritannia og Nord-Irland",
+                "aus": "Australia [krever en 'ford.com.au/ford.co.nz'-konto]",
+                "nzl": "New Zealand [krever en 'ford.co.nz/ford.com.au'-konto]",
+                "zaf": "Sør-Afrika [krever en 'ford.co.za'-konto]",
+                "can": "Canada",
+                "mex": "Mexico",
+                "usa": "USA",
+                "bra": "Brasil [krever en 'ford.com.br/ford.com.ar'-konto]",
+                "arg": "Argentina [krever en 'ford.com.ar/ford.com.br'-konto]",
+                "rest_of_europe": "Andre europeiske land",
+                "rest_of_world": "Resten av verden",
+                "zzz": "------ LINCOLN-kjøretøy ------",
+                "lincoln_usa": "USA"
+            }
+        },
+        "setup_type": {
+            "options": {
+                "new_account": "Legg til en ny FordPass™/The Lincoln Way™-konto eller konfigurer en ny region",
+                "add_vehicle": "Legg til et kjøretøy fra en eksisterende FordPass™/The Lincoln Way™-konto/region"
+            }
+        },
+        "brand": {
+            "options": {
+                "ford": "Ford-kjøretøy – FordPass™-app",
+                "lincoln": "Lincoln-kjøretøy – The Lincoln Way™-app"
+            }
+        },
+        "precondition_temperature": {
+            "options": {
+                "low": "Sval",
+                "medium": "Middels",
+                "high": "Varm",
+                "off": "Av"
+            }
+        },
+        "schedule_days": {
+            "options": {
+                "monday": "01 Mandag",
+                "tuesday": "02 Tirsdag",
+                "wednesday": "03 Onsdag",
+                "thursday": "04 Torsdag",
+                "friday": "05 Fredag",
+                "saturday": "06 Lørdag",
+                "sunday": "07 Søndag"
+            }
+        }
+    },
+    "config": {
+        "abort": {
+            "already_configured": "Kontoen er allerede konfigurert",
+            "no_vehicles": "Det finnes ingen kjøretøy på kontoen, eller alle er allerede lagt til",
+            "reauth_successful": "Re-autentiseringen ble fullført",
+            "reconfigure_successful": "Omkonfigurasjonen var vellykket",
+            "reauth_reload_failed": "Re-autentiseringen ble fullført\n\nMen integrasjonen kunne ikke lastes inn på nytt. Start Home Assistant på nytt for å fullføre re-autentiseringen, eller sjekk loggen for flere detaljer",
+            "reauth_unsuccessful": "Re-autentiseringen MISLYKTES\n\nSjekk tokenet og prøv igjen",
+            "reauth_not_possible": "Ingen gyldig region funnet\n\nDu må dessverre konfigurere integrasjonen på nytt",
+            "no_filesystem_access": "Denne integrasjonen trenger tilgang til det lokale filsystemet i Home Assistant-installasjonen din for å kunne lagre en nøkkel til FordPass™/The Lincoln Way™-kontoen din.\n\nFor dette opprettes en undermappe i mappen '.storage/'. Det er ikke mulig akkurat nå – en intern test feilet. Du finner detaljer i Home Assistant-loggen din.\n\nKontroller at Home Assistant-installasjonen kjøres som riktig bruker med skrivetilgang til det lokale filsystemet.\n\nKjører du Home Assistant i en Docker-container, sørg for at containeren kjøres med riktig bruker og har tilgang til filsystemet.\n\nSjekk installasjonen og start oppsettet av integrasjonen på nytt når tilgangen til filsystemet er på plass.",
+            "no_brand": "Ingen bilmerke (Ford eller Lincoln) ble registrert",
+            "oauth_error_final": "## Henting av det endelige OAuth-tokenet mislyktes\nNoe gikk galt under henting av det endelige tilgangstokenet fra Ford. Er du sikker på at opplysningene du har angitt som `client-id` og `secret` er riktige?\nSjekk også loggen i Home Assistant for flere feilmeldinger som kan hjelpe deg med å finne årsaken.\n\n#### Mulig årsak:\n{error_info}"
+        },
+        "error": {
+            "cannot_connect": "Kunne ikke koble til",
+            "invalid_auth": "Ugyldige innloggingsdetaljer",
+            "invalid_vin": "VIN-nummeret ble ikke funnet på kontoen",
+            "invalid_mobile": "Hvis du bruker den sør-afrikanske regionen, må mobilnummeret oppgis som brukernavn",
+            "invalid_token": "Tokenet er ugyldig. Kontroller at du har kopiert riktig token fra Header-Location – det skal starte med fordapp:// (eller lincolnapp://)",
+            "unknown": "Uventet feil"
+        },
+        "step": {
+            "user": {
+                "title": "Legg til ny FordPass™/The Lincoln Way™-konto eller kjøretøy",
+                "description": "Du har allerede konfigurert minst én FordPass™/The Lincoln Way™-konto, så du må først velge om du vil legge til enda et kjøretøy eller en ny konto (eller region).\n-- --\n### Viktig informasjon om støtte for flere kjøretøy\n\nHvis du har __flere__ kjøretøy registrert på FordPass™/The Lincoln Way™-kontoen din, må du i selve FordPass™/The Lincoln Way™-appen først velge det kjøretøyet du vil bruke før du kan se data eller styre funksjoner. __Den samme begrensningen__ gjelder for denne Home Assistant-integrasjonen.\n\nÅrsaken er at FordPass™-appen og denne integrasjonen bruker en websocket-tilkobling til Fords backend, som er bundet til ett kjøretøy om gangen.\n\nFlere detaljer her: {repo}?tab=readme-ov-file#multi-vehicle-support",
+                "data": {
+                    "setup_type": "Hva vil du gjøre?"
+                },
+                "data_description": {
+                    "setup_type": "Hvis du legger til et nytt kjøretøy med samme konto, kan bare ett av dem være aktivt i HA om gangen – ellers overskriver de hverandres tilgangstokens"
+                }
+            },
+            "user_connect": {
+                "title": "Legg til et nytt Ford-kjøretøy",
+                "description": "## Velkommen til FordConnect Query-integrasjonen\nDette er et alternativ til [FordPass-integrasjonen]({repo}) og bruker FordConnect Query-API-et. Dette API-et gir __kun lesetilgang__ til kjøretøysdataene dine.\n### Krav\n- Bilen må ha det nyeste innebygde modemet og være registrert/godkjent i FordPass™-appen\n- Et API-legitimasjonspar som tidligere er registrert hos Fords utviklerportal i EU/UK/NA.\n\nMer informasjon finner du i [_Application Registration Guide_, som inneholder en trinn-for-trinn-veiledning]({repo}/blob/main/docs/REGISTER_APPLICATION.md) for å registrere et program i Fords EU-utviklerportal.\n### Trenger du mer hjelp?\nResten av oppsettet er beskrevet i [Integration Setup Guide]({repo}/blob/main/docs/CONFIGURE_INTEGRATION.md)\n### En liten avsluttende kommentar\nHvis du synes denne integrasjonen er nyttig, vurder å støtte meg som GitHub-prosjektsponsor (eller på en av de andre måtene som er beskrevet [her i profilen min@GitHub]({github})) – stor takk til dere som allerede gjør det – dere er fantastiske!",
+                "data": {
+                    "config_title": "Velg et navn for konfigurasjonen"
+                }
+            },
+            "select_account": {
+                "title": "Velg din FordPass™/The Lincoln Way™-konto",
+                "description": "Velg den FordPass™/The Lincoln Way™-kontoen du vil legge til enda et kjøretøy fra.",
+                "data": {
+                    "account": "FordPass™/The Lincoln Way™-konto"
+                },
+                "data_description": {
+                    "account": "Hvis du legger til et nytt kjøretøy med samme konto, kan bare ett av dem være aktivt i HA om gangen – ellers overskriver de hverandres tilgangstokens"
+                }
+            },
+            "token": {
+                "title": "Oppsett av token",
+                "description": "Oppsett av token krever at du åpner et ekstra nettleservindu (med utviklerverktøy aktivert – F12) for å fange det endelige tilgangstokenet.\r\rDette er en uvanlig fremgangsmåte for en Home Assistant-integrasjon. Du finner detaljer i [oppsettsveiledningen]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rFølg disse trinnene:\r1. Kopier lenken nedenfor, eller klikk på følgende lenke (må åpnes i en ny fane/vindu): [Start autorisasjonsprosessen]({url})\r2. Åpne en nettleser (med utviklerverktøy aktivert) og lim inn lenken i den andre nettleseren\r3. Skriv inn FordPass™/The Lincoln Way™-innloggingsdetaljene dine på nytt, og trykk på påloggingsknappen\r4. Hold øye med Network-fanen til du ser forespørselen `?code=`\r5. Kopier hele `Request-URL` fra forespørselen i nettleserens utviklerverktøy, og lim det inn i token-feltet nedenfor\r6. Klikk OK for å fortsette",
+                "data": {
+                    "url": "URL: kopier denne inn i nettleseren din",
+                    "tokenstr": "Token Request-URL: lim inn hele `Request-URL` når innloggingen er fullført i nettleseren"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Re-autentisering kreves",
+                "description": "Det forrige tokenet ditt er ugyldig – så du må lage et nytt for kontoen {username}:\r\rDetaljer finner du i [oppsettsveiledningen]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rFølg disse trinnene:\r1. Kopier lenken nedenfor, eller klikk på følgende lenke (må åpnes i en ny fane/vindu): [Start autorisasjonsprosessen]({url})\r2. Åpne en nettleser (med utviklerverktøy aktivert) og lim inn lenken i den andre nettleseren\r3. Skriv inn FordPass™/The Lincoln Way™-innloggingsdetaljene dine på nytt, og trykk på påloggingsknappen (la deg ikke lure av at spinneren fortsetter å snurre – det er 'normalt')\r4. Hold øye med Network-fanen til du ser forespørselen `?code=`\r5. Kopier hele `Request-URL` fra forespørselen i nettleserens utviklerverktøy, og lim det inn i token-feltet nedenfor\r6. Klikk OK for å fortsette",
+                "data": {
+                    "url": "URL: kopier denne inn i nettleseren din",
+                    "tokenstr": "Token Request-URL: lim inn hele `Request-URL` når innloggingen er fullført i nettleseren"
+                }
+            },
+            "reauth_confirm_connect": {
+                "title": "Re-autentisering kreves",
+                "description": "Det forrige tokenet ditt er ugyldig – så du må lage et nytt for kontoen {username}"
+            },
+            "brand": {
+                "data": {
+                    "brand": "Velg bilmerke"
+                }
+            },
+            "new_account_ford": {
+                "data": {
+                    "password": "FordPass™-passord",
+                    "username": "FordPass™-brukernavn (e-post)",
+                    "region": "FordPass™-region"
+                },
+                "data_description": {
+                    "username": "Hvis du bruker mobilnummer i stedet for e-post, oppgi nummeret (uten innledende 0) og inkluder + samt landskode (f.eks. +99123456789)",
+                    "region": "Regionen du velger må stemme overens med regionen du har registrert FordPass™-kontoen din i. Flere detaljer finner du på GitHub"
+                }
+            },
+            "new_account_lincoln": {
+                "data": {
+                    "password": "The Lincoln Way™-passord",
+                    "username": "The Lincoln Way™-brukernavn (e-post)",
+                    "region": "The Lincoln Way™-region"
+                },
+                "data_description": {
+                    "username": "Hvis du bruker mobilnummer i stedet for e-post, oppgi nummeret (uten innledende 0) og inkluder + samt landskode (f.eks. +99123456789)",
+                    "region": "Regionen du velger må stemme overens med regionen du har registrert The Lincoln Way™-kontoen din i. Flere detaljer finner du på GitHub"
+                }
+            },
+            "vehicle": {
+                "title": "Velg kjøretøy som skal legges til",
+                "description": "Bare kjøretøy som ikke allerede er lagt til, vises",
+                "data": {
+                    "vin": "VIN"
+                }
+            },
+            "vin": {
+                "title": "Manuell VIN-inntasting",
+                "description": "Skriv inn VIN-nummeret manuelt – ingen kjøretøy ble funnet automatisk.",
+                "data": {
+                    "vin": "VIN-nummer for kjøretøyet"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "pressure_unit": "Trykkenhet",
+                    "update_interval": "Oppdateringsintervall mot Ford-API (sekunder)",
+                    "scan_interval": "Oppdateringsintervall mot Ford-API (sekunder)",
+                    "force_remote_climate_control": "Vis alltid alternativene for fjernklima (❄|☀)",
+                    "log_to_filesystem": "Logg API-svar til HAs lokale filsystem"
+                },
+                "data_description": {
+                    "update_interval": "Minste intervall er 30 sekunder",
+                    "scan_interval": "Minste intervall er 30 sekunder",
+                    "force_remote_climate_control": "Hvis du aktiverer dette, ignoreres innstillingen som er angitt av Ford.",
+                    "log_to_filesystem": "Denne innstillingen bør ikke være aktivert over lengre tid!\rFilene finner du her: './storage/{integration_name}/data_dumps'"
+                },
+                "description": "Innstillinger for integrasjonen"
+            }
+        }
+    },
+    "services": {
+        "refresh_status": {
+            "name": "Oppdater kjøretøyets status",
+            "description": "Ber bilen om de nyeste opplysningene (kan ta opptil 5 min før statusen er oppdatert).",
+            "fields": {
+                "vin": {
+                    "name": "VIN",
+                    "description": "Oppgi et VIN-nummer for å bare oppdatere det aktuelle kjøretøyet (uten VIN oppdateres alle tillagte kjøretøy)"
+                }
+            }
+        },
+        "clear_tokens": {
+            "name": "Tøm token-cache",
+            "description": "Tømmer de lagrede tokens (krever re-autentisering etterpå)"
+        },
+        "reload": {
+            "name": "Last inn på nytt",
+            "description": "Laster FordPass-integrasjonen inn på nytt"
+        },
+        "poll_api": {
+            "name": "Spør API",
+            "description": "Spør API-et manuelt etter en dataoppdatering (Advarsel: gjør du det for ofte, kan du bli midlertidig blokkert)"
+        },
+        "delete_message": {
+            "name": "Slett FordPass-melding",
+            "description": "Sletter en melding fra meldingslisten. Oppgi en meldings-ID for å slette en bestemt melding.",
+            "fields": {
+                "msgid": {
+                    "name": "Meldings-ID",
+                    "description": "Oppgi en gyldig meldings-ID for å slette en bestemt melding"
+                }
+            }
+        },
+        "update_departure_schedule": {
+            "name": "Oppdater avgangsplan",
+            "description": "Sett et avgangstidspunkt og en forklimatiseringstemperatur for valgte ukedager.",
+            "fields": {
+                "hour": {
+                    "name": "Time",
+                    "description": "Avgangstime (0-23)"
+                },
+                "minute": {
+                    "name": "Minutt",
+                    "description": "Avgangsminutt – i intervaller på 5 min (0-55)"
+                },
+                "precondition_temperature": {
+                    "name": "Forklimatiseringstemperatur"
+                },
+                "schedule_days": {
+                    "name": "Dager",
+                    "description": "Velg én eller flere ukedager"
+                }
+            }
+        },
+        "delete_departure_schedule_by_days": {
+            "name": "Slett avgangsplaner etter dager",
+            "description": "Sletter den første avgangsplanen for de valgte ukedagene.",
+            "fields": {
+                "schedule_days": {
+                    "name": "Dager",
+                    "description": "Velg én eller flere ukedager"
+                }
+            }
+        },
+        "delete_departure_schedule_by_ids": {
+            "name": "Slett avgangsplaner etter ID",
+            "description": "Sletter avgangsplaner basert på deres scheduleID. (se attributtet 'schedule' på sensoren 'Neste planlagte avgang')",
+            "fields": {
+                "schedule_ids": {
+                    "name": "Schedule-IDer",
+                    "description": "Oppgi én eller flere scheduleIDer som liste (f.eks. [1,2,3]) eller komma-separert streng (f.eks. 1,2,3)"
+                }
+            }
+        }
+    },
+    "entity": {
+        "button": {
+            "update_data":          {"name": "Lokal synkronisering"},
+            "request_refresh":      {"name": "Fjernsynkronisering"},
+            "doorlock":             {"name": "Lås"},
+            "doorunlock":           {"name": "Lås opp"},
+            "evstart":              {"name": "Start EV-lading"},
+            "evcancel":             {"name": "Gjenoppta EV-lading"},
+            "evpause":              {"name": "Pause EV-lading"},
+            "hafshort":             {"name": "Horn & blink [1 sek.]"},
+            "hafdefault":           {"name": "Horn & blink [3 sek.]"},
+            "haflong":              {"name": "Horn & blink [5 sek.]"},
+            "extendremotestart":    {"name": "RC (❄|☀): Forleng tid"},
+            "msgdeleteall":         {"name": "Meldinger: Slett alle"},
+            "msgdeletelast":        {"name": "Meldinger: Slett siste"},
+            "trailerlightcheckon":  {"name": "Test av tilhengerlys: PÅ"},
+            "trailerlightcheckoff": {"name": "Test av tilhengerlys: AV"}
+        },
+        "device_tracker":   {"tracker": {"name": "Kjøretøyssporer"}},
+        "lock":             {"doorlock":{"name": "Dører"}},
+        "switch": {
+            "ignition":                 {"name": "RC (❄|☀): Start [Fjernkontroll]"},
+            "elvehcharge":              {"name": "EV-lading (pause)"},
+            "guardmode":                {"name": "Vaktmodus"},
+            "autosoftwareupdates":      {"name": "Automatiske programvareoppdateringer"},
+            "rccdefrostrear":           {"name": "RC (❄|☀): Bakrutevarme [Fjernkontroll]"},
+            "rccdefrostfront":          {"name": "RC (❄|☀): Frontrutevarme [Fjernkontroll]"},
+            "rccsteeringwheel":         {"name": "RC (❄|☀): Rattvarme [Fjernkontroll]"},
+            "departuretimes":           {"name": "Avgangstider"}
+        },
+        "number": {
+            "rcctemperature":       {"name": "RC (❄|☀): Klimatemperatur [Fjernkontroll]"},
+            "elvehtargetcharge":    {"name": "Mål-ladenivå"},
+            "globaltargetsoc":      {"name": "Generelt: Mål-ladenivå"},
+            "globalaccurrentlimit": {"name": "Strømgrense (AC)"},
+            "globaldcpowerlimit":   {"name": "Effektgrense (DC)"}
+        },
+        "sensor": {
+            "odometer":                 {"name": "Kilometerstand"},
+            "fuel":                     {"name": "Drivstoff"},
+            "battery":                  {"name": "Batteri (12V)"},
+            "oil":                      {"name": "Oljelevetid"},
+            "tirepressure":             {"name": "Dekktrykk"},
+            "gps":                      {"name": "GPS JSON"},
+            "alarm":                    {"name": "Alarmstatus"},
+            "ignitionstatus":           {"name": "Status: tenning"},
+            "doorstatus":               {"name": "Status: dører"},
+            "windowposition":           {"name": "Vindusstatus"},
+            "lastrefresh":              {"name": "Sist oppdatert"},
+            "elveh":                    {"name": "EV"},
+            "elvehplug":                {"name": "Ladekontakt"},
+            "elvehcharging":            {"name": "EV-ladestatus"},
+            "elvehchargingpower":       {"name": "EV-ladeeffekt"},
+            "speed":                    {"name": "Hastighet"},
+            "enginespeed":              {"name": "Turtall"},
+            "gearleverposition":        {"name": "Girposisjon"},
+            "indicators":               {"name": "Varsellamper"},
+            "coolanttemp":              {"name": "Temperatur: kjølevæske"},
+            "outsidetemp":              {"name": "Temperatur: utendørs"},
+            "engineoiltemp":            {"name": "Temperatur: motorolje"},
+            "deepsleep":                {"name": "Dvalemodus"},
+            "firmwareupginprogress":    {"name": "Programvareoppdatering pågår"},
+            "remotestartstatus":        {"name": "RC (❄|☀): Status fjernstart"},
+            "zonelighting":             {"name": "Sonebelysning"},
+            "messages":                 {"name": "Meldinger"},
+            "dieselsystemstatus":       {"name": "Status: dieselsystem"},
+            "exhaustfluidlevel":        {"name": "AdBlue-nivå"},
+            "events":                   {"name": "Hendelser"},
+            "metrics":                  {"name": "Målinger"},
+            "states":                   {"name": "Tilstander"},
+            "vehicles":                 {"name": "Kjøretøy"},
+
+            "soc":                      {"name": "Batterinivå (EV)"},
+            "evccstatus":               {"name": "EVCC-statuskode"},
+            "seatbelt":                 {"name": "Sikkerhetsbeltestatus"},
+            "deviceconnectivity":       {"name": "Tilkobling"},
+
+            "yawrate":                  {"name": "Girhastighet"},
+            "acceleration":             {"name": "Akselerasjon"},
+            "brakepedalstatus":         {"name": "Status: bremsepedal"},
+            "braketorque":              {"name": "Bremsemoment"},
+            "acceleratorpedalposition": {"name": "Gasspedal-posisjon"},
+            "parkingbrakestatus":       {"name": "Status: håndbrems"},
+            "torqueattransmission":     {"name": "Dreiemoment ved girkasse"},
+            "wheeltorquestatus":        {"name": "Status: hjulmoment"},
+            "cabintemperature":         {"name": "Kupétemperatur"},
+            "lastenergyconsumed":       {"name": "EV-energiforbruk (siste tur)"},
+            "energytransferlogentry":   {"name": "EV-siste lading"},
+            "remotestartcountdown":     {"name": "RC (❄|☀): Gjenstående tid"},
+            "doorlock":                 {"name": "Status: låser"},
+
+            "departureschedules":       {"name": "Neste planlagte avgang"}
+        },
+        "select": {
+            "zonelighting": {
+                "name": "Sonebelysning",
+                "state": {
+                    "0": "PÅ",
+                    "1": "Foran",
+                    "2": "Bak",
+                    "3": "Førerside",
+                    "4": "Passasjerside",
+                    "off": "AV"
+                }
+            },
+            "rcctemperature": {
+              "name": "RC (❄|☀): Temperatur [Fjernkontroll]",
+              "state": {"lo": "LAV",
+                        "16": "16,0°C", "16_5": "16,5°C", "17": "17,0°C", "17_5": "17,5°C", "18": "18,0°C", "18_5": "18,5°C", "19": "19,0°C", "19_5": "19,5°C", "20": "20,0°C", "20_5": "20,5°C",
+                        "21": "21,0°C", "21_5": "21,5°C", "22": "22,0°C", "22_5": "22,5°C", "23": "23,0°C", "23_5": "23,5°C", "24": "24,0°C", "24_5": "24,5°C", "25": "25,0°C", "25_5": "25,5°C",
+                        "26": "26,0°C", "26_5": "26,5°C", "27": "27,0°C", "27_5": "27,5°C", "28": "28,0°C", "28_5": "28,5°C", "29": "29,0°C", "29_5": "29,5°C", "30": "30,0°C",
+                        "hi": "HØY"}
+            },
+            "rcctemperaturefahrenheit": {
+                "name": "RC (❄|☀): Temperatur [Fjernkontroll]",
+                "state": {"lo": "LAV",
+                          "16": "60.8°F", "16_5": "61.7°F", "17": "62.6°F", "17_5": "63.5°F", "18": "64.4°F", "18_5": "65.3°F", "19": "66.2°F", "19_5": "67.1°F", "20": "68.0°F", "20_5": "68.9°F",
+                          "21": "69.8°F", "21_5": "70.7°F", "22": "71.6°F", "22_5": "72.5°F", "23": "73.4°F", "23_5": "74.3°F", "24": "75.2°F", "24_5": "76.1°F", "25": "77.0°F", "25_5": "77.9°F",
+                          "26": "78.8°F", "26_5": "79.7°F", "27": "80.6°F", "27_5": "81.5°F", "28": "82.4°F", "28_5": "83.3°F", "29": "84.2°F", "29_5": "85.1°F", "30": "86.0°F",
+                          "hi": "HØY"}
+            },
+            "rccseatrearleft": {
+                "name": "RC (❄|☀): Sete bak venstre [Fjernkontroll]",
+                "state": { "off": "Av", "cooled1": "Kjøling I", "cooled2": "Kjøling II", "cooled3": "Kjøling III", "heated1": "Varme I", "heated2": "Varme II", "heated3": "Varme III"}
+            },
+            "rccseatrearright": {
+                "name": "RC (❄|☀): Sete bak høyre [Fjernkontroll]",
+                "state": { "off": "Av", "cooled1": "Kjøling I", "cooled2": "Kjøling II", "cooled3": "Kjøling III", "heated1": "Varme I", "heated2": "Varme II", "heated3": "Varme III"}
+            },
+            "rccseatfrontleft": {
+                "name": "RC (❄|☀): Sete foran venstre [Fjernkontroll]",
+                "state": { "off": "Av", "cooled1": "Kjøling I", "cooled2": "Kjøling II", "cooled3": "Kjøling III", "heated1": "Varme I", "heated2": "Varme II", "heated3": "Varme III"}
+            },
+            "rccseatfrontright": {
+                "name": "RC (❄|☀): Sete foran høyre [Fjernkontroll]",
+                "state": { "off": "Av", "cooled1": "Kjøling I", "cooled2": "Kjøling II", "cooled3": "Kjøling III", "heated1": "Varme I", "heated2": "Varme II", "heated3": "Varme III"}
+            },
+            "elvehtargetcharge": {
+                "name": "Mål-ladenivå",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt1": {
+                "name": "Mål-ladenivå [alternativ plassering 1]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "elvehtargetchargealt2": {
+                "name": "Mål-ladenivå [alternativ plassering 2]",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            },
+            "globaltargetsoc": {
+                "name": "Generelt: Mål-ladenivå",
+                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+            }
+        }
+    }
+}
