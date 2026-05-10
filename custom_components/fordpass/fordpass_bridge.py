@@ -2328,6 +2328,8 @@ class ConnectedFordPassVehicle:
 
                 self._data_container[ROOT_REMOTE_CLIMATE_CONTROL] = self._cached_rcc_data
                 _LOGGER.debug(f"{self.vli}set_rcc() - Updated cached RCC data")
+                if self.coordinator is not None:
+                    self.coordinator.async_set_updated_data(self._data_container)
         else:
             _LOGGER.info(f"{self.vli}set_rcc() - remote_climate_control failed: data that was sent: {data}")
 

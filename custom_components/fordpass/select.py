@@ -138,8 +138,7 @@ class FordPassSelect(FordPassEntity, SelectEntity):
                 value = str(value).lower()
                 # our option keys have _ instead of .
                 value = value.replace('.', '_')
-                # the full numbers of our option keys are just the plain number (no '_0' suffix)
-                value = value.replace('_0', '')
+                # our options are HI, LO, x_5, or x_0
 
         except KeyError as kerr:
             _LOGGER.debug(f"SELECT KeyError: '{self._tag}' - {kerr}")
