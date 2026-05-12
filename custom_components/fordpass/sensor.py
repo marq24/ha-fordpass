@@ -64,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                 try:
                     # the restored value MUST be number (since we use the 'total_increasing' state_class
                     a_val = restored_state.state.state
-                    if (isinstance(a_val, str) and a_val.lower() is not ["unknown", "unavailable", "unsupported", "none"]) or isinstance(a_val, Number):
+                    if (isinstance(a_val, str) and a_val.lower() not in ["unknown", "unavailable", "unsupported", "none"]) or isinstance(a_val, Number):
                         sensor._previous_state = float(a_val)
                         _LOGGER.debug(f"{coordinator.vli}SENSOR restored prev value for key '{a_entity_description.tag.key}': {a_val}")
                     else:

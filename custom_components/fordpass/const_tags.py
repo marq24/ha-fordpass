@@ -423,7 +423,7 @@ EV_ONLY_TAGS: Final = [
     Tag.EV_PAUSE,
     Tag.ELVEH_TARGET_CHARGE,
     Tag.ELVEH_TARGET_CHARGE_ALT1,
-    Tag.ELVEH_TARGET_CHARGE_ALT1,
+    Tag.ELVEH_TARGET_CHARGE_ALT2,
     Tag.LAST_ENERGY_CONSUMED,
     Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY
 ]
@@ -1191,7 +1191,15 @@ SELECTS = [
         icon="mdi:battery-charging-high",
         options=ELVEH_TARGET_CHARGE_OPTIONS,
         has_entity_name=True,
-    )
+    ),
+    ExtSelectEntityDescription(
+        tag=Tag.GLOBAL_DC_POWER_LIMIT,
+        key=Tag.GLOBAL_DC_POWER_LIMIT.key,
+        icon="mdi:current-dc",
+        options=["50", "60", "70", "80", "85", "90", "95", "100"],
+        has_entity_name=True,
+        entity_registry_enabled_default=False,
+    ),
 ]
 
 NUMBERS = [

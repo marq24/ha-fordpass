@@ -162,8 +162,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         update_interval_as_int = UPDATE_INTERVAL_DEFAULT
     _LOGGER.debug(f"[@{vin}] Update interval: {update_interval_as_int}")
 
-    for config_entry_data in config_entry.data:
-        _LOGGER.debug(f"[@{vin}] config_entry.data: {config_entry_data}")
+    for config_entry_key, config_entry_data in config_entry.data.items():
+        _LOGGER.debug(f"[@{vin}] config_entry.data: {config_entry_key}={config_entry_data}")
 
     if CONF_REGION in config_entry.data.keys():
         _LOGGER.debug(f"[@{vin}] Region: {config_entry.data[CONF_REGION]}")

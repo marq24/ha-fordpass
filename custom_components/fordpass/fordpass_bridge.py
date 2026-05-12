@@ -742,7 +742,7 @@ class ConnectedFordPassVehicle:
             # Write the file in executor
             await asyncio.get_running_loop().run_in_executor(None, lambda: self.__write_token_int(token))
         else:
-            _LOGGER.wrning(f"{self.vli}_write_token_to_storage(): Directory '{directory}' does not exist, cannot write token file.")
+            _LOGGER.warning(f"{self.vli}_write_token_to_storage(): Directory '{directory}' does not exist, cannot write token file.")
 
         # Make sure that we will read the token data next time
         self.use_token_data_from_memory = False

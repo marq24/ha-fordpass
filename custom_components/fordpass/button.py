@@ -46,9 +46,9 @@ class FordpassButton(FordPassEntity, ButtonEntity):
 
     async def async_press(self, **kwargs):
         try:
-            await self._tag.async_push(self.coordinator, self.coordinator.bridge)
+            return await self._tag.async_push(self.coordinator, self.coordinator.bridge)
         except ValueError:
-            return "unavailable"
+            _LOGGER.warning(f"Failed to press button {self._tag}")
 
     @property
     def available(self):

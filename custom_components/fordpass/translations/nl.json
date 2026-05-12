@@ -403,7 +403,9 @@
             "globaltargetsoc": {
                 "name": "Algemeen: Gewenst laadniveau",
                 "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
-            }
+            },
+            "globaldcpowerlimit": {
+                "name": "DC-vermogenslimiet"}
         }
     }
 }

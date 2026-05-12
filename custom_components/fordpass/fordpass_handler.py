@@ -1308,7 +1308,7 @@ class FordpassDataHandler:
 
     async def set_global_dc_power_limit(data, vehicle, target_value: str, current_value:str):
         # we don't need the data here - since we do not fetch additional info from it
-        # - instead we try to set the value directly...
+        # - instead, we try to set the value directly...
         return await vehicle.set_charge_settings("globalDCPowerLimit", target_value)
 
 
