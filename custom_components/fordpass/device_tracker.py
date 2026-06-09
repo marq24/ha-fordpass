@@ -1,8 +1,7 @@
 """Vehicle Tracker Sensor"""
 import logging
 
-from homeassistant.components.device_tracker import SourceType
-from homeassistant.components.device_tracker.config_entry import TrackerEntity
+from homeassistant.components.device_tracker import SourceType, TrackerEntity
 from homeassistant.const import Platform
 
 from . import FordPassEntity
