@@ -97,7 +97,7 @@ REGIONS: Final = {
     },
     "nor": {
         "app_id": REGION_APP_IDS["europe"],
-        "locale": "no-NB",
+        "locale": "no-NO",
         "login_url": "https://login.ford.no",
         "countrycode": "NOR"
     },
