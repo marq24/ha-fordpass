@@ -91,7 +91,7 @@ class Tag(ApiKey, Enum):
     # DEVICE_TRACKER
     ##################################################
     TRACKER             = ApiKey(key="tracker",
-                                 attrs_fn=FordpassDataHandler.get_gps_tracker_attr)
+                                 attrs_fn=FordpassDataHandler.get_gps_tracker_attrs)
 
     # BUTTON
     ##################################################
@@ -246,10 +246,10 @@ class Tag(ApiKey, Enum):
                                  attrs_fn=FordpassDataHandler.get_tire_pressure_attrs)
     GPS                 = ApiKey(key="gps",
                                  state_fn=FordpassDataHandler.get_gps_state,
-                                 attrs_fn=FordpassDataHandler.get_gps_attr)
+                                 attrs_fn=FordpassDataHandler.get_gps_attrs)
     ALARM               = ApiKey(key="alarm",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "alarmStatus"),
-                                 attrs_fn=FordpassDataHandler.get_alarm_attr)
+                                 attrs_fn=FordpassDataHandler.get_alarm_attrs)
     IGNITION_STATUS     = ApiKey(key="ignitionStatus",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "ignitionStatus"),
                                  attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "ignitionStatus"))

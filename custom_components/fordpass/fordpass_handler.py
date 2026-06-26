@@ -292,7 +292,7 @@ class FordpassDataHandler:
     def get_gps_state(data, prev_state=None):
         return FordpassDataHandler.get_metrics(data).get("position", {}).get("value", {}).get("location", {})
 
-    def get_gps_attr(data, units:UnitSystem):
+    def get_gps_attrs(data, units:UnitSystem):
         attrs = FordpassDataHandler.get_metrics_dict(data, "position")
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "compassDirection" in data_metrics:
@@ -301,7 +301,7 @@ class FordpassDataHandler:
             attrs["heading"] = data_metrics.get("heading", {}).get("value", UNSUPPORTED)
         return attrs or None
 
-    def get_gps_tracker_attr(data, units:UnitSystem):
+    def get_gps_tracker_attrs(data, units:UnitSystem):
         # units will be 'None' in this case (just to let you know)
         position_data = FordpassDataHandler.get_value_for_metrics_key(data, "position")
         attrs = {}
@@ -326,7 +326,7 @@ class FordpassDataHandler:
         return None
 
     # ALARM attributes
-    def get_alarm_attr(data, units:UnitSystem):
+    def get_alarm_attrs(data, units:UnitSystem):
         attrs = FordpassDataHandler.get_metrics_dict(data, "alarmStatus")
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "panicAlarmStatus" in data_metrics:
