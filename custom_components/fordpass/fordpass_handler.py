@@ -1184,6 +1184,13 @@ class FordpassDataHandler:
                     attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
                 if "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
                     attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
+                if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
+                    attrs["tripCabinTemperature"] = FordpassDataHandler.localize_temperature(tripData["cabin_temperature"], units)
+                if "ambient_temperature" in tripData and isinstance(tripData["ambient_temperature"], Number):
+                    attrs["tripAmbientTemperature"] = FordpassDataHandler.localize_temperature(tripData["ambient_temperature"], units)
+                if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
+                    attrs["tripOutsideAirAmbientTemperature"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
+
         return attrs or None
 
 
