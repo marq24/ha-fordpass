@@ -390,6 +390,11 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_last_firmware_update_state,
                                  attrs_fn=FordpassDataHandler.get_last_firmware_update_attrs)
 
+    # state/attrs are not used - this tag is backed by a dedicated stateful sensor class
+    # (FordPassFirmwareUpdateHistorySensor) that accumulates completed updates across coordinator
+    # refreshes and persists them via RestoreEntity, since Ford does not expose a history list for this
+    FIRMWARE_UPDATE_HISTORY = ApiKey(key="firmwareUpdateHistory")
+
 
     # Debug Sensors (Disabled by default)
     EVENTS = ApiKey(key="events",
@@ -967,6 +972,15 @@ SENSORS = [
         key=Tag.LAST_FIRMWARE_UPDATE.key,
         icon="mdi:chip",
         device_class=SensorDeviceClass.TIMESTAMP,
+        skip_existence_check=True,
+        has_entity_name=True,
+        entity_registry_enabled_default=True
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.FIRMWARE_UPDATE_HISTORY,
+        key=Tag.FIRMWARE_UPDATE_HISTORY.key,
+        icon="mdi:history",
+        native_unit_of_measurement="updates",
         skip_existence_check=True,
         has_entity_name=True,
         entity_registry_enabled_default=True

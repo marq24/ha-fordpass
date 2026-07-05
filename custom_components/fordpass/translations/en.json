@@ -363,6 +363,7 @@
             "departureschedules":       {"name": "Next scheduled Departure"},
             "otaschedule":              {"name": "Next OTA Update Check"},
             "lastfirmwareupdate":       {"name": "Last Firmware Update"},
+            "firmwareupdatehistory":    {"name": "Firmware Update History"},
 
             "batteryvoltage":           {"name": "Battery Voltage (12V)"},
             "batteryloadstatus":        {"name": "Battery Load Status (12V)"},

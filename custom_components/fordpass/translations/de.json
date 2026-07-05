@@ -360,7 +360,8 @@
 
             "departureschedules":       {"name": "Nächste Abfahrtszeit"},
             "otaschedule":              {"name": "Nächste OTA-Prüfung"},
-            "lastfirmwareupdate":       {"name": "Letztes Firmware-Update"}
+            "lastfirmwareupdate":       {"name": "Letztes Firmware-Update"},
+            "firmwareupdatehistory":    {"name": "Firmware-Update-Verlauf"}
         },
         "select": {
             "zonelighting": {
