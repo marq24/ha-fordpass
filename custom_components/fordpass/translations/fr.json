@@ -325,6 +325,7 @@
             "engineoiltemp":            {"name": "Température de l'huile moteur"},
             "deepsleep":                {"name": "Mode veille"},
             "firmwareupginprogress":    {"name": "Mise à jour du firmware en cours"},
+            "firmwareupgstatus":        {"name": "Mise à jour du firmware Statut"},
             "remotestartstatus":        {"name": "RC (❄|☀): Statut démarrage à distance"},
             "zonelighting":             {"name": "Éclairage zonal"},
             "messages":                 {"name": "Messages"},

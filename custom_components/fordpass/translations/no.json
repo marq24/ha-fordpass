@@ -328,6 +328,7 @@
             "engineoiltemp":            {"name": "Temperatur: motorolje"},
             "deepsleep":                {"name": "Dvalemodus"},
             "firmwareupginprogress":    {"name": "Programvareoppdatering pågår"},
+            "firmwareupgstatus":        {"name": "Programvareoppdatering Status"},
             "remotestartstatus":        {"name": "RC (❄|☀): Status fjernstart"},
             "zonelighting":             {"name": "Sonebelysning"},
             "messages":                 {"name": "Meldinger"},

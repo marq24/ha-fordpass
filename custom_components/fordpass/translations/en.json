@@ -330,7 +330,8 @@
             "outsidetemp":              {"name": "Temperature Outdoors"},
             "engineoiltemp":            {"name": "Temperature Engine Oil"},
             "deepsleep":                {"name": "Sleep Mode"},
-            "firmwareupginprogress":    {"name": "Firmware Update In Progress"},
+            "firmwareupginprogress":    {"name": "Firmware Update Status"},
+            "firmwareupgstatus":        {"name": "Firmware Update Status"},
             "remotestartstatus":        {"name": "RC (❄|☀): Status Remote Start"},
             "zonelighting":             {"name": "Zone Lighting"},
             "messages":                 {"name": "Messages"},
@@ -361,6 +362,9 @@
             "doorlock":                 {"name": "State Locks"},
 
             "departureschedules":       {"name": "Next scheduled Departure"},
+            "otaschedule":              {"name": "Next OTA Update Check"},
+            "lastfirmwareupdate":       {"name": "Last Firmware Update"},
+            "firmwareupdatehistory":    {"name": "Firmware Update History"},
 
             "batteryvoltage":           {"name": "Battery Voltage (12V)"},
             "batteryloadstatus":        {"name": "Battery Load Status (12V)"},

@@ -328,7 +328,8 @@
             "outsidetemp":              {"name": "Temperatur Außen"},
             "engineoiltemp":            {"name": "Temperatur Motoröl"},
             "deepsleep":                {"name": "Tiefschlaf"},
-            "firmwareupginprogress":    {"name": "Firmware Update wird durchfeführt"},
+            "firmwareupginprogress":    {"name": "Firmware Update Status"},
+            "firmwareupgstatus":        {"name": "Firmware Update Status"},
             "remotestartstatus":        {"name": "RC (❄|☀): Status Fernstart"},
             "zonelighting":             {"name": "Zonenbeleuchtung"},
             "messages":                 {"name": "Nachrichten"},
@@ -358,7 +359,10 @@
             "remotestartcountdown":     {"name": "RC (❄|☀): Verbleibende Zeit"},
             "doorlock":                 {"name": "Status Verriegelung"},
 
-            "departureschedules":       {"name": "Nächste Abfahrtszeit"}
+            "departureschedules":       {"name": "Nächste Abfahrtszeit"},
+            "otaschedule":              {"name": "Nächste OTA-Prüfung"},
+            "lastfirmwareupdate":       {"name": "Letztes Firmware-Update"},
+            "firmwareupdatehistory":    {"name": "Firmware-Update-Verlauf"}
         },
         "select": {
             "zonelighting": {

@@ -1,4 +1,5 @@
 """All vehicle sensors from the accessible by the API"""
+import json
 import logging
 from dataclasses import replace
 from datetime import datetime
@@ -10,13 +11,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.restore_state import RestoreEntity, async_get, StoredState
+from homeassistant.helpers.restore_state import RestoreEntity, RestoredExtraData, async_get, StoredState
 
 from . import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import SENSORS, ExtSensorEntityDescription, Tag
-from .fordpass_handler import UNSUPPORTED
+from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,22 +39,26 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
             _LOGGER.debug(f"{coordinator.vli}SENSOR '{a_entity_description.tag}' not supported for this engine-type/vehicle")
             continue
 
-        sensor = FordPassSensor(coordinator, a_entity_description)
-        # # we want to restore the last known 'id' of the energyTransferLogs
-        # if a_entity_description.tag == Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY:
-        #     #restored_value = storage.last_states.get(sensor.entity_id, None)
-        #     restored_entity = storage.entities.get(sensor.entity_id, None)
-        #     if restored_entity is not None:
-        #         restored_extra_data = await restored_entity.async_get_last_extra_data()
-        #         if restored_extra_data is not None and "id" in restored_extra_data and restored_extra_data["id"] is not None:
-        #             coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_extra_data["id"]
-        #
-        #     # if restored_value is not None or restored_value != UNSUPPORTED:
-        #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_value
-        #     #     _LOGGER.debug(f"{a_entity_description.tag} -> RESTORED value {restored_value}")
-        #     # else:
-        #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
-        #     #     _LOGGER.debug(f"{a_entity_description.tag} no VALUE to RESTORE {restored_value}")
+        if a_entity_description.tag == Tag.FIRMWARE_UPDATE_HISTORY:
+            # a special sensor implementation created by TheHangMan97
+            sensor = FordPassFirmwareUpdateHistorySensor(coordinator, a_entity_description)
+        else:
+            sensor = FordPassSensor(coordinator, a_entity_description)
+            # # we want to restore the last known 'id' of the energyTransferLogs
+            # if a_entity_description.tag == Tag.LAST_ENERGY_TRANSFER_LOG_ENTRY:
+            #     #restored_value = storage.last_states.get(sensor.entity_id, None)
+            #     restored_entity = storage.entities.get(sensor.entity_id, None)
+            #     if restored_entity is not None:
+            #         restored_extra_data = await restored_entity.async_get_last_extra_data()
+            #         if restored_extra_data is not None and "id" in restored_extra_data and restored_extra_data["id"] is not None:
+            #             coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_extra_data["id"]
+            #
+            #     # if restored_value is not None or restored_value != UNSUPPORTED:
+            #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = restored_value
+            #     #     _LOGGER.debug(f"{a_entity_description.tag} -> RESTORED value {restored_value}")
+            #     # else:
+            #     #     coordinator._last_ENERGY_TRANSFER_LOG_ENTRY_ID = None
+            #     #     _LOGGER.debug(f"{a_entity_description.tag} no VALUE to RESTORE {restored_value}")
 
         if a_entity_description.state_class == SensorStateClass.TOTAL_INCREASING:
             # make sure that the entity_id will have the correct domain!
@@ -129,3 +134,64 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
         # if self._tag == Tag.REMOTE_START_COUNTDOWN:
         #     return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
         return state
+
+
+class FordPassFirmwareUpdateHistorySensor(FordPassSensor):
+    """Accumulates completed firmware/ECU updates across coordinator refreshes.
+
+    Ford does not expose a history list for this (unlike e.g. energyTransferLogs), so we build our
+    own by watching events.configurationUpdateEvent for new updateTime values and persisting the
+    resulting list across HA restarts via RestoreEntity.
+    """
+    _MAX_HISTORY_ENTRIES = 20
+
+    def __init__(self, coordinator: FordPassDataUpdateCoordinator, entity_description: ExtSensorEntityDescription):
+        self._history: list = []
+        super().__init__(coordinator, entity_description)
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        last_extra_data = await self.async_get_last_extra_data()
+        if last_extra_data is not None:
+            self._history = last_extra_data.as_dict().get("history", [])
+        self._append_current_event_if_new()
+
+    @property
+    def extra_restore_state_data(self):
+        return RestoredExtraData({"history": self._history})
+
+    def _append_current_event_if_new(self):
+        config_update_event = FordpassDataHandler.get_events(self.coordinator.data).get("configurationUpdateEvent", {})
+        update_time = config_update_event.get("updateTime")
+        if not update_time:
+            return
+        if self._history and self._history[-1].get("updateTime") == update_time:
+            return
+
+        oem_data = config_update_event.get("oemData", {})
+        updated_ecus = []
+        for entry_str in oem_data.get("ecu_configuration", {}).get("stringArrayValue", []):
+            try:
+                ecu = json.loads(entry_str)
+            except (ValueError, TypeError):
+                continue
+            updated_ecus.append({"ecuId": ecu.get("ECUId"), "partNumber": ecu.get("partIIPartNumber")})
+
+        self._history.append({
+            "updateTime": update_time,
+            "firmwareVersion": oem_data.get("ftcp_version", {}).get("stringValue"),
+            "updatedEcus": updated_ecus,
+        })
+        self._history = self._history[-self._MAX_HISTORY_ENTRIES:]
+
+    def _handle_coordinator_update(self) -> None:
+        self._append_current_event_if_new()
+        super()._handle_coordinator_update()
+
+    @property
+    def native_value(self):
+        return len(self._history)
+
+    @property
+    def extra_state_attributes(self):
+        return {"history": list(reversed(self._history))}
