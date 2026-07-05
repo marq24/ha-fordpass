@@ -366,8 +366,8 @@ class Tag(ApiKey, Enum):
     DEEPSLEEP_IN_PROGRESS   = ApiKey(key="deepSleepInProgress",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "deepSleepInProgress"))
     FIRMWAREUPG_IN_PROGRESS = ApiKey(key="firmwareUpgInProgress",
-                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "firmwareUpgradeInProgress"),
-                                 attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "firmwareUpgradeInProgress"))
+                                 state_fn=FordpassDataHandler.get_firmware_update_status_state,
+                                 attrs_fn=FordpassDataHandler.get_firmware_update_status_attrs)
 
 
     LAST_ENERGY_CONSUMED= ApiKey(key="lastEnergyConsumed",
@@ -381,6 +381,14 @@ class Tag(ApiKey, Enum):
     DEPARTURE_SCHEDULES = ApiKey(key="departureSchedules",
                                  state_fn=FordpassDataHandler.get_departure_schedules_state,
                                  attrs_fn=FordpassDataHandler.get_departure_schedules_attrs)
+
+    OTA_SCHEDULE        = ApiKey(key="otaSchedule",
+                                 state_fn=FordpassDataHandler.get_ota_schedule_state,
+                                 attrs_fn=FordpassDataHandler.get_ota_schedule_attrs)
+
+    LAST_FIRMWARE_UPDATE = ApiKey(key="lastFirmwareUpdate",
+                                 state_fn=FordpassDataHandler.get_last_firmware_update_state,
+                                 attrs_fn=FordpassDataHandler.get_last_firmware_update_attrs)
 
 
     # Debug Sensors (Disabled by default)
@@ -931,6 +939,33 @@ SENSORS = [
         tag=Tag.DEPARTURE_SCHEDULES,
         key=Tag.DEPARTURE_SCHEDULES.key,
         icon="mdi:car-clock",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        skip_existence_check=True,
+        has_entity_name=True,
+        entity_registry_enabled_default=True
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.FIRMWAREUPG_IN_PROGRESS,
+        key=Tag.FIRMWAREUPG_IN_PROGRESS.key,
+        icon="mdi:one-up",
+        skip_existence_check=True,
+        has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=True
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.OTA_SCHEDULE,
+        key=Tag.OTA_SCHEDULE.key,
+        icon="mdi:update",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        skip_existence_check=True,
+        has_entity_name=True,
+        entity_registry_enabled_default=True
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.LAST_FIRMWARE_UPDATE,
+        key=Tag.LAST_FIRMWARE_UPDATE.key,
+        icon="mdi:chip",
         device_class=SensorDeviceClass.TIMESTAMP,
         skip_existence_check=True,
         has_entity_name=True,

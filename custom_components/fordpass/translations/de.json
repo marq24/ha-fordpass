@@ -358,7 +358,9 @@
             "remotestartcountdown":     {"name": "RC (❄|☀): Verbleibende Zeit"},
             "doorlock":                 {"name": "Status Verriegelung"},
 
-            "departureschedules":       {"name": "Nächste Abfahrtszeit"}
+            "departureschedules":       {"name": "Nächste Abfahrtszeit"},
+            "otaschedule":              {"name": "Nächste OTA-Prüfung"},
+            "lastfirmwareupdate":       {"name": "Letztes Firmware-Update"}
         },
         "select": {
             "zonelighting": {

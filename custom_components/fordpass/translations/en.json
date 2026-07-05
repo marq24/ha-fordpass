@@ -361,6 +361,8 @@
             "doorlock":                 {"name": "State Locks"},
 
             "departureschedules":       {"name": "Next scheduled Departure"},
+            "otaschedule":              {"name": "Next OTA Update Check"},
+            "lastfirmwareupdate":       {"name": "Last Firmware Update"},
 
             "batteryvoltage":           {"name": "Battery Voltage (12V)"},
             "batteryloadstatus":        {"name": "Battery Load Status (12V)"},
