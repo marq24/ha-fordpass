@@ -290,7 +290,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         )
                 }),
                 description_placeholders={
-                    "repo": "https://github.com/marq24/ha-fordpass"
+                    "repo": "https://github.com/marq24/ha-fordpass",
+                    "github_root": "https://github.com"
                 },
                 errors=errors
             )
@@ -507,7 +508,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 ),
                 description_placeholders={
                     CONF_URL: the_url,
-                    "repo": "https://github.com/marq24/ha-fordpass"
+                    "repo": "https://github.com/marq24/ha-fordpass",
+                    "github_root": "https://github.com"
                 },
                 errors=errors
             )
@@ -725,7 +727,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                             try:
                                 async with asyncio.timeout(30):
                                     await self.hass.config_entries.async_reload(reauth_entry.entry_id)
-                            except TimeoutError:
+                            except asyncio.TimeoutError:
                                 _LOGGER.warning(f"async_step_reauth_confirm(): Timeout reloading config entry {reauth_entry.entry_id} during reauth")
                                 return self.async_abort(reason="reauth_reload_failed")
 
@@ -771,7 +773,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 description_placeholders={
                     CONF_USERNAME: reauth_entry.data.get(CONF_USERNAME, "UNKNOWN-USER"),
                     CONF_URL: the_url,
-                    "repo": "https://github.com/marq24/ha-fordpass"
+                    "repo": "https://github.com/marq24/ha-fordpass",
+                    "github_root": "https://github.com"
                 },
                 errors=errors
             )

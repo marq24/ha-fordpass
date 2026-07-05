@@ -1,4 +1,4 @@
-# FordPass Home Assistant Integration 2025 (EV/PHEV/Petrol/Diesel)
+# FordPass Home Assistant Integration +2025 (EV/PHEV/Petrol/Diesel)
 ## Supporting all Ford vehicles with FordPass™ & Lincoln vehicles with The Lincoln Way™ connectivity
 
 <!--
@@ -38,7 +38,7 @@ If you currently have your integration configured, then you might be lucky and t
 >
 > ## FordPass™/The Lincoln Way™ Account Disclaimer 
 > **The use of this HA integration could lead to a (temporary) lock of your FordPass™/The Lincoln Way™ account.**
-> Since this integration is not officially supported by Ford, using it could result in your being locked out! from your account.
+> Since Ford does not officially support this integration, using it could result that you being **locked out** from your FordPass™/The Lincoln Way™ account.
 >
 > **It's recommended** to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
 
@@ -75,7 +75,7 @@ If you currently have your integration configured, then you might be lucky and t
 
 > [!IMPORTANT]
 > ## Unusual Integration Setup 
-> Status Quo in spring/summer/end 2025: This integration requires an unusual setup process to be able to access the data of your vehicle. This is because Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
+> Status Quo in summer 2026: This integration requires an unusual setup process to be able to access the data of your vehicle. This is because Ford has changed (once again) the access policies to the required backend APIs (and revoked the access to the APIs for individual developers).
 > 
 > The current implementation is based on API calls the original FordPass™/The Lincoln Way™ App (for Android & iOS) performs, and it's some sort of reverse engineered.
 > 
@@ -86,9 +86,11 @@ If you currently have your integration configured, then you might be lucky and t
 > ## Fetch & Store FordPass™/The Lincoln Way™ Access Token
 > During the integration setup, you will be guided through the process to obtain an access token for your vehicle in the context of your FordPass™/The Lincoln Way™ account.
 > 
-> This should be a _one-time process_, and the access token will be stored in a file outside the custom integration directory (This is to prevent the access token from being deleted during updates of the integration itself). As already explaind, I can't give any guarantee that process will work in the future.
+> This should be a _one-time process_, and the access token will be stored in a file outside the custom integration directory (This is to prevent the access token from being deleted during updates of the integration itself). As already explained, I can't give any guarantee that this process will work in the future.
 > 
-> The overall setup process is described in short in the [Installation section](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#installation-instructions-3-steps) below, and in detail in the [linked documentation](./doc/OBTAINING_TOKEN.md).
+> **The overall setup process is described in short in the [Installation section](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#installation-instructions-3-steps) below, and in detail in the [linked documentation](./doc/OBTAINING_TOKEN.md)**.
+>
+> Since the end of May 2026 [@JosephBlock](https://github.com/JosephBlock) is offering a tool to make the token acquire process much simpler. So if you are struggling with the documented details (and don't mind installing an additional _3rd party_ tool), then the free available [tool called 'fordapp-handler' from Joseph's GitHub repository](https://github.com/JosephBlock/fordapp-handler) can be an alternative.
 
 ---
 
@@ -108,7 +110,7 @@ There is another Home Assistant integration for Ford Vehicles called [ha-fordcon
 
 
 ## Installation Instructions (3 Steps)
-### Step 1. HACS add the Integration
+### Step 1. HACS: add the Integration
 
 [![Open your Home Assistant instance and adding repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=marq24&repository=ha-fordpass&category=integration)
 <!--
@@ -138,7 +140,9 @@ There is another Home Assistant integration for Ford Vehicles called [ha-fordcon
 > So if your country is not listed in the integration, and you follow the recommendation to register a sperate account to be used with the integration, then [__register this second account at the ford.com domain__](https://www.ford.com/#$userCreateAccount), since this ensures that you can use the Integration with the 'Rest of the World' Region setting.
 
 ### Step 3. The hard part — the **Token Setup**
-The actual token request requires an external browser to get finally the FordPass™/The Lincoln Way™ access token. [Yes this is for sure quite unusual process when setting up a HA integration, but it's the only way to get the token right now]
+The actual token request requires an external browser to finally get the FordPass™/The Lincoln Way™ access token. [Yes this is for sure quite an unusual process when setting up a HA integration, but it's the only way to get the token right now]
+
+**If you are struggling with this step (and don't mind installing an additional _3rd party_ tool), then [Joseph Block's fordapp-handler](https://github.com/JosephBlock/fordapp-handler) can be an alternative.**
 
 Please follow the steps:
 1. Copy the URL listed in the first input field

@@ -2,7 +2,7 @@
 ### This method does require some manual steps, **including the usage of the developer tools!** of your browser (running on a Desktop/Laptop - using a mobile device will __not__ work!)
 
 > [!WARNING]
-> Although this has been tested multiple times (in January–June 2025 and re-tested in January 2026), It can't be guaranteed the method will last as Ford is consistently making changes!
+> Although this has been tested multiple times (in January–June 2025 and re-tested in June 2026), It can't be guaranteed the method will last as Ford is consistently making changes!
 
 > [!NOTE]
 > This process requires [at least the 2025.10.2 version](https://github.com/marq24/ha-fordpass/releases/tag/2025.10.2) of this fordpass integration.
@@ -24,13 +24,21 @@
 > Ensure you have enabled the Developer tools before pressing "log in" as you will be required to capture a header once logged in!
 > - [:link: Chromium based dev tools helper (Chrome / Edge)](./DEV-TOOLS.md)
 >
-> As _an alternative_, you might also like to use Firefox - but the capturing of the URL works slightly different than described here – please refer to the Firefox specific instructions.:
+> As _an alternative_, you might also like to use Firefox – but the capturing of the URL works slightly different than described here – please refer to the Firefox specific instructions.:
 > - [:link: Firefox dev tools helper](./DEV-TOOLS.md#firefox)
+
+> [!TIP]
+> [JosephBlock](https://github.com/JosephBlock) has created a separate tool that supports you in the access-token-code-acquire-process, which makes the use of the browser developer tools obsolete. So if you don't mind installing a small helper application on your local computer, you can get the tool from here: [https://github.com/JosephBlock/fordapp-handler](https://github.com/JosephBlock/fordapp-handler).
+> 
+> Additionally, [you can find a brief introduction in the GitHub Discussions](https://github.com/marq24/ha-fordpass/discussions/227).
 
 
 ![image](./../images/002.png)
 
 2. In your second/separate browser (where you paste the URL), the Ford Login dialog should be displayed.<br/><br/>
+
+> [!TIP]
+> Again, just as a reminder – there is a [3rd party tool from JosephBlock that can help you with this process](https://github.com/JosephBlock/fordapp-handler).
 
 3. __IMPORTANT__: Now open the developer Tools of your desktop/laptop browser and select the __Network__ tab as the active view.
 

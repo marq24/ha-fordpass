@@ -834,7 +834,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             data = self.data
                         return data
 
-                except TimeoutError as ti_err:
+                except asyncio.TimeoutError as ti_err:
                     # Mark as unavailable - but let the coordinator deal with the rest...
                     self._available = False
                     raise ti_err
