@@ -161,7 +161,7 @@ class FordPassFirmwareUpdateHistorySensor(FordPassSensor):
         return RestoredExtraData({"history": self._history})
 
     def _append_current_event_if_new(self):
-        config_update_event = FordpassDataHandler.get_events(self.coordinator.data).get("configurationUpdateEvent", {})
+        config_update_event = FordpassDataHandler.get_configuration_update_event(self.coordinator.data)
         update_time = config_update_event.get("updateTime")
         if not update_time:
             return

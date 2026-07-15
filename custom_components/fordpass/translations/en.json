@@ -365,6 +365,7 @@
             "otaschedule":              {"name": "Next OTA Update Check"},
             "lastfirmwareupdate":       {"name": "Last Firmware Update"},
             "firmwareupdatehistory":    {"name": "Firmware Update History"},
+            "otareadiness":             {"name": "OTA Update Readiness"},
 
             "batteryvoltage":           {"name": "Battery Voltage (12V)"},
             "batteryloadstatus":        {"name": "Battery Load Status (12V)"},

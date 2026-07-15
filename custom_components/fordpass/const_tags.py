@@ -395,6 +395,10 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_last_firmware_update_state,
                                  attrs_fn=FordpassDataHandler.get_last_firmware_update_attrs)
 
+    OTA_READINESS       = ApiKey(key="otaReadiness",
+                                 state_fn=FordpassDataHandler.get_ota_readiness_state,
+                                 attrs_fn=FordpassDataHandler.get_ota_readiness_attrs)
+
     # state/attrs are not used - this tag is backed by a dedicated stateful sensor class
     # (FordPassFirmwareUpdateHistorySensor) that accumulates completed updates across coordinator
     # refreshes and persists them via RestoreEntity, since Ford does not expose a history list for this
@@ -958,6 +962,14 @@ SENSORS = [
         tag=Tag.FIRMWAREUPG_STATUS,
         key=Tag.FIRMWAREUPG_STATUS.key,
         icon="mdi:memory-arrow-down",
+        has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.OTA_READINESS,
+        key=Tag.OTA_READINESS.key,
+        icon="mdi:battery-heart-variant",
+        skip_existence_check=True,
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC
     ),

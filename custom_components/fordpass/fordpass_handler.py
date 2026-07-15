@@ -27,7 +27,9 @@ from .const_shared import (
     REMOTE_START_STATE_ACTIVE,
     REMOTE_START_STATE_INACTIVE,
     HONK_AND_FLASH,
-    DAYS_MAP
+    DAYS_MAP,
+    OTA_DEPLOYMENT_STATE_MAP,
+    OTA_TRIGGER_STATE_MAP
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1544,15 +1546,28 @@ class FordpassDataHandler:
     # FIRMWARE / OTA UPDATE SENSORS
     # the actual IVSU installation progress lives under states.deployment - it walks through
     # artifact_retrieval_in_progress -> installation_queued -> deploying -> success (or failure), and
-    # while "deploying" the message payload carries an ETA + 12V battery telemetry (Ford aborts the
+    # while "deploying" the message payload carries an ETA + battery telemetry (Ford aborts the
     # install if the 12V battery is too weak). states.configurationUpdate is a separate, much less
-    # frequent config-sync record that we fall back to if no deployment has been seen yet
+    # frequent config-sync record that we fall back to if no deployment has been seen yet.
+    # the raw toState is mapped to a small, stable enum (see OTA_DEPLOYMENT_STATE_MAP) so the visible
+    # sensor state doesn't break if Ford adds a new intermediate state - the raw value is still kept
+    # in the "rawState" attribute for debugging
+    def _get_ota_deployment_telemetry(data):
+        deployment = FordpassDataHandler.get_states(data).get("deployment", {})
+        try:
+            telemetry = json.loads(deployment.get("message", ""))
+        except (ValueError, TypeError):
+            return None
+        return telemetry if isinstance(telemetry, dict) else None
+
     def get_firmware_update_status_state(data, prev_state=None):
         states = FordpassDataHandler.get_states(data)
         to_state = states.get("deployment", {}).get("value", {}).get("toState")
         if to_state is None:
             to_state = states.get("configurationUpdate", {}).get("value", {}).get("toState")
-        return to_state if to_state is not None else UNSUPPORTED
+        if to_state is None:
+            return UNSUPPORTED
+        return OTA_DEPLOYMENT_STATE_MAP.get(to_state, "unknown")
 
     def get_firmware_update_status_attrs(data, units):
         states = FordpassDataHandler.get_states(data)
@@ -1561,25 +1576,62 @@ class FordpassDataHandler:
 
         if deployment:
             value = deployment.get("value", {})
+            attrs["rawState"] = value.get("toState")
             attrs["fromState"] = value.get("fromState")
             attrs["timestamp"] = deployment.get("timestamp")
             attrs["commandId"] = deployment.get("commandId")
 
-            try:
-                telemetry = json.loads(deployment.get("message", ""))
-            except (ValueError, TypeError):
-                telemetry = None
-            if isinstance(telemetry, dict):
+            telemetry = FordpassDataHandler._get_ota_deployment_telemetry(data)
+            if telemetry is not None:
                 if "estimatedTimeToActivate" in telemetry:
                     attrs["estimatedSecondsToActivate"] = telemetry["estimatedTimeToActivate"]
                 if "currentLvBatterySoc" in telemetry:
                     attrs["lvBatterySocDuringUpdate"] = telemetry["currentLvBatterySoc"]
+                if "fpn" in telemetry:
+                    attrs["fordPartNumber"] = telemetry["fpn"]
+
+        # executePendingUpdates only confirms the vehicle received the "install now" instruction
+        # (completes in seconds) - it's a separate, faster lifecycle than the deployment itself
+        trigger_to_state = states.get("executePendingUpdates", {}).get("value", {}).get("toState")
+        if trigger_to_state is not None:
+            attrs["triggerState"] = OTA_TRIGGER_STATE_MAP.get(trigger_to_state, "unknown")
 
         config_update = states.get("configurationUpdate", {})
         if config_update:
             attrs["lastConfigurationUpdateTimestamp"] = config_update.get("timestamp")
 
         return attrs
+
+    # rough heuristic: is the vehicle currently in good enough shape (12V battery, time window) to
+    # survive an OTA flash without it being aborted mid-install? thresholds are a first guess based on
+    # real observed sessions (12V SoC ~44-67%, safeUpdateTime ~420-492s) - revisit if more data surfaces
+    def get_ota_readiness_state(data, prev_state=None):
+        telemetry = FordpassDataHandler._get_ota_deployment_telemetry(data)
+        if telemetry is None:
+            return UNSUPPORTED
+
+        lv_soc = telemetry.get("currentLvBatterySoc")
+        if lv_soc is None:
+            return "unknown"
+        if lv_soc < 50:
+            return "low_lv_battery"
+
+        safe_update_time = telemetry.get("safeUpdateTime")
+        if safe_update_time is not None and safe_update_time < 120:
+            return "short_safe_window"
+
+        return "ready"
+
+    def get_ota_readiness_attrs(data, units):
+        telemetry = FordpassDataHandler._get_ota_deployment_telemetry(data)
+        if telemetry is None:
+            return {}
+        deployment = FordpassDataHandler.get_states(data).get("deployment", {})
+        return {
+            "lvBatterySoc": telemetry.get("currentLvBatterySoc"),
+            "safeUpdateTimeSeconds": telemetry.get("safeUpdateTime"),
+            "measuredAt": deployment.get("timestamp"),
+        }
 
     # the weekly OTA activation window is only available via states.commands.getASUSettingsCommand -
     # this gets populated whenever ANY client (FordPass app or us) asked Ford for it, we don't have to
@@ -1654,10 +1706,22 @@ class FordpassDataHandler:
             "weeklySchedule": weekly_schedule,
         }
 
-    # the last successfully installed ECU/firmware package, sourced from the (non-custom) top-level
-    # events.configurationUpdateEvent
+    # the last successfully installed ECU/firmware package, sourced from events.configurationUpdateEvent.
+    # depending on push type this has been observed both as a top-level key of "events" and nested one
+    # level deeper under "events.customEvents" - we check both rather than trust either shape blindly.
+    # only returns the event if it actually represents a completed multi-module update (Ford also fires
+    # configurationUpdateEvent for other, non-firmware config syncs)
+    def get_configuration_update_event(data):
+        data_events = FordpassDataHandler.get_events(data)
+        event = data_events.get("configurationUpdateEvent")
+        if event is None:
+            event = data_events.get("customEvents", {}).get("configurationUpdateEvent")
+        if not event or "multiModuleBinaryUpdateSucceeded" not in event.get("conditions", {}):
+            return {}
+        return event
+
     def get_last_firmware_update_state(data, prev_state=None):
-        config_update_event = FordpassDataHandler.get_events(data).get("configurationUpdateEvent", {})
+        config_update_event = FordpassDataHandler.get_configuration_update_event(data)
         update_time = config_update_event.get("updateTime")
         if update_time is None:
             return None
@@ -1668,7 +1732,7 @@ class FordpassDataHandler:
             return None
 
     def get_last_firmware_update_attrs(data, units):
-        config_update_event = FordpassDataHandler.get_events(data).get("configurationUpdateEvent", {})
+        config_update_event = FordpassDataHandler.get_configuration_update_event(data)
         if not config_update_event:
             return {}
 

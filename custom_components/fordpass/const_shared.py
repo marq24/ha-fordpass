@@ -100,3 +100,33 @@ DAYS_MAP = {
     "SATURDAY": 5,
     "SUNDAY":   6,
 }
+
+# raw Ford states.deployment.value.toState -> small, stable user-facing enum.
+# anything not listed here falls back to "unknown" rather than raising, since Ford's backend has
+# added new intermediate states before without warning
+OTA_DEPLOYMENT_STATE_MAP: Final = {
+    "requested":                       "idle",
+    "request_delivery_queued":         "downloading",
+    "artifact_retrieval_queued":       "downloading",
+    "artifact_retrieval_in_progress":  "downloading",
+    "deploying":                       "installing",
+    "installation_queued":             "installing",
+    "success":                         "installed",
+    "failed":                          "failed",
+    "error":                           "failed",
+    "cancelled":                       "idle",
+}
+
+# raw Ford states.executePendingUpdates.value.toState -> small enum (this only confirms the vehicle
+# *received* the "install now" instruction, not that the update itself finished - that's tracked
+# separately via OTA_DEPLOYMENT_STATE_MAP)
+OTA_TRIGGER_STATE_MAP: Final = {
+    "requested":                                "requested",
+    "request_delivery_queued":                  "requested",
+    "oem_cloud_delivery_in_progress":            "sending",
+    "oem_cloud_translation_in_progress":         "sending",
+    "oem_cloud_to_device_delivery_in_progress":  "sending",
+    "request_queued":                            "sending",
+    "success":                                   "acknowledged",
+    "failed":                                     "failed",
+}
