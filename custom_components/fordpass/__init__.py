@@ -947,14 +947,7 @@ class FordPassEntity(CustomFriendlyNameEntity):
             if registry_entry.has_entity_name and registry_entry.name is not None:
                 name = registry_entry.name
 
-        # we overwrite the default impl here and just return our 'name'
-        # return f"{device_name} {name}" if device_name else name
-        if device_entry.name_by_user is not None:
-            return f"{device_entry.name_by_user} {name}" if device_name else name
-        # elif self.coordinator.include_fordpass_prefix:
-        #    return f"[fordpass] {name}"
-        else:
-            return name
+        return name
 
     @property
     def icon(self):
