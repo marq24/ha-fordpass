@@ -153,6 +153,7 @@ class ConnectedFordPassVehicle:
 
     ws_connected: bool = False
     _ws_debounced_update_task: asyncio.Task | None = None
+    _ws_LAST_NEW_DATA_NOTIFY: float = 0.0
     _ws_in_use_access_token: str | None = None
     _LAST_MESSAGES_UPDATE: float = 0.0
     _message_update_is_running = False
@@ -254,6 +255,7 @@ class ConnectedFordPassVehicle:
         self._ws_in_use_access_token = None
         self.ws_connected = False
         self._ws_LAST_UPDATE = 0
+        self._ws_LAST_NEW_DATA_NOTIFY = 0
         self._last_ignition_state = INTEGRATION_INIT
         self._last_remote_start_state = INTEGRATION_INIT
         self._last_ev_connect_state = INTEGRATION_INIT
@@ -1246,7 +1248,15 @@ class ConnectedFordPassVehicle:
     async def _ws_debounce_coordinator_update(self):
         await asyncio.sleep(0.3)
         if self.coordinator is not None:
-            self.coordinator.async_set_updated_data(self._data_container)
+            elapsed = time.time() - self._ws_LAST_NEW_DATA_NOTIFY
+            if elapsed < self.coordinator._ws_data_update_notify_interval_in_seconds:
+                await asyncio.sleep(self.coordinator._ws_data_update_notify_interval_in_seconds - elapsed)
+
+            # we can't be sure that after our additional delay the coordinator might
+            # be already None
+            if self.coordinator is not None:
+                self._ws_LAST_NEW_DATA_NOTIFY = time.time()
+                self.coordinator.async_set_updated_data(self._data_container)
 
     async def _ws_debounce_full_data_refresh(self):
         try:
@@ -1265,6 +1275,7 @@ class ConnectedFordPassVehicle:
             updated_data = await self.update_all()
             if updated_data is not None and self.coordinator is not None:
                 self.coordinator.async_set_updated_data(self._data_container)
+
         except CancelledError:
             _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): was canceled - all good")
         except BaseException as ex:
