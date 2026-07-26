@@ -427,6 +427,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
             coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
             coordinator.stop_watchdog()
             await coordinator.clear_data()
+            coordinator.close_and_detach_http_session()
+
             hass.data[DOMAIN].pop(config_entry.entry_id)
             if coordinator.tag_supported_by_vehicle(Tag.DEPARTURE_SCHEDULES):
                 hass.services.async_remove(DOMAIN, "update_departure_schedule")
@@ -472,6 +474,7 @@ def get_none_closed_cached_session(hass: HomeAssistant, vin:str, vli:str) -> aio
 
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
+    _http_session: aiohttp.ClientSession | None = None
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry,
                  user, vin, region_key, update_interval_as_int:int, save_token=False):
@@ -486,7 +489,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         else:
             self.lang_map = TRANSLATIONS["en"]
 
-        self.bridge = ConnectedFordPassVehicle(get_none_closed_cached_session(hass, vin, self.vli), user,
+        self._http_session = get_none_closed_cached_session(hass, vin, self.vli)
+        self.bridge = ConnectedFordPassVehicle(self._http_session, user,
                                                vin, region_key, coordinator=self, storage_path=Path(hass.config.config_dir).joinpath(STORAGE_DIR),
                                                local_logging=config_entry.options.get(CONF_LOG_TO_FILESYSTEM, False))
 
@@ -541,11 +545,28 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._force_classic_requests = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval_as_int))
 
+    def close_and_detach_http_session(self):
+        if self._http_session is not None:
+            try:
+                self._http_session.close()
+            except BaseException as ex:
+                pass
+
+            try:
+                self._http_session.detach()
+            except BaseException as ex:
+                pass
+
     def get_new_client_session(self, vin: str) -> aiohttp.ClientSession:
         """Get a new aiohttp ClientSession for the vehicle."""
         if self.hass is None:
             raise ValueError(f"{self.vli}Home Assistant instance is not available")
-        return get_none_closed_cached_session(self.hass, vin, self.vli)
+
+        # if there exist any previous _http_session - we will detach from it...
+        self.close_and_detach_http_session()
+
+        self._http_session = get_none_closed_cached_session(self.hass, vin, self.vli)
+        return self._http_session
 
     async def start_watchdog(self, event=None):
         """Start websocket watchdog."""
