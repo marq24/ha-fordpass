@@ -1030,8 +1030,22 @@ class FordpassDataHandler:
     # DIESEL_SYSTEM_STATUS attributes
     def get_diesel_system_status_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
+        attrs = {}
         if data_metrics.get("indicators", {}).get("dieselExhaustOverTemp", {}).get("value") is not None:
-            return {"dieselExhaustOverTemp": data_metrics["indicators"]["dieselExhaustOverTemp"]["value"]}
+            attrs["dieselExhaustOverTemp"] = data_metrics["indicators"]["dieselExhaustOverTemp"]["value"]
+
+        if data_metrics.get("dieselParticulateFilterSootLevel", {}).get("value") is not None:
+            # Percentage (0% to 150%+)
+            # | Level Range | Status | What It Means | Action Required |
+            # | :--- | :--- | :--- | :--- |
+            # | **0% – 70%** | **Normal** | Filter is light to moderately loaded. | Passive regeneration occurs naturally during highway driving. |
+            # | **80% – 100%** | **Regen Threshold** | The ECU prepares to trigger an **Active Regeneration**. | Engine injects extra fuel to raise exhaust heat and burn off soot. |
+            # | **100% – 115%** | **Warning / Pending** | Active regen was attempted but interrupted (e.g., short trips). | Dashboard light/prompt appears ("Continue Driving"). |
+            # | **> 120% – 140%+** | **Critical / Fault** | Soot load is too high to safely perform automatic active regen. | Fault code **P2463** sets; limp mode activates; requires a shop **forced/service regen** or manual cleaning. |
+            attrs["dieselParticulateFilterSootLevel"] = data_metrics["dieselParticulateFilterSootLevel"]["value"]
+
+        if len(attrs) > 0:
+            return attrs
         return None
 
 
