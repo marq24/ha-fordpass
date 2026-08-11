@@ -502,6 +502,7 @@ SENSORS = [
         tag=Tag.FUEL,
         key=Tag.FUEL.key,
         icon="mdi:gas-station",
+        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         has_entity_name=True,
     ),
@@ -535,6 +536,7 @@ SENSORS = [
         tag=Tag.OIL,
         key=Tag.OIL.key,
         icon="mdi:oil",
+        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         has_entity_name=True,
     ),
@@ -999,7 +1001,6 @@ SENSORS = [
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC
     ),
-
 
     # Debug sensors (disabled by default)
     # Tag.EVENTS: {"icon": "mdi:calendar", "api_key": "events", "skip_existence_check": True, "debug": True},

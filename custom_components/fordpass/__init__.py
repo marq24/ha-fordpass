@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Final, Any
 
 import aiohttp
-import async_timeout
 import voluptuous as vol
+from asyncio import timeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
@@ -845,7 +845,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
                 if should_call_update:
                     try:
-                        async with async_timeout.timeout(60):
+                        async with timeout(60):
                             if self.bridge.status_updates_allowed:
                                 data = await self.bridge.update_all()
                                 if data is not None:
