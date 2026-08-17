@@ -902,7 +902,7 @@ class FordPassEntity(CustomFriendlyNameEntity):
 
     def __init__(self, entity_type:str, a_tag: Tag, coordinator: FordPassDataUpdateCoordinator, description: EntityDescription | None = None):
         """Initialize the entity."""
-        super().__init__(coordinator, description)
+        super().__init__(coordinator)
 
         # ok setting the internal translation key attr (so we can make use of the translation key in the entity)
         self._attr_translation_key = a_tag.key.lower()
