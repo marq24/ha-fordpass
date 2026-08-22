@@ -262,26 +262,26 @@ class ConnectedFordPassVehicle:
 
         _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
 
-    async def _local_logging(self, response, type, data):
+    async def _local_logging(self, response, a_type, data):
         # for the HA diagnostic function we keep always the latest content of the API in memory
-        if type not in self.api_response_data:
-            self.api_response_data[type] = []
+        if a_type not in self.api_response_data:
+            self.api_response_data[a_type] = []
 
-        data_list = self.api_response_data.get(type)
-        if len(data_list) > (20 if type == "ws" else 5):
+        data_list = self.api_response_data.get(a_type)
+        if len(data_list) > (20 if a_type == "ws" else 5):
             data_list.pop(0)
 
-        req = f"{response.request_info.url}" if response is not None and hasattr(response, "request_info") else ("WEBSOCKET" if type=="ws" else "UNKNOWN")
-        if self.vin in req:
-            req = req.replace(self.vin, "[**REDACTED**]")
+        req_txt = f"{response.request_info.url}" if response is not None and hasattr(response, "request_info") else ("WEBSOCKET" if a_type == "ws" else "UNKNOWN")
+        if self.vin in req_txt:
+            req_txt = req_txt.replace(self.vin, "[**REDACTED**]")
 
         data_list.append({"ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                          "request": req,
+                          "request": req_txt,
                           "response": data})
 
         # now to finally the optional logging to the file-system...
         if self._LOCAL_LOGGING:
-            await asyncio.get_running_loop().run_in_executor(None, lambda: self.__dump_data(type, data))
+            await asyncio.get_running_loop().run_in_executor(None, lambda: self.__dump_data(a_type, data))
 
     def __dump_data(self, type:str, data:dict):
         a_datetime = datetime.now(timezone.utc)

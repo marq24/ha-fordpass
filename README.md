@@ -335,7 +335,7 @@ Please use the [GitHub Issues](https://github.com/marq24/ha-fordpass/issues) for
 
 ### Get Diagnostic data from the Integration (incl. API response data)
 
-The integration allows you to fetch diagnostic data. This is a collection of information from the integration itself, as well as it contains the last API responses from the Ford backend. This will help you (or at least me) to find some unplausible data that might cause issus in the integration. The diagnosis data is cleand automatically from any personal data (like your VIN) - so it _should_ be safe to post the content in an issue.
+The integration allows you to fetch diagnostic data. This is a collection of information from the integration itself, as well as it contains the last API responses from the Ford backend. This will help you (or at least me) to find some unplausible data that might cause issus in the integration. The diagnosis data is **cleaned automatically from any personal data** (like your VIN) - so it _should_ be **safe to post the content** in an issue.
 
 Getting the diagnostic data is a default action in home assistant it can be accessed from the device details page – look for the "Download diagnostic" button.
 

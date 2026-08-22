@@ -33,5 +33,5 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, config_entry: 
             "update_interval": str(coordinator.update_interval),
             "data": async_redact_data(coordinator.data, TO_REDACT) if coordinator.data else None,
         },
-        "api_logs": async_redact_data(coordinator.bridge.api_response_data, TO_REDACT) if coordinator.bridge else None
+        "api_trace": async_redact_data(coordinator.bridge.api_response_data, TO_REDACT) if coordinator.bridge else None
     }
