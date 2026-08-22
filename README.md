@@ -1,5 +1,5 @@
-# FordPass Home Assistant Integration +2025 (EV/PHEV/Petrol/Diesel)
-## Supporting all Ford vehicles with FordPass™ & Lincoln vehicles with The Lincoln Way™ connectivity
+# Ford™ (aka FordPass™) for Home Assistant support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles
+## Supporting all Ford vehicles with Ford™App (aka FordPass™) & Lincoln vehicles with Lincoln™App (aka The Lincoln Way™) connectivity
 
 <!--
 # IMPORTANT 2025/10/22 - Integration Setup does NOT WORK ANYLONGER
@@ -36,11 +36,26 @@ If you currently have your integration configured, then you might be lucky and t
 >
 > Please be aware that I am developing this integration to the best of my knowledge and belief, but can't give a guarantee. Therefore, use this integration **at your own risk**! [ _I am not affiliated with Ford in any way._]
 >
-> ## FordPass™/The Lincoln Way™ Account Disclaimer 
-> **The use of this HA integration could lead to a (temporary) lock of your FordPass™/The Lincoln Way™ account.**
-> Since Ford does not officially support this integration, using it could result that you being **locked out** from your FordPass™/The Lincoln Way™ account.
+> ## Ford™App & Lincoln™App (FordPass™/The Lincoln Way™) Account Disclaimer 
+> **The use of this HA integration _could_ lead to a (temporary) lock of your FordPass™/The Lincoln Way™ account.**
+> Since Ford does not officially support this integration, using it could result in you being **locked out** from your FordPass™/The Lincoln Way™ account.
 >
 > **It's recommended** to use/create a **separate FordPass™/The Lincoln Way™ account** for this integration ([see the 'step-by-step' procedure further below](https://github.com/marq24/ha-fordpass?tab=readme-ov-file#use-of-a-separate-fordpassthe-lincoln-way-account-is-recommended)).
+>
+> _I haven't heard (since the release of the WebSockt variant) of a user where Ford has temporarily locked the account because of the usage of this integration. **But** this does not mean that this could not happen_.
+
+
+> [!IMPORTANT]
+> ## Rebranding of FordPass™/The Lincoln Way™ in the end of 2025
+> ### FordPass™ App is now Ford™App
+> Ford has rebranded the _FordPass™ App_ to just **Ford™ App**. The same applies to _The Lincoln Way™ App_ which is now just called **Lincoln™ App**.
+> 
+> It might become confusing for new users and this documentation. I haven't adjusted the complete documentation concerning the rebranding yet.
+>
+> So if you are using a mobile app with your Ford before 2026, then you will be familiar with the term _FordPass_. All **new users**: Please don't get confused, even if you read all the time about _FordPass_, your _FordPass account_, or your _FordPass registered vehicle_, all this is **now** called just **Ford™** (but except for that naming, everything stays the same).
+>
+> ### The Lincoln Way™ App is now Lincoln™App
+> So the same applies for new *Lincoln™ App* users: Please note, in the past the App was called _The Lincoln Way™ App_, so when ever you read about _The Lincoln Way™ App_, then this is referring to your **Lincoln™ App**.
 
 ---
 > [!TIP]
@@ -118,8 +133,8 @@ There is another Home Assistant integration for Ford Vehicles called [ha-fordcon
 2. Enter https://github.com/marq24/ha-fordpass as the repository URL (and select  the type `Integration`).
 3. After adding the new repository, you can search for `fordpass` in the search bar.
 -->
-1. Search for `fordpass` in the search bar - __Important__ there is already another HACS fordpass integration — Please make sure to select the 'correct' one __FordPass +2025 (EV/PHEV/Petrol/Diesel)__ with the description: _FordPass integration for Home Assistant - support for Ford & Lincoln vehicles [optimized for EV's & EVCC]_.
-2. Install the 'correct' (aka 'this') fordpass integration (v2025.9.0 or higher).
+1. Search for `fordpass` in the search bar - __Important__ there is already another HACS fordpass integration — Please make sure to select the 'correct' one **Ford™ (aka FordPass) support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles** with the description: _Ford™ (aka FordPass) integration for Home Assistant - support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles [optimized for EV's & EVCC]._.
+2. Install the 'correct' (aka 'this') fordpass integration (v2026.8.2 or higher).
 3. Restart HA.
 
 ### Step 2. Setup the Integration

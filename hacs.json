@@ -1,5 +1,5 @@
 {
-	"name": "FordPass +2025 (EV/PHEV/Petrol/Diesel)",
+	"name": "Ford™ (aka FordPass) support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles",
 	"content_in_root": false,
     "homeassistant": "2026.7.0",
     "hacs": "1.18.0",

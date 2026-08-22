@@ -1,6 +1,6 @@
 {
     "domain": "fordpass",
-    "name": "FordPass",
+    "name": "Ford™ (aka FordPass)",
     "codeowners": ["@marq24", "@SquidBytes", "@itchannel"],
     "config_flow": true,
     "dependencies": [],
