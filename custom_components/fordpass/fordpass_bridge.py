@@ -145,7 +145,7 @@ class ConnectedFordPassVehicle:
     session: aiohttp.ClientSession | None = None
     timeout: aiohttp.ClientTimeout | None = None
     coordinator: DataUpdateCoordinator | None = None
-
+    api_response_data: dict = {}
     use_token_data_from_memory: bool = False
 
     _data_container: dict = {}
@@ -262,7 +262,24 @@ class ConnectedFordPassVehicle:
 
         _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
 
-    async def _local_logging(self, type, data):
+    async def _local_logging(self, response, type, data):
+        # for the HA diagnostic function we keep always the latest content of the API in memory
+        if type not in self.api_response_data:
+            self.api_response_data[type] = []
+
+        data_list = self.api_response_data.get(type)
+        if len(data_list) > (20 if type == "ws" else 5):
+            data_list.pop(0)
+
+        req = f"{response.request_info.url}" if response is not None and hasattr(response, "request_info") else ("WEBSOCKET" if type=="ws" else "UNKNOWN")
+        if self.vin in req:
+            req = req.replace(self.vin, "[**REDACTED**]")
+
+        data_list.append({"ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                          "request": req,
+                          "response": data})
+
+        # now to finally the optional logging to the file-system...
         if self._LOCAL_LOGGING:
             await asyncio.get_running_loop().run_in_executor(None, lambda: self.__dump_data(type, data))
 
@@ -925,8 +942,7 @@ class ConnectedFordPassVehicle:
 
                                 elif "_data" in ws_data:
                                     data_obj = ws_data["_data"]
-                                    if self._LOCAL_LOGGING:
-                                        await self._local_logging("ws", data_obj)
+                                    await self._local_logging(None,"ws", data_obj)
 
                                     new_data_arrived = self._ws_handle_data(data_obj)
                                     if new_data_arrived is False:
@@ -934,8 +950,7 @@ class ConnectedFordPassVehicle:
                                     else:
                                         _LOGGER.debug(f"{self.vli}ws_connect(): received vehicle 'data'")
                                 else:
-                                    if self._LOCAL_LOGGING:
-                                        await self._local_logging("ws", ws_data)
+                                    await self._local_logging(None,"ws", ws_data)
 
                                     _LOGGER.info(f"{self.vli}ws_connect(): unknown 'content': {ws_data}")
 
@@ -1584,8 +1599,7 @@ class ConnectedFordPassVehicle:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_state = await response_state.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("state", result_state)
+                await self._local_logging(response_state, "state", result_state)
                 return result_state
             elif response_state.status == 401:
                 _AUTO_FOUR_NULL_ONE_COUNTER[self.vin] += 1
@@ -1653,8 +1667,7 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_msg = await response_msg.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("msg", result_msg)
+                await self._local_logging(response_msg, "msg", result_msg)
 
                 self._LAST_MESSAGES_UPDATE = time.time()
                 return result_msg["result"]["messages"]
@@ -1770,8 +1783,7 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_veh = await response_veh.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("veh", result_veh)
+                await self._local_logging(response_veh, "veh", result_veh)
 
                 # creating our logger id for the vehicle...
                 if "@" in self.vli and result_veh is not None and "userVehicles" in result_veh and "vehicleDetails" in result_veh["userVehicles"]:
@@ -1833,8 +1845,7 @@ class ConnectedFordPassVehicle:
 
             if 200 <= response_inv.status <= 205:
                 inventory_data = await response_inv.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("inventory_vehicles", inventory_data)
+                await self._local_logging(response_inv, "inventory_vehicles", inventory_data)
                 _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() FINE")
                 return True
             else:
@@ -1901,8 +1912,7 @@ class ConnectedFordPassVehicle:
                 except BaseException as e:
                     _LOGGER.info(f"{self.vli}req_remote_climate(): Error while check for empty 'rccUserProfiles' for vehicle {self.vin} - {type(e).__name__} - {e}")
 
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("rcc", result_rcc)
+                await self._local_logging(response_rcc, "rcc", result_rcc)
 
                 return result_rcc
 
@@ -1960,8 +1970,7 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_pct = await response_pct.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("pct", result_pct)
+                await self._local_logging(response_pct, "pct", result_pct)
 
                 # we are going to transform our result! - we create a dict with the 'location.id' as a key
                 # UPDATE 2025/12/16:
@@ -2043,8 +2052,7 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_ets = await response_ets.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("ets", result_ets)
+                await self._local_logging(response_ets, "ets", result_ets)
 
                 return result_ets
 
@@ -2107,8 +2115,7 @@ class ConnectedFordPassVehicle:
                 _FOUR_NULL_ONE_COUNTER[self.vin] = 0
 
                 result_etl = await response_etl.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("etl", result_etl)
+                await self._local_logging(response_etl, "etl", result_etl)
 
                 # # if we have a energy transfer_log then we need to process all entries...
                 # if result_etl is not None and result_etl.get("energyTransferLogs", None) is not None:
@@ -2650,8 +2657,7 @@ class ConnectedFordPassVehicle:
                     return False
 
                 response = await req.json()
-                if self._LOCAL_LOGGING:
-                    await self._local_logging("command", response)
+                await self._local_logging(req,"command", response)
 
                 _LOGGER.debug(f"{self.vli}__request_command(): '{command}' response: {response}")
 
@@ -2716,10 +2722,10 @@ class ConnectedFordPassVehicle:
                                     )
             _LOGGER.debug(f"{self.vli}REQUEST: {post_req.request_info.method} {post_req.request_info.url}")
 
-            return await self.__request_and_poll_comon(request_obj=post_req,
-                                                 state_command_str=write_command,
-                                                 use_websocket=self.ws_connected,
-                                                 wait_for_state=wait_for_state)
+            return await self.__request_and_poll_comon(request_response_obj=post_req,
+                                                       state_command_str=write_command,
+                                                       use_websocket=self.ws_connected,
+                                                       wait_for_state=wait_for_state)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -2777,9 +2783,9 @@ class ConnectedFordPassVehicle:
                                                timeout=self.timeout)
             _LOGGER.debug(f"{self.vli}REQUEST: {post_req.request_info.method} {post_req.request_info.url}")
 
-            return await self.__request_and_poll_comon(request_obj=post_req,
-                                                 state_command_str=command,
-                                                 use_websocket=self.ws_connected)
+            return await self.__request_and_poll_comon(request_response_obj=post_req,
+                                                       state_command_str=command,
+                                                       use_websocket=self.ws_connected)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -2827,21 +2833,20 @@ class ConnectedFordPassVehicle:
     #         self._HAS_COM_ERROR = True
     #         return False
 
-    async def __request_and_poll_comon(self, request_obj, state_command_str, use_websocket, wait_for_state:bool=True):
-        _LOGGER.debug(f"{self.vli}__request_and_poll_comon(): Testing command status: {request_obj.status} (check by {'WebSocket' if use_websocket else 'polling'})")
+    async def __request_and_poll_comon(self, request_response_obj, state_command_str, use_websocket, wait_for_state:bool=True):
+        _LOGGER.debug(f"{self.vli}__request_and_poll_comon(): Testing command status: {request_response_obj.status} (check by {'WebSocket' if use_websocket else 'polling'})")
 
-        if not (200 <= request_obj.status <= 205):
-            if request_obj.status in (401, 402, 403, 404, 405):
-                _LOGGER.info(f"{self.vli}__request_and_poll_comon(): '{state_command_str}' returned '{request_obj.status}' status code - wtf!")
+        if not (200 <= request_response_obj.status <= 205):
+            if request_response_obj.status in (401, 402, 403, 404, 405):
+                _LOGGER.info(f"{self.vli}__request_and_poll_comon(): '{state_command_str}' returned '{request_response_obj.status}' status code - wtf!")
             else:
-                _LOGGER.warning(f"{self.vli}__request_and_poll_comon(): '{state_command_str}' returned unknown status code: {request_obj.status}!")
+                _LOGGER.warning(f"{self.vli}__request_and_poll_comon(): '{state_command_str}' returned unknown status code: {request_response_obj.status}!")
             return False
 
         # Extract command ID from response
         command_id = None
-        response = await request_obj.json()
-        if self._LOCAL_LOGGING:
-            await self._local_logging("command+poll", response)
+        response = await request_response_obj.json()
+        await self._local_logging(request_response_obj, "command+poll", response)
 
         for id_key in ["id", "commandId", "correlationId"]:
             if id_key in response:

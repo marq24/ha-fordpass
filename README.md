@@ -333,6 +333,16 @@ Based on these attributes, you can create your own template sensors or automatio
 
 Please use the [GitHub Issues](https://github.com/marq24/ha-fordpass/issues) for reporting any issues you encounter with this integration. Please be so kind before creating a new issues, check the closed ones if your problem has been already reported (& solved).
 
+### Get Diagnostic data from the Integration (incl. API response data)
+
+The integration allows you to fetch diagnostic data. This is a collection of information from the integration itself, as well as it contains the last API responses from the Ford backend. This will help you (or at least me) to find some unplausible data that might cause issus in the integration. The diagnosis data is cleand automatically from any personal data (like your VIN) - so it _should_ be safe to post the content in an issue.
+
+Getting the diagnostic data is a default action in home assistant it can be accessed from the device details page – look for the "Download diagnostic" button.
+
+![image](./images/013_diag.png)
+
+### How to create DEBUG log output?
+
 To speed up the support process, you might like to already prepare and provide DEBUG log output. In the case of a technical issue, I would need this DEBUG log output to be able to help/fix the issue. There is a short [tutorial/guide 'How to provide DEBUG log' here](https://github.com/marq24/ha-senec-v3/blob/main/docs/HA_DEBUG.md) — please take the time to quickly go through it.
 
 For this integration, you need to add:
