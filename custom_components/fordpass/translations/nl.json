@@ -194,7 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Vernieuw voertuigstatus",
-            "description": "Poll auto op nieuwste status (Het duurt tot 5 minutes voordat deze functie wordt bijgewerkt na uitvoering!)",
+            "description": "Poll auto op nieuwste status (Het duurt tot 5 minuten voordat deze functie wordt bijgewerkt na uitvoering!)",
             "fields": {
                 "vin": {
                     "name": "VIN",
@@ -216,7 +216,7 @@
         },
         "update_departure_schedule": {
             "name": "Vertrekschema bijwerken",
-            "description": "Stel een vertrekschema en preconditioningtemperatuur in voor geselecteerde dagen.",
+            "description": "Stel een vertrekschema en preconditioningtemperatuur in voor de geselecteerde dagen.",
             "fields": {
                 "hour": {
                     "name": "Uur",
@@ -251,7 +251,7 @@
             "fields": {
                 "schedule_ids": {
                     "name": "Schema-ID's",
-                    "description": "Geef een of meer ID's op als lijst (bijv.) of als kommagescheiden tekst (bijv. 1,2,3)"
+                    "description": "Geef een of meer ID's op als lijst (bijv. [1,2,3]) of als kommagescheiden tekst (bijv. 1,2,3)"
                 }
             }
         }
