@@ -68,7 +68,7 @@
             "reauth_reload_failed": "Hernieuwde autorisatie is voltooid\n\nMaar de integratie kon niet opnieuw worden geladen. Herstart alstublieft Home Assistant om het herautorisatieproces af te ronden of controleer uw logboek voor meer details",
             "reauth_unsuccessful": "Hernieuwde autorisatie MISLUKT\n\nControleer alstublieft het token en probeer het opnieuw",
             "reauth_not_possible": "Geen geldige regio gevonden\n\nHelaas moet u de integratie opnieuw configureren",
-            "no_filesystem_access": "Deze integratie vereist toegang tot het lokale bestandssysteem van uw HomeAssistant-installatie om een sleutel voor uw FordPass™/The Lincoln Way™-account op te slaan.\n\nHiervoor wordt een submap in de map '.storage/' gemaakt. Dit is momenteel echter niet mogelijk. Een interne test is mislukt. U kunt details vinden in het logboek van uw Home Assistant-exemplaar.\n\nZorg ervoor dat u de Home Assistant-installatie uitvoert met de juiste gebruiker die schrijftoegang tot het lokale bestandssysteem heeft.\n\nAls u Home Assistant in een Docker-container uitvoert, zorg ervoor dat u de container uitvoert met de juiste gebruiker en dat the container toegang heeft tot het lokale bestandssysteem.\n\nControleer alstublieft uw installatie en start de installatie van deze integratie opnieuw zodra toegang tot het lokale bestandssysteem mogelijk is.",
+            "no_filesystem_access": "Deze integratie vereist toegang tot het lokale bestandssysteem van uw HomeAssistant-installatie om een sleutel voor uw FordPass™/The Lincoln Way™-account op te slaan.\n\nHiervoor wordt een submap in de map '.storage/' gemaakt. Dit is momenteel echter niet mogelijk. Een interne test is mislukt. U kunt details vinden in het logboek van uw Home Assistant-exemplaar.\n\nZorg ervoor dat u de Home Assistant-installatie uitvoert met de juiste gebruiker die schrijftoegang tot het lokale bestandssysteem heeft.\n\nAls u Home Assistant in een Docker-container uitvoert, zorg ervoor dat u de container uitvoert met de juiste gebruiker en dat de container toegang heeft tot het lokale bestandssysteem.\n\nControleer alstublieft uw installatie en start de installatie van deze integratie opnieuw zodra toegang tot het lokale bestandssysteem mogelijk is.",
             "no_brand": "Geen merk (Ford of Lincoln) gedetecteerd",
             "oauth_error_final": "## Het ophalen van het definitieve OAuth-token is mislukt\nEr is iets misgegaan bij het aanvragen van het definitieve toegangstoken van Ford. Weet u zeker dat de referenties die u hebt opgegeven als `client-id` & `secret` correct zijn?\nControleer alstublieft ook het logboek van uw Home Assistant op verdere mogelijke foutmeldingen, die u helpen de oorzaak van dit probleem te identificeren.\n\n#### Mogelijke reden:\n{error_info}"
         },
@@ -392,7 +392,7 @@
                 "name": "EV oplaadstatus"
             },
             "elvehchargingpower": {
-                "name": "Laadvermogen"
+                "name": "EV laadvermogen"
             },
             "speed": {
                 "name": "Snelheid"
