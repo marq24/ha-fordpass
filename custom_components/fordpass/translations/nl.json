@@ -65,10 +65,10 @@
             "no_vehicles": "Geen voertuigen in account of alle zijn al geconfigureerd",
             "reauth_successful": "Hernieuwde autorisatie is voltooid",
             "reconfigure_successful": "De herconfiguratie is succesvol verlopen",
-            "reauth_reload_failed": "Hernieuwde autorisatie is voltooid\n\nMaar de integratie kon niet opnieuw worden geladen. Herstart alstublieft Home Assistant om het herauthorisatieproces af te ronden of controleer uw logboek voor meer details",
+            "reauth_reload_failed": "Hernieuwde autorisatie is voltooid\n\nMaar de integratie kon niet opnieuw worden geladen. Herstart alstublieft Home Assistant om het herautorisatieproces af te ronden of controleer uw logboek voor meer details",
             "reauth_unsuccessful": "Hernieuwde autorisatie MISLUKT\n\nControleer alstublieft het token en probeer het opnieuw",
             "reauth_not_possible": "Geen geldige regio gevonden\n\nHelaas moet u de integratie opnieuw configureren",
-            "no_filesystem_access": "Deze integratie vereist toegang tot het lokale bestandssysteem van uw HomeAssistant-installatie om een sleutel voor uw FordPass™/The Lincoln Way™-account op te slaan.\n\nHiervoor wordt een submap in de map '.storage/' gemaakt. Dit is momenteel echter niet mogelijk. Een interne test is mislukt. U kunt details vinden in het logboek van uw Home Assistant-exemplaar.\n\nZorg ervoor dat u de Home Assistant-installatie uitvoert met de juiste gebruiker die schrijftoegang tot het lokale bestandssysteem heeft.\n\nAls u Home Assistant in een Docker-container uitvoert, zorg ervoor dat u de container uitvoert met de juiste gebruiker en dat de container toegang heeft tot het lokale bestandssysteem.\n\nControleer alstublieft uw installatie en start de installatie van deze integratie opnieuw zodra toegang tot het lokale bestandssysteem mogelijk is.",
+            "no_filesystem_access": "Deze integratie vereist toegang tot het lokale bestandssysteem van uw HomeAssistant-installatie om een sleutel voor uw FordPass™/The Lincoln Way™-account op te slaan.\n\nHiervoor wordt een submap in de map '.storage/' gemaakt. Dit is momenteel echter niet mogelijk. Een interne test is mislukt. U kunt details vinden in het logboek van uw Home Assistant-exemplaar.\n\nZorg ervoor dat u de Home Assistant-installatie uitvoert met de juiste gebruiker die schrijftoegang tot het lokale bestandssysteem heeft.\n\nAls u Home Assistant in een Docker-container uitvoert, zorg ervoor dat u de container uitvoert met de juiste gebruiker en dat the container toegang heeft tot het lokale bestandssysteem.\n\nControleer alstublieft uw installatie en start de installatie van deze integratie opnieuw zodra toegang tot het lokale bestandssysteem mogelijk is.",
             "no_brand": "Geen merk (Ford of Lincoln) gedetecteerd",
             "oauth_error_final": "## Het ophalen van het definitieve OAuth-token is mislukt\nEr is iets misgegaan bij het aanvragen van het definitieve toegangstoken van Ford. Weet u zeker dat de referenties die u hebt opgegeven als `client-id` & `secret` correct zijn?\nControleer alstublieft ook het logboek van uw Home Assistant op verdere mogelijke foutmeldingen, die u helpen de oorzaak van dit probleem te identificeren.\n\n#### Mogelijke reden:\n{error_info}"
         },
@@ -110,7 +110,7 @@
             },
             "token": {
                 "title": "Setup token",
-                "description": "De Token-installatie vereist een tweede browservenster (met geactiveerde ontwikkelaarshulpmiddelen - F12) om het definitieve toegangstoken vast te leggen.\r\rDit is een tamelijk ongebruikelijke procedure voor een Home Assistant-integratie. Details vindt u in de [Installatiegids]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rVolg de stappen:\r1. Kopieer de onderstaande URL of klik op de volgende link (moet in een nieuw tabblad/venster worden geopend): [Start de autorisatieprocedure]({url})\r2. Open een browser (met geactiveerde ontwikkelaarshulpmiddelen) en plak de gekopieerde URL in uw tweede browser\r3. Voer uw FordPass™/The Lincoln Way™-aanmeldingsgegevens (opnieuw) in en druk op de aanmeldingsknop\r4. Bekijk het tabblad Netwerk totdat u het `?code=` verzoek ziet\r5. Kopieer de volledige `Request-URL` van dit verzoek uit de ontwikkelaarshulpmiddelen van uw browser en plak deze in het Token-veld hieronder\r6. Klik op OK om door te gaan\n\n> [!TIP]\n> JosephBlock has created a separate tool that supports you in the access-token-code-acquire-process, which makes the use of the browser developer tools obsolete. So if you don't mind installing a helper application on your local computer, you can get the tool from here: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
+                "description": "De Token-installatie vereist een tweede browservenster (met geactiveerde ontwikkelaarshulpmiddelen - F12) om het definitieve toegangstoken vast te leggen.\r\rDit is een tamelijk ongebruikelijke procedure voor een Home Assistant-integratie. Details vindt u in de [Installatiegids]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rVolg de stappen:\r1. Kopieer de onderstaande URL of klik op de volgende link (moet in een nieuw tabblad/venster worden geopend): [Start de autorisatieprocedure]({url})\r2. Open een browser (met geactiveerde ontwikkelaarshulpmiddelen) en plak de gekopieerde URL in uw tweede browser\r3. Voer uw FordPass™/The Lincoln Way™-aanmeldingsgegevens (opnieuw) in en druk op de aanmeldingsknop\r4. Bekijk het tabblad Netwerk totdat u het `?code=` verzoek ziet\r5. Kopieer de volledige `Request-URL` van dit verzoek uit de ontwikkelaarshulpmiddelen van uw browser en plak deze in het Token-veld hieronder\r6. Klik op OK om door te gaan\n\n> [!TIP]\n> JosephBlock heeft een aparte tool gemaakt die u ondersteunt bij het verkrijgen van de toegangstoken-code, waardoor het gebruik van de ontwikkelaarshulpmiddelen van de browser overbodig wordt. Dus als u het niet erg vindt om een kleine helper-applicatie op uw lokale computer te installeren, kunt u de tool hier downloaden: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
                 "data": {
                     "url": "URL: kopieer dit in uw browser",
                     "tokenstr": "Token Request-URL: nadat het aanmeldingsproces in de browser is voltooid, plak de volledige `Request-URL`"
@@ -118,7 +118,7 @@
             },
             "reauth_confirm": {
                 "title": "Hernieuwde autorisatie vereist",
-                "description": "Uw vorige token is ongeldig - u moet een nieuw token opgeven voor uw account {username}:\r\rDetails vindt u in de [Installatiegids]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rVolg de stappen:\r1. Kopieer de onderstaande URL of klik op de volgende link (moet in een nieuw tabblad/venster worden geopend): [Start de autorisatieprocedure]({url})\r2. Open een browser (met geactiveerde ontwikkelaarshulpmiddelen) en plak de gekopieerde URL in uw tweede browser\r3. Voer uw FordPass™/The Lincoln Way™-aanmeldingsgegevens (opnieuw) in en druk op de aanmeldingsknop (laat u niet bedriegen door de spinner - deze draait voor altijd - dit is 'normaal')\r4. Bekijk het tabblad Netwerk totdat u het `?code=` verzoek ziet\r5. Kopieer de volledige `Request-URL` van dit verzoek uit de ontwikkelaarshulpmiddelen van uw browser en plak deze in het Token-veld hieronder\r6. Klik op OK om door te gaan\n\n> [!TIP]\n> JosephBlock has created a separate tool that supports you in the access-token-code-acquire-process, which makes the use of the browser developer tools obsolete. So if you don't mind installing a helper application on your local computer, you can get the tool from here: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
+                "description": "Uw vorige token is ongeldig - u moet een nieuw token opgeven voor uw account {username}:\r\rDetails vindt u in de [Installatiegids]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rVolg de stappen:\r1. Kopieer de onderstaande URL of klik op de volgende link (moet in een nieuw tabblad/venster worden geopend): [Start de autorisatieprocedure]({url})\r2. Open een browser (met geactiveerde ontwikkelaarshulpmiddelen) and plak de gekopieerde URL in uw tweede browser\r3. Voer uw FordPass™/The Lincoln Way™-aanmeldingsgegevens (opnieuw) in en druk op de aanmeldingsknop (laat u niet bedriegen door de spinner - deze draait voor altijd - dit is 'normaal')\r4. Bekijk het tabblad Netwerk totdat u het `?code=` verzoek ziet\r5. Kopieer de volledige `Request-URL` van dit verzoek uit de ontwikkelaarshulpmiddelen van uw browser en plak deze in het Token-veld hieronder\r6. Klik op OK om door te gaan\n\n> [!TIP]\n> JosephBlock heeft een aparte tool gemaakt die u ondersteunt bij het verkrijgen van de toegangstoken-code, waardoor het gebruik van de ontwikkelaarshulpmiddelen van de browser overbodig wordt. Dus als u het niet erg vindt om een kleine helper-applicatie op uw lokale computer te installeren, kunt u de tool hier downloaden: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
                 "data": {
                     "url": "URL: kopieer dit in uw browser",
                     "tokenstr": "Token Request-URL: nadat het aanmeldingsproces in de browser is voltooid, plak de volledige `Request-URL`"
@@ -194,7 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Vernieuw voertuigstatus",
-            "description": "Poll auto op nieuwste status (Het duurt tot 5 minuten voordat deze functie wordt bijgewerkt na uitvoering!)",
+            "description": "Poll auto op nieuwste status (Het duurt tot 5 minutes voordat deze functie wordt bijgewerkt na uitvoering!)",
             "fields": {
                 "vin": {
                     "name": "VIN",
@@ -215,19 +215,19 @@
             "description": "Poll API handmatig voor gegevensupdate (Waarschuwing: als u dit te vaak doet, kan dit resulteren in een ban)"
         },
         "update_departure_schedule": {
-            "name": "Vertrekschema's",
-            "description": "Set a departure schedule time and preconditioning temperature for selected days.",
+            "name": "Vertrekschema bijwerken",
+            "description": "Stel een vertrekschema en preconditioningtemperatuur in voor geselecteerde dagen.",
             "fields": {
                 "hour": {
-                    "name": "Hour",
-                    "description": "Departure hour (0-23)"
+                    "name": "Uur",
+                    "description": "Vertrekuur (0-23)"
                 },
                 "minute": {
-                    "name": "Minute",
-                    "description": "Departure minute - in 5min steps (0-55)"
+                    "name": "Minuut",
+                    "description": "Vertrekminuut - in stappen van 5 min. (0-55)"
                 },
                 "precondition_temperature": {
-                    "name": "Preconditioning Temperature"
+                    "name": "Preconditioningtemperatuur"
                 },
                 "schedule_days": {
                     "name": "Dagen",
@@ -251,99 +251,257 @@
             "fields": {
                 "schedule_ids": {
                     "name": "Schema-ID's",
-                    "description": "Geef een of meer ID's op als lijst (bijv. [1,2,3]) of als kommagescheiden tekst (bijv. 1,2,3)"
+                    "description": "Geef een of meer ID's op als lijst (bijv.) of als kommagescheiden tekst (bijv. 1,2,3)"
                 }
             }
         }
     },
     "entity": {
         "button": {
-            "update_data":      {"name": "Lokale synchronisatie"},
-            "request_refresh":  {"name": "Externe synchronisatie"},
-            "doorlock":         {"name": "Vergrendelen"},
-            "doorunlock":       {"name": "Ontgrendelen"},
-            "evstart":          {"name": "EV-laden starten"},
-            "evcancel":         {"name": "EV-laden hervatten"},
-            "evpause":          {"name": "EV-laden pauzeren"},
-            "hafshort":         {"name": "Toeter & flits [1 sec.]"},
-            "hafdefault":       {"name": "Toeter & flits [3 sec.]"},
-            "haflong":          {"name": "Toeter & flits [5 sec.]"},
-            "extendremotestart":{"name": "RC (❄|☀): Verleng tijd"},
-            "msgdeleteall":     {"name": "Berichten: Alles verwijderen"},
-            "msgdeletelast":    {"name": "Berichten: Laatst verwijderde"}
+            "update_data": {
+                "name": "Lokale synchronisatie"
+            },
+            "request_refresh": {
+                "name": "Externe synchronisatie"
+            },
+            "doorlock": {
+                "name": "Vergrendelen"
+            },
+            "doorunlock": {
+                "name": "Ontgrendelen"
+            },
+            "evstart": {
+                "name": "EV-laden starten"
+            },
+            "evcancel": {
+                "name": "EV-laden hervatten"
+            },
+            "evpause": {
+                "name": "EV-laden pauzeren"
+            },
+            "hafshort": {
+                "name": "Toeter & flits [1 sec.]"
+            },
+            "hafdefault": {
+                "name": "Toeter & flits [3 sec.]"
+            },
+            "haflong": {
+                "name": "Toeter & flits [5 sec.]"
+            },
+            "extendremotestart": {
+                "name": "RC (❄|☀): Verleng tijd"
+            },
+            "msgdeleteall": {
+                "name": "Berichten: Alles verwijderen"
+            },
+            "msgdeletelast": {
+                "name": "Berichten: Laatst verwijderde"
+            }
         },
-        "device_tracker":   {"tracker": {"name": "Voertuigtracker"}},
-        "lock":             {"doorlock":{"name": "Deuren"}},
+        "device_tracker": {
+            "tracker": {
+                "name": "Voertuigtracker"
+            }
+        },
+        "lock": {
+            "doorlock": {
+                "name": "Deuren"
+            }
+        },
         "switch": {
-            "ignition":                 {"name": "RC (❄|☀): Start [Afstandsbediening]"},
-            "elvehcharge":              {"name": "EV-laden (pauze)"},
-            "guardmode":                {"name": "Beveiligingsmodus"},
-            "autosoftwareupdates":      {"name": "Automatische softwareupdates"},
-            "rccdefrostrear":           {"name": "RC (❄|☀): Achterruit ontdooien [Afstandsbediening]"},
-            "rccdefrostfront":          {"name": "RC (❄|☀): Voorruit ontdooien [Afstandsbediening]"},
-            "rccsteeringwheel":         {"name": "RC (❄|☀): Stuurwielverwarming [Afstandsbediening]"}
+            "ignition": {
+                "name": "RC (❄|☀): Start [Starten op afstand]"
+            },
+            "elvehcharge": {
+                "name": "EV-laden (pauze)"
+            },
+            "guardmode": {
+                "name": "Beveiligingsmodus"
+            },
+            "autosoftwareupdates": {
+                "name": "Automatische softwareupdates"
+            },
+            "rccdefrostrear": {
+                "name": "RC (❄|☀): Achterruit ontdooien [Starten op afstand]"
+            },
+            "rccdefrostfront": {
+                "name": "RC (❄|☀): Voorruit ontdooien [Starten op afstand]"
+            },
+            "rccsteeringwheel": {
+                "name": "RC (❄|☀): Stuurwielverwarming [Starten op afstand]"
+            }
         },
         "number": {
-            "rcctemperature":       {"name": "RC (❄|☀): Klimaattemperatuur [Afstandsbediening]"},
-            "elvehtargetcharge":    {"name": "Gewenst laadniveau"},
-            "globaltargetsoc":      {"name": "Algemeen: Gewenst laadniveau"},
-            "globalaccurrentlimit": {"name": "AC-stroomlimiet"},
-            "globaldcpowerlimit":   {"name": "DC-vermogenslimiet"}
+            "rcctemperature": {
+                "name": "RC (❄|☀): Klimaattemperatuur [Starten op afstand]"
+            },
+            "elvehtargetcharge": {
+                "name": "Gewenst laadniveau"
+            },
+            "globaltargetsoc": {
+                "name": "Algemeen: Gewenst laadniveau"
+            },
+            "globalaccurrentlimit": {
+                "name": "AC-stroomlimiet"
+            },
+            "globaldcpowerlimit": {
+                "name": "DC-vermogenslimiet"
+            }
         },
         "sensor": {
-            "odometer":                 {"name": "Kilometerteller"},
-            "fuel":                     {"name": "Brandstof"},
-            "battery":                  {"name": "Batterij (12V)"},
-            "oil":                      {"name": "Olierestlevensduur"},
-            "tirepressure":             {"name": "Bandenspanning"},
-            "gps":                      {"name": "GPS JSON"},
-            "alarm":                    {"name": "Alarm"},
-            "ignitionstatus":           {"name": "Contact"},
-            "doorstatus":               {"name": "Deurstatus"},
-            "windowposition":           {"name": "Raamstand"},
-            "lastrefresh":              {"name": "laatst vernieuwd"},
-            "elveh":                    {"name": "EV"},
-            "elvehplug":                {"name": "EV stekker"},
-            "elvehcharging":            {"name": "EV oplaadstatus"},
-            "elvehchargingpower":       {"name": "EV geladen"},
-            "speed":                    {"name": "Snelheid"},
-            "enginespeed":              {"name": "Toerental"},
-            "gearleverposition":        {"name": "Huidige versnelling"},
-            "indicators":               {"name": "Indicatoren"},
-            "coolanttemp":              {"name": "Temperatuur koelvloeistof"},
-            "outsidetemp":              {"name": "Buitentemperatuur"},
-            "engineoiltemp":            {"name": "Temperatuur motorolie"},
-            "deepsleep":                {"name": "Slaapmodus"},
-            "firmwareupginprogress":    {"name": "Firmware-update in uitvoering"},
-            "firmwareupgstatus":        {"name": "Firmware-update Status"},
-            "remotestartstatus":        {"name": "RC (❄|☀): Status externe start"},
-            "zonelighting":             {"name": "Zoneverlichting"},
-            "messages":                 {"name": "Berichten"},
-            "dieselsystemstatus":       {"name": "Dieselsysteem"},
-            "exhaustfluidlevel":        {"name": "AdBlue-niveau"},
-            "events":                   {"name": "Gebeurtenissen"},
-            "metrics":                  {"name": "Metrieken"},
-            "states":                   {"name": "Statussen"},
-            "vehicles":                 {"name": "Voertuigen"},
-
-            "soc":                      {"name": "Laadtoestand"},
-            "evccstatus":               {"name": "EVCC-statuscode"},
-            "seatbelt":                 {"name": "Veiligheidsgordel"},
-            "deviceconnectivity":       {"name": "Connectiviteit"},
-
-            "yawrate":                  {"name": "Gierhoeksnelheid"},
-            "acceleration":             {"name": "Versnelling"},
-            "brakepedalstatus":         {"name": "Rempedaal"},
-            "braketorque":              {"name": "Remkoppel"},
-            "acceleratorpedalposition": {"name": "Gaspedaalpositie"},
-            "parkingbrakestatus":       {"name": "Parkeerrem"},
-            "torqueattransmission":     {"name": "Koppel op transmissie"},
-            "wheeltorquestatus":        {"name": "Wielkoppel"},
-            "cabintemperature":         {"name": "Cabinetemperatuur"},
-            "lastenergyconsumed":       {"name": "EV-energieverbruik (laatste rit)"},
-            "energytransferlogentry":   {"name": "EV laatste laadsessie"},
-            "remotestartcountdown":     {"name": "RC (❄|☀): Resterende tijd"},
-            "doorlock":                 {"name": "Vergrendelingsstatus"}
+            "odometer": {
+                "name": "Kilometerteller"
+            },
+            "fuel": {
+                "name": "Brandstof"
+            },
+            "battery": {
+                "name": "Batterij (12V)"
+            },
+            "oil": {
+                "name": "Olie rest levensduur"
+            },
+            "tirepressure": {
+                "name": "Bandenspanning"
+            },
+            "gps": {
+                "name": "GPS JSON"
+            },
+            "alarm": {
+                "name": "Alarm"
+            },
+            "ignitionstatus": {
+                "name": "Contact"
+            },
+            "doorstatus": {
+                "name": "Deuren"
+            },
+            "windowposition": {
+                "name": "Raamstand"
+            },
+            "lastrefresh": {
+                "name": "Laatst vernieuwd"
+            },
+            "elveh": {
+                "name": "EV bereik"
+            },
+            "elvehplug": {
+                "name": "EV stekker"
+            },
+            "elvehcharging": {
+                "name": "EV oplaadstatus"
+            },
+            "elvehchargingpower": {
+                "name": "Laadvermogen"
+            },
+            "speed": {
+                "name": "Snelheid"
+            },
+            "enginespeed": {
+                "name": "Toerental"
+            },
+            "gearleverposition": {
+                "name": "Huidige versnelling"
+            },
+            "indicators": {
+                "name": "Indicatoren"
+            },
+            "coolanttemp": {
+                "name": "Koelvloeistoftemperatuur"
+            },
+            "outsidetemp": {
+                "name": "Buitentemperatuur"
+            },
+            "engineoiltemp": {
+                "name": "Motorolietemp."
+            },
+            "deepsleep": {
+                "name": "Slaapmodus"
+            },
+            "firmwareupginprogress": {
+                "name": "Firmware-update in uitvoering"
+            },
+            "firmwareupgstatus": {
+                "name": "Firmware-update Status"
+            },
+            "remotestartstatus": {
+                "name": "RC (❄|☀): Starten op afstand"
+            },
+            "zonelighting": {
+                "name": "Zoneverlichting"
+            },
+            "messages": {
+                "name": "Berichten"
+            },
+            "dieselsystemstatus": {
+                "name": "Dieselsysteem"
+            },
+            "exhaustfluidlevel": {
+                "name": "AdBlue-niveau"
+            },
+            "events": {
+                "name": "Gebeurtenissen"
+            },
+            "metrics": {
+                "name": "Metrieken"
+            },
+            "states": {
+                "name": "Statussen"
+            },
+            "vehicles": {
+                "name": "Voertuigen"
+            },
+            "soc": {
+                "name": "Laadtoestand"
+            },
+            "evccstatus": {
+                "name": "EVCC-statuscode"
+            },
+            "seatbelt": {
+                "name": "Autogordels"
+            },
+            "deviceconnectivity": {
+                "name": "Connectiviteit"
+            },
+            "yawrate": {
+                "name": "Gierhoeksnelheid"
+            },
+            "acceleration": {
+                "name": "Versnelling"
+            },
+            "brakepedalstatus": {
+                "name": "Rempedaal"
+            },
+            "braketorque": {
+                "name": "Remkoppel"
+            },
+            "acceleratorpedalposition": {
+                "name": "Gaspedaalpositie"
+            },
+            "parkingbrakestatus": {
+                "name": "Parkeerrem"
+            },
+            "torqueattransmission": {
+                "name": "Transmissiekoppel"
+            },
+            "wheeltorquestatus": {
+                "name": "Wielkoppel"
+            },
+            "cabintemperature": {
+                "name": "Cabinetemperatuur"
+            },
+            "lastenergyconsumed": {
+                "name": "EV-energieverbruik (laatste rit)"
+            },
+            "energytransferlogentry": {
+                "name": "EV laatste laadsessie"
+            },
+            "remotestartcountdown": {
+                "name": "RC (❄|☀): Resterende tijd"
+            },
+            "doorlock": {
+                "name": "Deurvergrendeling"
+            }
         },
         "select": {
             "zonelighting": {
@@ -358,55 +516,180 @@
                 }
             },
             "rcctemperature": {
-                "name": "RC (❄|☀): Temperatuur [Afstandsbediening]",
-                "state": {"lo": "LAAG",
-                          "16_0": "16.0°C", "16_5": "16.5°C", "17_0": "17.0°C", "17_5": "17.5°C", "18_0": "18.0°C", "18_5": "18.5°C", "19_0": "19.0°C", "19_5": "19.5°C", "20_0": "20.0°C", "20_5": "20.5°C",
-                          "21_0": "21.0°C", "21_5": "21.5°C", "22_0": "22.0°C", "22_5": "22.5°C", "23_0": "23.0°C", "23_5": "23.5°C", "24_0": "24.0°C", "24_5": "24.5°C", "25_0": "25.0°C", "25_5": "25.5°C",
-                          "26_0": "26.0°C", "26_5": "26.5°C", "27_0": "27.0°C", "27_5": "27.5°C", "28_0": "28.0°C", "28_5": "28.5°C", "29_0": "29.0°C", "29_5": "29.5°C", "30_0": "30.0°C",
-                          "hi": "HOOG"}
+                "name": "RC (❄|☀): Temperatuur [Starten op afstand]",
+                "state": {
+                    "lo": "LAAG",
+                    "16_0": "16.0°C",
+                    "16_5": "16.5°C",
+                    "17_0": "17.0°C",
+                    "17_5": "17.5°C",
+                    "18_0": "18.0°C",
+                    "18_5": "18.5°C",
+                    "19_0": "19.0°C",
+                    "19_5": "19.5°C",
+                    "20_0": "20.0°C",
+                    "20_5": "20.5°C",
+                    "21_0": "21.0°C",
+                    "21_5": "21.5°C",
+                    "22_0": "22.0°C",
+                    "22_5": "22.5°C",
+                    "23_0": "23.0°C",
+                    "23_5": "23.5°C",
+                    "24_0": "24.0°C",
+                    "24_5": "24.5°C",
+                    "25_0": "25.0°C",
+                    "25_5": "25.5°C",
+                    "26_0": "26.0°C",
+                    "26_5": "26.5°C",
+                    "27_0": "27.0°C",
+                    "27_5": "27.5°C",
+                    "28_0": "28.0°C",
+                    "28_5": "28.3°C",
+                    "29_0": "29.0°C",
+                    "29_5": "29.5°C",
+                    "30_0": "30.0°C",
+                    "hi": "HOOG"
+                }
             },
             "rcctemperaturefahrenheit": {
-                "name": "RC (❄|☀): Temperatuur [Afstandsbediening]",
-                "state": {"lo": "LAAG",
-                          "16_0": "60.8°F", "16_5": "61.7°F", "17_0": "62.6°F", "17_5": "63.5°F", "18_0": "64.4°F", "18_5": "65.3°F", "19_0": "66.2°F", "19_5": "67.1°F", "20_0": "68.0°F", "20_5": "68.9°F",
-                          "21_0": "69.8°F", "21_5": "70.7°F", "22_0": "71.6°F", "22_5": "72.5°F", "23_0": "73.4°F", "23_5": "74.3°F", "24_0": "75.2°F", "24_5": "76.1°F", "25_0": "77.0°F", "25_5": "77.9°F",
-                          "26_0": "78.8°F", "26_5": "79.7°F", "27_0": "80.6°F", "27_5": "81.5°F", "28_0": "82.4°F", "28_5": "83.3°F", "29_0": "84.2°F", "29_5": "85.1°F", "30_0": "86.0°F",
-                          "hi": "HOOG"}
+                "name": "RC (❄|☀): Temperatuur [Starten op afstand]",
+                "state": {
+                    "lo": "LAAG",
+                    "16_0": "60.8°F",
+                    "16_5": "61.7°F",
+                    "17_0": "62.6°F",
+                    "17_5": "63.5°F",
+                    "18_0": "64.4°F",
+                    "18_5": "65.3°F",
+                    "19_0": "66.2°F",
+                    "19_5": "67.1°F",
+                    "20_0": "68.0°F",
+                    "20_5": "68.9°F",
+                    "21_0": "69.8°F",
+                    "21_5": "70.7°F",
+                    "22_0": "71.6°F",
+                    "22_5": "72.5°F",
+                    "23_0": "73.4°F",
+                    "23_5": "74.3°F",
+                    "24_0": "75.2°F",
+                    "24_5": "76.1°F",
+                    "25_0": "77.0°F",
+                    "25_5": "77.9°F",
+                    "26_0": "78.8°F",
+                    "26_5": "79.7°F",
+                    "27_0": "80.6°F",
+                    "27_5": "81.5°F",
+                    "28_0": "82.4°F",
+                    "28_5": "83.3°F",
+                    "29_0": "84.2°F",
+                    "29_5": "85.1°F",
+                    "30_0": "86.0°F",
+                    "hi": "HOOG"
+                }
             },
             "rccseatrearleft": {
-                "name": "RC (❄|☀): Stoel achterbank links [Afstandsbediening]",
-                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+                "name": "RC (❄|☀): Stoel achterbank links [Starten op afstand]",
+                "state": {
+                    "off": "Uit",
+                    "cooled1": "Koeling I",
+                    "cooled2": "Koeling II",
+                    "cooled3": "Koeling III",
+                    "heated1": "Verwarming I",
+                    "heated2": "Verwarming II",
+                    "heated3": "Verwarming III"
+                }
             },
             "rccseatrearright": {
-                "name": "RC (❄|☀): Stoel achterbank rechts [Afstandsbediening]",
-                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+                "name": "RC (❄|☀): Stoel achterbank rechts [Starten op afstand]",
+                "state": {
+                    "off": "Uit",
+                    "cooled1": "Koeling I",
+                    "cooled2": "Koeling II",
+                    "cooled3": "Koeling III",
+                    "heated1": "Verwarming I",
+                    "heated2": "Verwarming II",
+                    "heated3": "Verwarming III"
+                }
             },
             "rccseatfrontleft": {
-                "name": "RC (❄|☀): Stoel voorkant links [Afstandsbediening]",
-                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+                "name": "RC (❄|☀): Stoel voorkant links [Starten op afstand]",
+                "state": {
+                    "off": "Uit",
+                    "cooled1": "Koeling I",
+                    "cooled2": "Koeling II",
+                    "cooled3": "Koeling III",
+                    "heated1": "Verwarming I",
+                    "heated2": "Verwarming II",
+                    "heated3": "Verwarming III"
+                }
             },
             "rccseatfrontright": {
-                "name": "RC (❄|☀): Stoel voorkant rechts [Afstandsbediening]",
-                "state": { "off": "Uit", "cooled1": "Koeling I", "cooled2": "Koeling II", "cooled3": "Koeling III", "heated1": "Verwarming I", "heated2": "Verwarming II", "heated3": "Verwarming III"}
+                "name": "RC (❄|☀): Stoel voorkant rechts [Starten op afstand]",
+                "state": {
+                    "off": "Uit",
+                    "cooled1": "Koeling I",
+                    "cooled2": "Koeling II",
+                    "cooled3": "Koeling III",
+                    "heated1": "Verwarming I",
+                    "heated2": "Verwarming II",
+                    "heated3": "Verwarming III"
+                }
             },
             "elvehtargetcharge": {
                 "name": "Gewenst laadniveau",
-                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+                "state": {
+                    "50": "50%",
+                    "60": "60%",
+                    "70": "70%",
+                    "80": "80%",
+                    "85": "85%",
+                    "90": "90%",
+                    "95": "95%",
+                    "100": "100%"
+                }
             },
             "elvehtargetchargealt1": {
                 "name": "Gewenst laadniveau [alt locatie 1]",
-                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+                "state": {
+                    "50": "50%",
+                    "60": "60%",
+                    "70": "70%",
+                    "80": "80%",
+                    "85": "85%",
+                    "90": "90%",
+                    "95": "95%",
+                    "100": "100%"
+                }
             },
             "elvehtargetchargealt2": {
                 "name": "Gewenst laadniveau [alt locatie 2]",
-                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+                "state": {
+                    "50": "50%",
+                    "60": "60%",
+                    "70": "70%",
+                    "80": "80%",
+                    "85": "85%",
+                    "90": "90%",
+                    "95": "95%",
+                    "100": "100%"
+                }
             },
             "globaltargetsoc": {
                 "name": "Algemeen: Gewenst laadniveau",
-                "state": { "50": "50%", "60": "60%", "70": "70%", "80": "80%", "85": "85%", "90": "90%", "95": "95%", "100": "100%"}
+                "state": {
+                    "50": "50%",
+                    "60": "60%",
+                    "70": "70%",
+                    "80": "80%",
+                    "85": "85%",
+                    "90": "90%",
+                    "95": "95%",
+                    "100": "100%"
+                }
             },
             "globaldcpowerlimit": {
-                "name": "DC-vermogenslimiet"}
+                "name": "DC-vermogenslimiet"
+            }
         }
     }
 }
