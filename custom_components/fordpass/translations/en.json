@@ -63,14 +63,14 @@
         "abort": {
             "already_configured": "Account is already configured",
             "no_vehicles": "No vehicles on account or all are configured already",
-            "reauth_successful": "Re-Authorization was completed",
+            "reauth_successful": "Re-authorization was completed",
             "reconfigure_successful": "Re-configuration was successful",
-            "reauth_reload_failed": "Re-Authorization was completed\n\nBut the integration could not be reloaded. Please restart Home Assistant to complete the re-Authorization process or check your log for further details",
-            "reauth_unsuccessful": "Re-Authorization FAILED\n\nPlease check the token and try again",
+            "reauth_reload_failed": "Re-authorization was completed\n\nBut the integration could not be reloaded. Please restart Home Assistant to complete the re-authorization process or check your log for further details",
+            "reauth_unsuccessful": "Re-authorization FAILED\n\nPlease check the token and try again",
             "reauth_not_possible": "No valid region found\n\nUnfortunately you must reconfigure the integration",
-            "no_filesystem_access": "This integration requires access to the local file system of your HomeAssistant installation to store a key for your FordPass™/The Lincoln Way™ account.\n\nTo do this, a subfolder will be created in the '.storage/' folder. However, this is currently not possible. An internal test failed. You can find details in the log of your Home Assistant instance.\n\nPlease ensure that you are running the Home Assistant installation with the correct user who has write access to the local file system.\n\nIf you are running Home Assistant in a Docker container, ensure that you are running the container with the correct user and that the container has access to the local file system.\n\nPlease check your installation and restart the setup of this integration once access to the local file system is possible.",
+            "no_filesystem_access": "This integration requires access to the local file system of your Home Assistant installation to store a key for your FordPass™/The Lincoln Way™ account.\n\nTo do this, a subfolder will be created in the '.storage/' folder. However, this is currently not possible. An internal test failed. You can find details in the log of your Home Assistant instance.\n\nPlease ensure that you are running the Home Assistant installation with the correct user who has write access to the local file system.\n\nIf you are running Home Assistant in a Docker container, ensure that you are running the container with the correct user and that the container has access to the local file system.\n\nPlease check your installation and restart the setup of this integration once access to the local file system is possible.",
             "no_brand": "No Brand (Ford or Lincoln) could be detected",
-            "oauth_error_final": "## The final OAuth token retrival process failed\nSomething went wrong, when trying to request the final access token from Ford. Are you sure that the credentials you have specified as `client-id` & `secret` are correct?\nPlease also check the log of your Home Assistant for further possible error messages, that would help you to identify the root cause of this issue.\n\n#### Possible Reason:\n{error_info}",
+            "oauth_error_final": "## The final OAuth token retrieval process failed\nSomething went wrong, when trying to request the final access token from Ford. Are you sure that the credentials you have specified as `client-id` & `secret` are correct?\nPlease also check the log of your Home Assistant for further possible error messages, that would help you to identify the root cause of this issue.\n\n#### Possible Reason:\n{error_info}",
             "user_rejected_authorize": "## The user rejected the authorization\nThe user rejected the authorization for the use of the FordConnect Query integration. Please check if you have specified the correct credentials and try again.\n\n#### Possible Reason:\n{error_info}"
         },
         "error": {
@@ -94,7 +94,7 @@
             },
             "user_connect": {
                 "title": "Add a new Ford Vehicle",
-                "description": "## Welcome to the FordConnect Query Integration\nThis is an alternative [integration to FordPass]({repo}), making use of the FordConnect Query API. This API provides __read-only__ access to the vehicle data.\n### Requirements\n- Your car must have the latest on-board modem functionality and have been registered/authorized with the FordPass™ application\n- An API credential pair previously registered with the EU/UK/NA Ford developer portal.\n\nFurther information can be found in [_the Application Registration Guide_. This includes a step-by-step procedure]({repo}/blob/main/docs/REGISTER_APPLICATION.md) to register an application at Fords EU developer portal.\n### Need further instructions?\nAll other setup details can be found in the [Integration Setup Guide]({repo}/blob/main/docs/CONFIGURE_INTEGRATION.md)\n### Final note\nIf you find this integration useful, please consider supporting me as a GitHub project sponsor (or in one of the other ways [described here in my profile@GitHub]({github})) – thank you to those who already do – you're all amazing!",
+                "description": "## Welcome to the FordConnect Query Integration\nThis is an alternative [integration to FordPass]({repo}), making use of the FordConnect Query API. This API provides __read-only__ access to the vehicle data.\n### Requirements\n- Your car must have the latest on-board modem functionality and have been registered/authorized with the FordPass™ application\n- An API credential pair previously registered with the EU/UK/NA Ford developer portal.\n\nFurther information can be found in [_the Application Registration Guide_. This includes a step-by-step procedure]({repo}/blob/main/docs/REGISTER_APPLICATION.md) to register an application at Ford's EU developer portal.\n### Need further instructions?\nAll other setup details can be found in the [Integration Setup Guide]({repo}/blob/main/docs/CONFIGURE_INTEGRATION.md)\n### Final note\nIf you find this integration useful, please consider supporting me as a GitHub project sponsor (or in one of the other ways [described here in my profile@GitHub]({github})) – thank you to those who already do – you're all amazing!",
                 "data": {
                     "config_title": "Please select a name for your Configuration entry"
                 }
@@ -111,14 +111,14 @@
             },
             "token": {
                 "title": "Setup Token",
-                "description": "The Token setup requires an second browser window (with activated developer tools - F12) to capture the final access token.\r\rThis is quite unusual procedure for a Home Assistant integration, details can be found in the [Setup Guide]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rPlease follow the steps:\r1. Copy the URL below or click on the following link (must be opened in a new tab/window): [Start with the Authorisation-Procedure]({url})\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass™/The Lincoln Way™ credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue\r\r> [!TIP]\r> JosephBlock has created a separate tool that supports you in the access-token-code-acquire-process, which makes the use of the browser developer tools obsolete. So if you don't mind installing a small helper application on your local computer, you can get the tool from here: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
+                "description": "The Token setup requires a second browser window (with activated developer tools - F12) to capture the final access token.\r\rThis is quite unusual procedure for a Home Assistant integration, details can be found in the [Setup Guide]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rPlease follow the steps:\r1. Copy the URL below or click on the following link (must be opened in a new tab/window): [Start with the Authorisation-Procedure]({url})\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass™/The Lincoln Way™ credentials (again) and press the login button\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue\r\r> [!TIP]\r> JosephBlock has created a separate tool that supports you in the access-token-code-acquire-process, which makes the use of the browser developer tools obsolete. So if you don't mind installing a small helper application on your local computer, you can get the tool from here: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
                 "data": {
                     "url": "URL: copy this into your browser",
                     "tokenstr": "Token Request-URL: after the login process is completed in the browser, paste the full `Request-URL`"
                 }
             },
             "reauth_confirm": {
-                "title": "Re-Authorization required",
+                "title": "Re-authorization required",
                 "description": "Your previous token is invalid - so you must provide a new one for your account {username}:\r\rDetails can be found in the [Setup Guide]({repo}/blob/main/doc/OBTAINING_TOKEN.md)\r\rPlease follow the steps:\r1. Copy the URL below or click on the following link (must be opened in a new tab/window): [Start with the Authorisation-Procedure]({url})\r2. Open a Browser (with enabled developer tools) and paste the copied URL into your second browser\r3. Enter your FordPass™/The Lincoln Way™ credentials (again) and press the login button (don't get fooled by the spinner will spin forever - this is 'normal')\r4. Watch the Network-tab till you see the `?code=` request\r5. Copy the full `Request-URL` from this request from the browsers developer tools and paste it in the Token field below\r6. Click OK to continue\n\n> [!TIP]\n> JosephBlock has created a separate tool that supports you in the access-token-code-acquire-process, which makes the use of the browser developer tools obsolete. So if you don't mind installing a small helper application on your local computer, you can get the tool from here: [{github_root}/JosephBlock/fordapp-handler]({github_root}/JosephBlock/fordapp-handler).",
                 "data": {
                     "url": "URL: copy this into your browser",
@@ -126,7 +126,7 @@
                 }
             },
             "reauth_confirm_connect": {
-                "title": "Re-Authorization required",
+                "title": "Re-authorization required",
                 "description": "Your previous token is invalid - so you must provide a new one for your account {username}"
             },
             "brand": {
@@ -205,7 +205,7 @@
         },
         "clear_tokens": {
             "name": "Clear Tokens",
-            "description": "Clear the stored token cache (requires an re-authentication afterwards)"
+            "description": "Clear the stored token cache (requires a re-authentication afterwards)"
         },
         "reload": {
             "name": "Reload",
@@ -258,7 +258,7 @@
         },
         "delete_departure_schedule_by_ids": {
             "name": "Delete Departure Schedules by IDs",
-            "description": "Delete departure schedules by it's scheduleIDs. (see the 'schedule' attribute from the 'Next scheduled Departure' sensors)",
+            "description": "Delete departure schedules by its scheduleIDs. (see the 'schedule' attribute from the 'Next scheduled Departure' sensors)",
             "fields": {
                 "schedule_ids": {
                     "name": "Schedule IDs",
@@ -315,15 +315,15 @@
             "gps":                      {"name": "GPS JSON"},
             "alarm":                    {"name": "Alarm Status"},
             "ignitionstatus":           {"name": "Status Ignition"},
-            "doorstatus":               {"name": "Status Door"},
-            "windowposition":           {"name": "Window Position"},
-            "lastrefresh":              {"name": "last refresh"},
-            "elveh":                    {"name": "EV"},
+            "doorstatus":               {"name": "Status Doors"},
+            "windowposition":           {"name": "Window Positions"},
+            "lastrefresh":              {"name": "Last Refresh"},
+            "elveh":                    {"name": "EV Data"},
             "elvehplug":                {"name": "EV Plug"},
-            "elvehcharging":            {"name": "EV Charging state"},
-            "elvehchargingpower":       {"name": "EV charged"},
+            "elvehcharging":            {"name": "EV Charging State"},
+            "elvehchargingpower":       {"name": "EV Charging Power"},
             "speed":                    {"name": "Speed"},
-            "enginespeed":              {"name": "Revolution"},
+            "enginespeed":              {"name": "Engine Speed (rev)"},
             "gearleverposition":        {"name": "Gear Lever Position"},
             "indicators":               {"name": "Indicators"},
             "coolanttemp":              {"name": "Temperature Coolant"},
@@ -343,8 +343,8 @@
             "vehicles":                 {"name": "Vehicles"},
 
             "soc":                      {"name": "State of Charge"},
-            "evccstatus":               {"name": "EVCC status code"},
-            "seatbelt":                 {"name": "Belt Status"},
+            "evccstatus":               {"name": "EVCC Status Code"},
+            "seatbelt":                 {"name": "Seat Belt Status"},
             "deviceconnectivity":       {"name": "Connectivity"},
 
             "yawrate":                  {"name": "Yaw Rate"},
@@ -395,7 +395,7 @@
                 }
             },
             "rcctemperature": {
-                "name": "RC (❄|☀): Temperatur [RemoteControl]",
+                "name": "RC (❄|☀): Temperature [RemoteControl]",
                 "state": {"lo": "LOW",
                           "16_0": "16.0°C", "16_5": "16.5°C", "17_0": "17.0°C", "17_5": "17.5°C", "18_0": "18.0°C", "18_5": "18.5°C", "19_0": "19.0°C", "19_5": "19.5°C", "20_0": "20.0°C", "20_5": "20.5°C",
                           "21_0": "21.0°C", "21_5": "21.5°C", "22_0": "22.0°C", "22_5": "22.5°C", "23_0": "23.0°C", "23_5": "23.5°C", "24_0": "24.0°C", "24_5": "24.5°C", "25_0": "25.0°C", "25_5": "25.5°C",
@@ -403,7 +403,7 @@
                           "hi": "HIGH"}
             },
             "rcctemperaturefahrenheit": {
-                "name": "RC (❄|☀): Temperatur [RemoteControl]",
+                "name": "RC (❄|☀): Temperature [RemoteControl]",
                 "state": {"lo": "LOW",
                           "16_0": "60.8°F", "16_5": "61.7°F", "17_0": "62.6°F", "17_5": "63.5°F", "18_0": "64.4°F", "18_5": "65.3°F", "19_0": "66.2°F", "19_5": "67.1°F", "20_0": "68.0°F", "20_5": "68.9°F",
                           "21_0": "69.8°F", "21_5": "70.7°F", "22_0": "71.6°F", "22_5": "72.5°F", "23_0": "73.4°F", "23_5": "74.3°F", "24_0": "75.2°F", "24_5": "76.1°F", "25_0": "77.0°F", "25_5": "77.9°F",
