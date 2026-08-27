@@ -708,25 +708,27 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         # we are reading here from the global coordinator data object!
         if self.data is not None:
             if ROOT_VEHICLES in self.data:
-                veh_data = self.data[ROOT_VEHICLES]
+                the_veh_data = self.data[ROOT_VEHICLES]
 
-                # getting the engineType...
-                if "vehicleProfile" in veh_data:
-                    for a_vehicle_profile in veh_data["vehicleProfile"]:
-                        if a_vehicle_profile["VIN"] == self._vin:
-                            if "model" in a_vehicle_profile:
-                                self.vli = f"[{a_vehicle_profile['model']}] "
+                if isinstance(the_veh_data, list):
+                    for a_veh_obj in the_veh_data:
+                        if self._vin == a_veh_obj.get("vin"):
+                            profile_obj = a_veh_obj.get("profile")
+                            capabilities_obj = a_veh_obj.get("capabilities")
 
-                            if "engineType" in a_vehicle_profile:
-                                self._engine_type = a_vehicle_profile["engineType"]
+                            if "model" in profile_obj:
+                                self.vli = f"[{profile_obj['model']}] "
+
+                            if "engineType" in profile_obj:
+                                self._engine_type = profile_obj["engineType"]
                                 _LOGGER.debug(f"{self.vli}EngineType is: {self._engine_type}")
 
-                            if "numberOfLightingZones" in a_vehicle_profile:
-                                self._number_of_lighting_zones = int(a_vehicle_profile["numberOfLightingZones"])
+                            if "numberOfLightingZones" in profile_obj:
+                                self._number_of_lighting_zones = int(profile_obj["numberOfLightingZones"])
                                 _LOGGER.debug(f"{self.vli}NumberOfLightingZones is: {self._number_of_lighting_zones}")
 
-                            if "transmissionIndicator" in a_vehicle_profile:
-                                self._supports_GEARLEVERPOSITION = a_vehicle_profile["transmissionIndicator"] == "A"
+                            if "transmissionIndicator" in profile_obj:
+                                self._supports_GEARLEVERPOSITION = profile_obj["transmissionIndicator"] == "A"
                                 _LOGGER.debug(f"{self.vli}GearLeverPosition support: {self._supports_GEARLEVERPOSITION}")
 
                             # remote climate control stuff...
@@ -734,47 +736,108 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 self._supports_REMOTE_CLIMATE_CONTROL = True
                                 _LOGGER.debug(f"{self.vli}RemoteClimateControl FORCED: {self._supports_REMOTE_CLIMATE_CONTROL}")
                             else:
-                                if "remoteClimateControl" in a_vehicle_profile:
-                                    self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
+                                # in August 2026 'remoteClimateControl' is only in 'capabilities'
+                                if "remoteClimateControl" in capabilities_obj:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = self._check_if_veh_capability_supported("remoteClimateControl", capabilities_obj)
                                     _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
 
-                                if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in a_vehicle_profile:
-                                    self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteHeatingCooling"]
+                                if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in capabilities_obj:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = self._check_if_veh_capability_supported("remoteHeatingCooling", capabilities_obj)
                                     _LOGGER.debug(f"{self.vli}RemoteClimateControl/remoteHeatingCooling support: {self._supports_REMOTE_CLIMATE_CONTROL}")
 
-
-                            if "heatedSteeringWheel" in a_vehicle_profile:
-                                self._supports_HEATED_STEERING_WHEEL = a_vehicle_profile["heatedSteeringWheel"]
+                            #heating stuff...
+                            if "heatedSteeringWheel" in profile_obj:
+                                self._supports_HEATED_STEERING_WHEEL = profile_obj["heatedSteeringWheel"]
                                 _LOGGER.debug(f"{self.vli}HeatedSteeringWheel support: {self._supports_HEATED_STEERING_WHEEL}")
 
                             self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_NONE
-                            if "driverHeatedSeat" in a_vehicle_profile:
+                            if "driverHeatedSeat" in profile_obj:
                                 # possible values: 'None', 'Heat Only', 'Heat with Vent'
-                                heated_seat = a_vehicle_profile["driverHeatedSeat"].upper()
+                                heated_seat = profile_obj["driverHeatedSeat"].upper()
                                 if heated_seat == "HEAT WITH VENT":
                                     self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_AND_COOL
                                 elif "HEAT" in heated_seat:
                                     self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
                             _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
-                            break
-                else:
-                    _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data['vehicles']}")
 
-                # check, if RemoteStart is supported
-                if "vehicleCapabilities" in veh_data:
-                    for capability_obj in veh_data["vehicleCapabilities"]:
-                        if capability_obj["VIN"] == self._vin:
+                            # ok now the classic 'capabilities'...
                             self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
-                            self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
-                            self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
-                            self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", capability_obj)
-                            self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", capability_obj)
-                            self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
-                            self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
-                            self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capability_obj)
-                            break
-                else:
-                    _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data['vehicles']}")
+                            self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capabilities_obj)
+                            self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capabilities_obj)
+                            self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", capabilities_obj)
+                            self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", capabilities_obj)
+                            self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capabilities_obj)
+                            self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capabilities_obj) and self._number_of_lighting_zones > 0
+                            self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capabilities_obj)
+
+                elif isinstance(the_veh_data, dict):
+                    # since August 2026 veh_data is a dict
+                    # getting the engineType...
+                    if "vehicleProfile" in the_veh_data:
+                        for a_vehicle_profile in the_veh_data["vehicleProfile"]:
+                            if a_vehicle_profile["VIN"] == self._vin:
+
+                                if "model" in a_vehicle_profile:
+                                    self.vli = f"[{a_vehicle_profile['model']}] "
+
+                                if "engineType" in a_vehicle_profile:
+                                    self._engine_type = a_vehicle_profile["engineType"]
+                                    _LOGGER.debug(f"{self.vli}EngineType is: {self._engine_type}")
+
+                                if "numberOfLightingZones" in a_vehicle_profile:
+                                    self._number_of_lighting_zones = int(a_vehicle_profile["numberOfLightingZones"])
+                                    _LOGGER.debug(f"{self.vli}NumberOfLightingZones is: {self._number_of_lighting_zones}")
+
+                                if "transmissionIndicator" in a_vehicle_profile:
+                                    self._supports_GEARLEVERPOSITION = a_vehicle_profile["transmissionIndicator"] == "A"
+                                    _LOGGER.debug(f"{self.vli}GearLeverPosition support: {self._supports_GEARLEVERPOSITION}")
+
+                                # remote climate control stuff...
+                                if self._force_REMOTE_CLIMATE_CONTROL:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = True
+                                    _LOGGER.debug(f"{self.vli}RemoteClimateControl FORCED: {self._supports_REMOTE_CLIMATE_CONTROL}")
+                                else:
+                                    if "remoteClimateControl" in a_vehicle_profile:
+                                        self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
+                                        _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
+
+                                    if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in a_vehicle_profile:
+                                        self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteHeatingCooling"]
+                                        _LOGGER.debug(f"{self.vli}RemoteClimateControl/remoteHeatingCooling support: {self._supports_REMOTE_CLIMATE_CONTROL}")
+
+
+                                if "heatedSteeringWheel" in a_vehicle_profile:
+                                    self._supports_HEATED_STEERING_WHEEL = a_vehicle_profile["heatedSteeringWheel"]
+                                    _LOGGER.debug(f"{self.vli}HeatedSteeringWheel support: {self._supports_HEATED_STEERING_WHEEL}")
+
+                                self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_NONE
+                                if "driverHeatedSeat" in a_vehicle_profile:
+                                    # possible values: 'None', 'Heat Only', 'Heat with Vent'
+                                    heated_seat = a_vehicle_profile["driverHeatedSeat"].upper()
+                                    if heated_seat == "HEAT WITH VENT":
+                                        self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_AND_COOL
+                                    elif "HEAT" in heated_seat:
+                                        self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
+                                _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
+                                break
+                    else:
+                        _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data['vehicles']}")
+
+                    # check, if RemoteStart is supported
+                    if "vehicleCapabilities" in the_veh_data:
+                        for capability_obj in the_veh_data["vehicleCapabilities"]:
+                            if capability_obj["VIN"] == self._vin:
+                                self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
+                                self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
+                                self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
+                                self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", capability_obj)
+                                self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", capability_obj)
+                                self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
+                                self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
+                                self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capability_obj)
+                                break
+                    else:
+                        _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data['vehicles']}")
 
                 # check, if GuardMode is supported
                 # [original impl]
@@ -796,7 +859,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         is_supported = False
         if a_capability in capabilities and capabilities[a_capability] is not None:
             val = capabilities[a_capability]
-            if (isinstance(val, bool) and val) or val.upper() == "DISPLAY":
+            if (isinstance(val, bool) and val) or val.lower() == "display":
                 is_supported = True
             _LOGGER.debug(f"{self.vli}Is '{a_capability}' supported?: {is_supported} - {val}")
         else:
@@ -944,11 +1007,19 @@ class FordPassEntity(CustomFriendlyNameEntity):
         ## messages are login/user bound... so we create an own device for the user objects
         #if not self._tag in [Tag.MESSAGES, Tag.MESSAGES_DELETE_LAST, Tag.MESSAGES_DELETE_ALL]:
         model = "unknown"
-        if "vehicles" in self.coordinator.data and self.coordinator.data["vehicles"] is not None:
-            if "vehicleProfile" in self.coordinator.data["vehicles"] and self.coordinator.data["vehicles"]["vehicleProfile"] is not None:
-                for vehicle in self.coordinator.data["vehicles"]["vehicleProfile"]:
-                    if vehicle["VIN"] == self.coordinator._vin:
-                        model = f"{vehicle['year']} {vehicle['model']}"
+        if ROOT_VEHICLES in self.coordinator.data and self.coordinator.data[ROOT_VEHICLES] is not None:
+            vehicles_obj = self.coordinator.data[ROOT_VEHICLES]
+            if isinstance(vehicles_obj, list):
+                for a_vehicle in vehicles_obj:
+                    if a_vehicle["vin"] == self.coordinator._vin:
+                        a_profile_obj = a_vehicle.get('profile', {})
+                        model = f"{a_profile_obj.get('year', '')} {a_profile_obj.get('model', 'unknown')}"
+
+            elif isinstance(vehicles_obj, dict):
+                if "vehicleProfile" in vehicles_obj and vehicles_obj["vehicleProfile"] is not None:
+                    for a_vehicle in vehicles_obj["vehicleProfile"]:
+                        if a_vehicle["VIN"] == self.coordinator._vin:
+                            model = f"{a_vehicle['year']} {a_vehicle['model']}"
 
         return {
             "identifiers": {(DOMAIN, self.coordinator._vin)},

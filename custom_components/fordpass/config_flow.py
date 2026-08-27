@@ -20,6 +20,7 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.storage import STORAGE_DIR
 
+from . import ROOT_METRICS
 from .const import (
     DOMAIN,
     OAUTH_ID,
@@ -254,9 +255,19 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         test = await bridge.req_status()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
-        if test and test.status_code == 200:
+
+        # Kudos @Humper
+        if isinstance(test, dict):
+            if test.get(ROOT_METRICS):
+                _LOGGER.debug("200 Code")
+                return True
+            raise InvalidVin
+
+        # this seems to be obsolete ?!
+        if test and getattr(test, "status_code", None) == 200:
             _LOGGER.debug("200 Code")
             return True
+
         if not test:
             raise InvalidVin
         return False
@@ -519,20 +530,35 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
 
     async def extract_vehicle_info_and_proceed_with_next_step(self, info):
-        if info is not None and "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
-            self._vehicles = info["userVehicles"]["vehicleDetails"]
-            self._vehicle_name = {}
-            if "vehicleProfile" in info:
-                for a_vehicle in info["vehicleProfile"]:
-                    if "VIN" in a_vehicle and "year" in a_vehicle and "model" in a_vehicle:
-                        self._vehicle_name[a_vehicle["VIN"]] = f"{a_vehicle['year']} {a_vehicle['model']}"
+        if info is not None:
+            if isinstance(info, list):
+                # we take a simple plain copy of the list
+                self._vehicles = list(info)
+                self._vehicle_name = {}
+                for a_veh_obj in info:
+                    vin = a_veh_obj.get("vin")
+                    profile_obj = a_veh_obj.get("profile")
+                    self._vehicle_name[vin] = f"{profile_obj.get('year')} {profile_obj.get('model')}"
 
-            _LOGGER.debug(f"Extracted vehicle names:  {self._vehicle_name}")
-            return await self.async_step_vehicle()
-        else:
-            _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
-            self._vehicles = None
-            return await self.async_step_vin()
+                _LOGGER.debug(f"Extracted vehicle names [AFTER Aug2026]:  {self._vehicle_name}")
+                return await self.async_step_vehicle()
+
+            elif isinstance(info, dict):
+                if "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
+                    self._vehicles = info["userVehicles"]["vehicleDetails"]
+                    self._vehicle_name = {}
+                    if "vehicleProfile" in info:
+                        for a_vehicle in info["vehicleProfile"]:
+                            if "VIN" in a_vehicle and "year" in a_vehicle and "model" in a_vehicle:
+                                self._vehicle_name[a_vehicle["VIN"]] = f"{a_vehicle['year']} {a_vehicle['model']}"
+
+                    _LOGGER.debug(f"Extracted vehicle names [BEFORE Aug2026]:  {self._vehicle_name}")
+                    return await self.async_step_vehicle()
+
+        # the hard FALLBACK, if info is NONE, or not a list or dict
+        _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
+        self._vehicles = None
+        return await self.async_step_vin()
 
     @staticmethod
     def preverify_code_url_string(urlstring, region_key):
@@ -658,15 +684,27 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         available_vehicles = {}
         for a_vehicle in self._vehicles:
             _LOGGER.debug(f"async_step_vehicle(): a vehicle from backend response: {a_vehicle}")
-            a_veh_vin = a_vehicle["VIN"]
-            if a_veh_vin not in already_configured_vins:
-                if a_veh_vin in self._vehicle_name:
-                    available_vehicles[a_veh_vin] = f"{self._vehicle_name[a_veh_vin]} - {a_veh_vin}"
-                elif "nickName" in a_vehicle:
-                    self._vehicle_name[a_veh_vin] = a_vehicle["nickName"]
-                    available_vehicles[a_veh_vin] = f"{a_vehicle['nickName']} - {a_veh_vin}"
-                else:
-                    available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
+
+            if "vin" in a_vehicle:
+                # AFTER August 2026
+                a_veh_vin = a_vehicle["vin"]
+                if a_veh_vin not in already_configured_vins:
+                    if a_veh_vin in self._vehicle_name:
+                        available_vehicles[a_veh_vin] = f"{self._vehicle_name.get(a_veh_vin)} - {a_veh_vin}"
+                    else:
+                        available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
+
+            elif "VIN" in a_vehicle:
+                # BEFORE August 2026
+                a_veh_vin = a_vehicle["VIN"]
+                if a_veh_vin not in already_configured_vins:
+                    if a_veh_vin in self._vehicle_name:
+                        available_vehicles[a_veh_vin] = f"{self._vehicle_name[a_veh_vin]} - {a_veh_vin}"
+                    elif "nickName" in a_vehicle:
+                        self._vehicle_name[a_veh_vin] = a_vehicle["nickName"]
+                        available_vehicles[a_veh_vin] = f"{a_vehicle['nickName']} - {a_veh_vin}"
+                    else:
+                        available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
 
         if not available_vehicles:
             _LOGGER.debug("async_step_vehicle(): No Vehicles (or all already configured)?")
