@@ -51,6 +51,7 @@ from .const_shared import (
     DEFAULT_PRESSURE_UNIT,
 )
 from .fordpass_bridge import ConnectedFordPassVehicle
+from .fordpass_handler import ROOT_METRICS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -254,7 +255,17 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         test = await bridge.req_status()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
-        if test and test.status_code == 200:
+        # req_status() returns the PARSED JSON (a dict) on HTTP 200, or None - it never
+        # returns an object carrying .status_code, so reading that attribute raised
+        # AttributeError for every VALID vin and the config flow reported "unknown".
+        # A 403/not-authorized vehicle returns {ROOT_METRICS: {}}, i.e. a truthy dict with
+        # no metrics, and must still be treated as an invalid vin.
+        if isinstance(test, dict):
+            if test.get(ROOT_METRICS):
+                _LOGGER.debug("200 Code")
+                return True
+            raise InvalidVin
+        if test and getattr(test, "status_code", None) == 200:
             _LOGGER.debug("200 Code")
             return True
         if not test:
