@@ -436,9 +436,8 @@ class ConnectedFordPassVehicle:
 
     async def __ensure_valid_tokens(self, now_time:float=None):
         # Fetch and refresh a token as needed
-        # make sure that independant running websocket and all other actions
-        # of the integration (that can be triggred at any time) will be joined
-        # when they verify the access_tokens for an account.
+        # Multiple vehicle instances for one account share a rotating refresh
+        # token, so only one of them may update the account tokens at a time.
         async with get_async_lock_for_account(self.username, self.region_key):
             await self.__ensure_valid_tokens_locked(now_time)
 
@@ -488,6 +487,36 @@ class ConnectedFordPassVehicle:
         if now_time is None:
             now_time = time.time() + 7 # (so we will invalidate tokens if they expire in the next 7 seconds)
 
+        # Another vehicle may have refreshed the shared token file while this
+        # instance was waiting for the account lock. Reload it before using an
+        # expired in-memory refresh token.
+        token_maintenance_required = (
+            self.access_token is None
+            or self.expires_at is None
+            or now_time > self.expires_at
+            or self.auto_access_token is None
+            or self.auto_expires_at is None
+            or now_time > self.auto_expires_at
+        )
+        if (
+            self.use_token_data_from_memory
+            and token_maintenance_required
+            and self.stored_tokens_location is not None
+            and os.path.isfile(self.stored_tokens_location)
+        ):
+            stored_token_data = await self._read_token_from_storage()
+            if stored_token_data is not None and stored_token_data != prev_token_data:
+                _LOGGER.debug(
+                    f"{self.vli}__ensure_valid_tokens(): using tokens refreshed by another vehicle"
+                )
+                prev_token_data = stored_token_data
+                self.access_token = prev_token_data["access_token"]
+                self.refresh_token = prev_token_data["refresh_token"]
+                self.expires_at = prev_token_data["expiry_date"]
+                self.auto_access_token = prev_token_data.get("auto_token")
+                self.auto_refresh_token = prev_token_data.get("auto_refresh_token")
+                self.auto_expires_at = prev_token_data.get("auto_expiry_date")
+
         if self.expires_at and now_time > self.expires_at:
             _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): token's expires_at {self.expires_at} has expired time-delta: {int(now_time - self.expires_at)} sec -> requesting new token")
             refreshed_token = await self.refresh_token_func(prev_token_data)
@@ -496,7 +525,15 @@ class ConnectedFordPassVehicle:
             else:
                 if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
                     _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): result for new token: {len(refreshed_token)}")
+                    # The auto token is derived from the newly refreshed main
+                    # token, not from the stale data read before the refresh.
                     await self.refresh_auto_token_func(refreshed_token)
+                    prev_token_data = {"access_token": self.access_token,
+                                       "refresh_token": self.refresh_token,
+                                       "expiry_date": self.expires_at,
+                                       "auto_token": self.auto_access_token,
+                                       "auto_refresh_token": self.auto_refresh_token,
+                                       "auto_expiry_date": self.auto_expires_at}
                 else:
                     _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): result for new token: ERROR, None or False")
 
@@ -504,7 +541,7 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
-        if self.auto_expires_at and now_time > self.auto_expires_at:
+        elif self.auto_expires_at and now_time > self.auto_expires_at:
             _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto-token's auto_expires_at {self.auto_expires_at} has expired time-delta: {int(now_time - self.auto_expires_at)} sec -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
@@ -602,8 +639,9 @@ class ConnectedFordPassVehicle:
                                 if "invalid" in a_msg or "expired token" in a_msg:
                                     is_invalid_msg = True
                             if is_invalid_msg or ("errorCode" in msg and str(msg["errorCode"]) == "460"):
-                                _LOGGER.warning(f"{self.vli}_request_token(): status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
+                                _LOGGER.warning(f"{self.vli}_request_token(): status_code: {response.status} - TOKEN HAS BEEN INVALIDATED - mark_re_auth_required()")
                                 _FOUR_NULL_ONE_COUNTER[self.vin] = MAX_401_RESPONSE_COUNT + 1
+                                self.mark_re_auth_required()
                         except BaseException as e:
                             _LOGGER.debug(f"{self.vli}_request_token(): status_code: {response.status} - could not read from response - {type(e).__name__} - {e}")
 
@@ -1233,19 +1271,12 @@ class ConnectedFordPassVehicle:
     #             collected_keys.append(path)
 
     async def _ws_check_for_auth_token_refresh(self, ws):
-        # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
+        # The auto token is derived from the main token, so validate both while
+        # holding the shared account lock when the WebSocket token is expiring.
         try:
             if self.auto_expires_at and time.time() + 45 > self.auto_expires_at:
-                _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token expires in less than 45 seconds - try to refresh")
-
-                prev_token_data = {"access_token": self.access_token,
-                                   "refresh_token": self.refresh_token,
-                                   "expiry_date": self.expires_at,
-                                   "auto_token": self.auto_access_token,
-                                   "auto_refresh_token": self.auto_refresh_token,
-                                   "auto_expiry_date": self.auto_expires_at}
-
-                await self.refresh_auto_token_func(prev_token_data)
+                _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token expires in less than 45 seconds - refreshing all tokens")
+                await self.__ensure_valid_tokens()
 
             # could be that another process has refreshed the auto token...
             if self.auto_access_token is not None:
