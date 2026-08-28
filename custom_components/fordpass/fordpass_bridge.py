@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import random
-import threading
+import tempfile
 import time
 import traceback
 from asyncio import CancelledError
@@ -123,26 +123,21 @@ FORD_COMMAND_MAP: Final ={
 _FOUR_NULL_ONE_COUNTER: dict = {}
 _AUTO_FOUR_NULL_ONE_COUNTER: dict = {}
 
-_sync_lock = threading.Lock()
-_sync_lock_cache = {}
+# our lock to ensure that only a single task/thread will access the token files...
+_async_lock_cache: dict[str, asyncio.Lock] = {}
+def get_async_lock_for_account(user: str, region_key: str) -> asyncio.Lock:
+    """Get a cached async lock that serializes token updates per account."""
+    account_key = f"{user}µ@µ{region_key}"
+    if account_key not in _async_lock_cache:
+        _async_lock_cache[account_key] = asyncio.Lock()
+    return _async_lock_cache[account_key]
+
 
 class NonNullDict(dict):
     def none_null_get(self, key, default=None):
         val = super().get(key, default)
         return default if val is None else val
 
-def get_sync_lock_for_user_and_region(user: str, region_key: str, vli:str) -> threading.Lock:
-    """Get a cached threading.Lock for the user and region."""
-    global _sync_lock_cache
-    a_key = f"{user}µ@µ{region_key}"
-    with _sync_lock:
-        if a_key not in _sync_lock_cache:
-            _LOGGER.debug(f"{vli}Create new threading.Lock for user: {user}, region: {region_key}")
-            _sync_lock_cache[a_key] = threading.Lock()
-        else:
-            pass
-            #_LOGGER.debug(f"{vli}Using cached threading.Lock for user: {user}, region: {region_key}")
-    return _sync_lock_cache[a_key]
 
 class ConnectedFordPassVehicle:
     # Represents a Ford vehicle, with methods for status and issuing commands
@@ -441,7 +436,14 @@ class ConnectedFordPassVehicle:
 
     async def __ensure_valid_tokens(self, now_time:float=None):
         # Fetch and refresh a token as needed
-        # with get_sync_lock_for_user_and_region(self.username, self.region_key, self.vli):
+        # make sure that independant running websocket and all other actions
+        # of the integration (that can be triggred at any time) will be joined
+        # when they verify the access_tokens for an account.
+        async with get_async_lock_for_account(self.username, self.region_key):
+            await self.__ensure_valid_tokens_locked(now_time)
+
+    async def __ensure_valid_tokens_locked(self, now_time:float=None):
+        """Fetch and refresh tokens while holding the account token lock."""
 
         #_LOGGER.debug(f"{self.vli}__ensure_valid_tokens()")
         self._HAS_COM_ERROR = False
@@ -599,7 +601,7 @@ class ConnectedFordPassVehicle:
                                 a_msg = msg["message"].lower()
                                 if "invalid" in a_msg or "expired token" in a_msg:
                                     is_invalid_msg = True
-                            if is_invalid_msg or ("errorCode" in msg and msg["errorCode"] == "460"):
+                            if is_invalid_msg or ("errorCode" in msg and str(msg["errorCode"]) == "460"):
                                 _LOGGER.warning(f"{self.vli}_request_token(): status_code: {response.status} - TOKEN HAS BEEN INVALIDATED")
                                 _FOUR_NULL_ONE_COUNTER[self.vin] = MAX_401_RESPONSE_COUNT + 1
                         except BaseException as e:
@@ -786,11 +788,28 @@ class ConnectedFordPassVehicle:
             except OSError as exc:
                 _LOGGER.info(f"{self.vli}__write_token_int(): Error deleting token file: {type(exc).__name__} - {exc}")
         else:
+            temporary_path = None
             try:
-                with open(self.stored_tokens_location, "w", encoding="utf-8") as outfile:
-                    json.dump(token, outfile)
+                directory = os.path.dirname(self.stored_tokens_location)
+                filename = os.path.basename(self.stored_tokens_location)
+                with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=directory, prefix=f".{filename}.", suffix=".tmp", delete=False) as temp_outfile:
+                    temporary_path = temp_outfile.name
+                    json.dump(token, temp_outfile)
+                    temp_outfile.flush()
+                    os.fsync(temp_outfile.fileno())
+
+                os.replace(temporary_path, self.stored_tokens_location)
+                temporary_path = None
             except OSError as exc:
-                _LOGGER.error(f"{self.vli}__write_token_int(): Failed to create directory '{self.stored_tokens_location}': {type(exc).__name__} - {exc}")
+                _LOGGER.error(f"{self.vli}__write_token_int(): Failed to atomically write token file '{self.stored_tokens_location}': {type(exc).__name__} - {exc}")
+            finally:
+                if temporary_path is not None:
+                    try:
+                        os.remove(temporary_path)
+                    except FileNotFoundError:
+                        pass
+                    except OSError as exc:
+                        _LOGGER.warning(f"{self.vli}__write_token_int(): Failed to remove temporary token file '{temporary_path}': {type(exc).__name__} - {exc}")
 
     async def _read_token_from_storage(self):
         """Read saved token from a file"""
