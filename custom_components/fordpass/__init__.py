@@ -70,6 +70,10 @@ CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 PLATFORMS:Final = [Platform.BUTTON, Platform.LOCK, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH, Platform.SELECT, Platform.DEVICE_TRACKER]
 WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
+class NonNullDict(dict):
+    def none_null_get(self, key, default=None):
+        val = super().get(key, default)
+        return default if val is None else val
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the FordPass component."""
@@ -711,24 +715,41 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 the_veh_data = self.data[ROOT_VEHICLES]
 
                 if isinstance(the_veh_data, list):
+                    # after August 2026
                     for a_veh_obj in the_veh_data:
                         if self._vin == a_veh_obj.get("vin"):
-                            profile_obj = a_veh_obj.get("profile")
-                            capabilities_obj = a_veh_obj.get("capabilities")
+                            tmp_pro = a_veh_obj.get("profile", None)
+                            tmp_cap = a_veh_obj.get("capabilities", None)
 
-                            if "model" in profile_obj:
-                                self.vli = f"[{profile_obj['model']}] "
+                            if not tmp_pro or not tmp_cap:
+                                _LOGGER.warning(f"{self.vli}No 'profile' or 'capabilities' found in coordinator data - no engineType available! - {a_veh_obj}")
+                                continue
 
-                            if "engineType" in profile_obj:
-                                self._engine_type = profile_obj["engineType"]
-                                _LOGGER.debug(f"{self.vli}EngineType is: {self._engine_type}")
+                            nn_profile_obj = NonNullDict(tmp_pro)
+                            nn_capabilities_obj = NonNullDict(tmp_cap)
 
-                            if "numberOfLightingZones" in profile_obj:
-                                self._number_of_lighting_zones = int(profile_obj["numberOfLightingZones"])
-                                _LOGGER.debug(f"{self.vli}NumberOfLightingZones is: {self._number_of_lighting_zones}")
+                            if "model" in nn_profile_obj:
+                                fallback = f"{self._vin}(unknown-model)"
+                                self.vli = f"[{nn_profile_obj.none_null_get('model', fallback)}] "
 
-                            if "transmissionIndicator" in profile_obj:
-                                self._supports_GEARLEVERPOSITION = profile_obj["transmissionIndicator"] == "A"
+                            if "engineType" in nn_profile_obj:
+                                self._engine_type = nn_profile_obj.none_null_get("engineType", "unknown")
+                                # yes this check looks a bit paranoid - no clue how I can make this better!
+                                if not isinstance(self._engine_type, str) or len(self._engine_type) == 0 or self._engine_type == "unknown":
+                                    _LOGGER.warning(f"{self.vli}EngineType COULD NOT BE DETECTED '{self._engine_type}' using 'ICE' AS DEFAULT")
+                                    self._engine_type = "ICE"
+                                else:
+                                    _LOGGER.debug(f"{self.vli}EngineType is: {self._engine_type}")
+
+                            if "numberOfLightingZones" in nn_profile_obj:
+                                try:
+                                    self._number_of_lighting_zones = int(nn_profile_obj.none_null_get("numberOfLightingZones", "0"))
+                                    _LOGGER.debug(f"{self.vli}NumberOfLightingZones is: {self._number_of_lighting_zones}")
+                                except BaseException as exc:
+                                    _LOGGER.debug(f"{self.vli}NumberOfLightingZones COULD NOT BE DETECTED '{self._number_of_lighting_zones}' using '0' AS DEFAULT - caused by {type(exc).__name__} - {exc}")
+
+                            if "transmissionIndicator" in nn_profile_obj:
+                                self._supports_GEARLEVERPOSITION = nn_profile_obj.none_null_get("transmissionIndicator", "Z") == "A"
                                 _LOGGER.debug(f"{self.vli}GearLeverPosition support: {self._supports_GEARLEVERPOSITION}")
 
                             # remote climate control stuff...
@@ -737,41 +758,42 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 _LOGGER.debug(f"{self.vli}RemoteClimateControl FORCED: {self._supports_REMOTE_CLIMATE_CONTROL}")
                             else:
                                 # in August 2026 'remoteClimateControl' is only in 'capabilities'
-                                if "remoteClimateControl" in capabilities_obj:
-                                    self._supports_REMOTE_CLIMATE_CONTROL = self._check_if_veh_capability_supported("remoteClimateControl", capabilities_obj)
+                                if "remoteClimateControl" in nn_capabilities_obj:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = self._check_if_veh_capability_supported("remoteClimateControl", nn_capabilities_obj)
                                     _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
 
-                                if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in capabilities_obj:
-                                    self._supports_REMOTE_CLIMATE_CONTROL = self._check_if_veh_capability_supported("remoteHeatingCooling", capabilities_obj)
+                                # THIS IS A BLIND GUESS!!!
+                                if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in nn_capabilities_obj:
+                                    self._supports_REMOTE_CLIMATE_CONTROL = self._check_if_veh_capability_supported("remoteHeatingCooling", nn_capabilities_obj)
                                     _LOGGER.debug(f"{self.vli}RemoteClimateControl/remoteHeatingCooling support: {self._supports_REMOTE_CLIMATE_CONTROL}")
 
                             #heating stuff...
-                            if "heatedSteeringWheel" in profile_obj:
-                                self._supports_HEATED_STEERING_WHEEL = profile_obj["heatedSteeringWheel"]
+                            if "heatedSteeringWheel" in nn_profile_obj:
+                                self._supports_HEATED_STEERING_WHEEL = nn_profile_obj.none_null_get("heatedSteeringWheel", False)
                                 _LOGGER.debug(f"{self.vli}HeatedSteeringWheel support: {self._supports_HEATED_STEERING_WHEEL}")
 
                             self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_NONE
-                            if "driverHeatedSeat" in profile_obj:
+                            if "driverHeatedSeat" in nn_profile_obj:
                                 # possible values: 'None', 'Heat Only', 'Heat with Vent'
-                                heated_seat = profile_obj["driverHeatedSeat"].upper()
-                                if heated_seat == "HEAT WITH VENT":
+                                heated_seat_value = nn_profile_obj.none_null_get("driverHeatedSeat", "unknown").lower()
+                                if heated_seat_value == "heat with vent":
                                     self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_AND_COOL
-                                elif "HEAT" in heated_seat:
+                                elif "heat" in heated_seat_value:
                                     self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
                             _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
 
                             # ok now the classic 'capabilities'...
                             self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
-                            self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capabilities_obj)
-                            self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capabilities_obj)
-                            self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", capabilities_obj)
-                            self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", capabilities_obj)
-                            self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capabilities_obj)
-                            self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capabilities_obj) and self._number_of_lighting_zones > 0
-                            self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capabilities_obj)
+                            self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", nn_capabilities_obj)
+                            self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", nn_capabilities_obj)
+                            self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", nn_capabilities_obj)
+                            self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", nn_capabilities_obj)
+                            self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", nn_capabilities_obj)
+                            self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", nn_capabilities_obj) and self._number_of_lighting_zones > 0
+                            self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", nn_capabilities_obj)
 
                 elif isinstance(the_veh_data, dict):
-                    # since August 2026 veh_data is a dict
+                    # before August 2026 veh_data is a dict
                     # getting the engineType...
                     if "vehicleProfile" in the_veh_data:
                         for a_vehicle_profile in the_veh_data["vehicleProfile"]:
@@ -813,10 +835,10 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                 self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_NONE
                                 if "driverHeatedSeat" in a_vehicle_profile:
                                     # possible values: 'None', 'Heat Only', 'Heat with Vent'
-                                    heated_seat = a_vehicle_profile["driverHeatedSeat"].upper()
-                                    if heated_seat == "HEAT WITH VENT":
+                                    heated_seat_value = a_vehicle_profile["driverHeatedSeat"].upper()
+                                    if heated_seat_value == "HEAT WITH VENT":
                                         self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_AND_COOL
-                                    elif "HEAT" in heated_seat:
+                                    elif "HEAT" in heated_seat_value:
                                         self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
                                 _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
                                 break
@@ -827,14 +849,15 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                     if "vehicleCapabilities" in the_veh_data:
                         for capability_obj in the_veh_data["vehicleCapabilities"]:
                             if capability_obj["VIN"] == self._vin:
+                                nn_capability_obj = NonNullDict(capability_obj)
                                 self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
-                                self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", capability_obj)
-                                self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", capability_obj)
-                                self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", capability_obj)
-                                self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", capability_obj)
-                                self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", capability_obj)
-                                self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", capability_obj) and self._number_of_lighting_zones > 0
-                                self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", capability_obj)
+                                self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", nn_capability_obj)
+                                self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", nn_capability_obj)
+                                self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", nn_capability_obj)
+                                self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", nn_capability_obj)
+                                self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", nn_capability_obj)
+                                self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", nn_capability_obj) and self._number_of_lighting_zones > 0
+                                self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", nn_capability_obj)
                                 break
                     else:
                         _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data['vehicles']}")
@@ -854,13 +877,21 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.warning(f"{self.vli}DATA is NONE!!! - {self.data}")
 
-    def _check_if_veh_capability_supported(self, a_capability: str, capabilities: dict) -> bool:
+    def _check_if_veh_capability_supported(self, a_capability: str, capabilities: NonNullDict) -> bool:
         """Check if a specific vehicle capability is supported."""
         is_supported = False
-        if a_capability in capabilities and capabilities[a_capability] is not None:
-            val = capabilities[a_capability]
-            if (isinstance(val, bool) and val) or val.lower() == "display":
-                is_supported = True
+        if a_capability in capabilities and capabilities.get(a_capability, None) is not None:
+            val = capabilities.none_null_get(a_capability, False)
+            if isinstance(val, bool):
+                is_supported = val
+            elif isinstance(val, str):
+                lc_val = val.lower()
+                is_supported = any(lc_val == a_check for a_check in ("display", "true", "yes", 'on', '1'))
+            elif isinstance(val, (float, int)):
+                is_supported = int(val) > 0
+            else:
+                _LOGGER.info(f"{self.vli}Is '{a_capability}' check failed: '{val}' is not boolean, string or number: {type(val).__name__}")
+
             _LOGGER.debug(f"{self.vli}Is '{a_capability}' supported?: {is_supported} - {val}")
         else:
             _LOGGER.warning(f"{self.vli}No '{a_capability}' data found for VIN {self._vin} - assuming not supported")

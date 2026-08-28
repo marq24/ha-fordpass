@@ -536,9 +536,9 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 self._vehicles = list(info)
                 self._vehicle_name = {}
                 for a_veh_obj in info:
-                    vin = a_veh_obj.get("vin")
-                    profile_obj = a_veh_obj.get("profile")
-                    self._vehicle_name[vin] = f"{profile_obj.get('year')} {profile_obj.get('model')}"
+                    vin = a_veh_obj.get("vin", "vin-unknown")
+                    profile_obj = a_veh_obj.get("profile", {})
+                    self._vehicle_name[vin] = f"{profile_obj.get('year', '1970')} {profile_obj.get('model', 'unknow')}"
 
                 _LOGGER.debug(f"Extracted vehicle names [AFTER Aug2026]:  {self._vehicle_name}")
                 return await self.async_step_vehicle()
@@ -686,7 +686,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"async_step_vehicle(): a vehicle from backend response: {a_vehicle}")
 
             if "vin" in a_vehicle:
-                # AFTER August 2026
+                # after August 2026
                 a_veh_vin = a_vehicle["vin"]
                 if a_veh_vin not in already_configured_vins:
                     if a_veh_vin in self._vehicle_name:
@@ -695,7 +695,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                         available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
 
             elif "VIN" in a_vehicle:
-                # BEFORE August 2026
+                # before August 2026
                 a_veh_vin = a_vehicle["VIN"]
                 if a_veh_vin not in already_configured_vins:
                     if a_veh_vin in self._vehicle_name:

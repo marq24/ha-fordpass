@@ -126,6 +126,11 @@ _AUTO_FOUR_NULL_ONE_COUNTER: dict = {}
 _sync_lock = threading.Lock()
 _sync_lock_cache = {}
 
+class NonNullDict(dict):
+    def none_null_get(self, key, default=None):
+        val = super().get(key, default)
+        return default if val is None else val
+
 def get_sync_lock_for_user_and_region(user: str, region_key: str, vli:str) -> threading.Lock:
     """Get a cached threading.Lock for the user and region."""
     global _sync_lock_cache
@@ -1356,10 +1361,15 @@ class ConnectedFordPassVehicle:
 
             if not self._vehicle_options_init_complete:
                 if isinstance(self._cached_vehicles_data, list):
+                    # after August 2026
                     for a_veh_obj in self._cached_vehicles_data:
-                        if self.vin == a_veh_obj.get("vin"):
-                            profile_obj = a_veh_obj.get("profile")
-                            capabilities_obj = a_veh_obj.get("capabilities")
+                        if self.vin == a_veh_obj.get("vin", "vin-unknown"):
+                            tmp_cap = a_veh_obj.get("capabilities", None)
+                            if not tmp_cap:
+                                _LOGGER.debug(f"{self.vli}Skipping vehicle {self.vin} due to missing capabilities")
+                                continue
+
+                            nn_capabilities_obj = NonNullDict(tmp_cap)
 
                             # we must check if the vehicle supports 'remote climate control'...
                             if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
@@ -1367,19 +1377,19 @@ class ConnectedFordPassVehicle:
                                 self._remote_climate_control_forced = True
                             else:
                                 self._remote_climate_control_forced = False
-                                if "remoteClimateControl" in capabilities_obj:
-                                    self._remote_climate_control_supported = capabilities_obj.get("remoteClimateControl", "").lower() == "display"
-                                elif "remoteHeatingCooling" in capabilities_obj:
-                                    self._remote_climate_control_supported = capabilities_obj.get("remoteHeatingCooling", "").lower() == "display"
+                                if "remoteClimateControl" in nn_capabilities_obj:
+                                    self._remote_climate_control_supported = nn_capabilities_obj.none_null_get("remoteClimateControl", "").lower() == "display"
+                                elif "remoteHeatingCooling" in nn_capabilities_obj:
+                                    self._remote_climate_control_supported = nn_capabilities_obj.none_null_get("remoteHeatingCooling", "").lower() == "display"
                                 else:
                                     self._remote_climate_control_supported = False
 
-                            if "showEVBatteryLevel" in capabilities_obj:
-                                self._preferred_charge_times_supported = capabilities_obj.get("showEVBatteryLevel", False)
+                            if "showEVBatteryLevel" in nn_capabilities_obj:
+                                self._preferred_charge_times_supported = nn_capabilities_obj.none_null_get("showEVBatteryLevel", False)
                                 #self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
 
                                 # I would like to have a more specific check here...
-                                self._energy_transfer_logs_supported = capabilities_obj.get("showEVBatteryLevel", False)
+                                self._energy_transfer_logs_supported = nn_capabilities_obj.none_null_get("showEVBatteryLevel", False)
                             else:
                                 self._preferred_charge_times_supported = False
                                 self._energy_transfer_status_supported = False
@@ -1828,7 +1838,6 @@ class ConnectedFordPassVehicle:
             #     timeout=self.timeout
             # )
 
-
             # after August 2026 get a single car..
             # data_veh = {
             #     "vin": self.vin
@@ -1857,9 +1866,10 @@ class ConnectedFordPassVehicle:
                 if "@" in self.vli:
                     if result_veh is not None:
                         if isinstance(result_veh, list):
+                            # after AUGUST 2026
                             for a_new_veh_obj in result_veh:
                                 if self.vin == a_new_veh_obj.get("vin"):
-                                    self.vli = f"[{a_new_veh_obj.get('profile', {}).get('model', '')}] "
+                                    self.vli = f"[{a_new_veh_obj.get('profile', {}).get('model', 'unknown-model')}] "
                                     break
                         elif isinstance(result_veh, dict):
                             # before AUGUST 2026
