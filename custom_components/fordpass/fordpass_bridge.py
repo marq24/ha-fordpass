@@ -277,7 +277,7 @@ class ConnectedFordPassVehicle:
             data_list.pop(0)
 
         req_txt = f"{response.request_info.url}" if response is not None and hasattr(response, "request_info") else ("WEBSOCKET" if a_type == "ws" else "UNKNOWN")
-        if self.vin in req_txt:
+        if self.vin is not None and len(self.vin) > 0 and self.vin in req_txt:
             req_txt = req_txt.replace(self.vin, "[**REDACTED**]")
 
         data_list.append({"ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
