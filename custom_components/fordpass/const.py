@@ -239,7 +239,8 @@ TRANSLATIONS: Final = {
         "lincoln_usa": "Vereinigten Staaten von Amerika",
         "USA": "USA (LEGACY)", "Canada":"Kanada (LEGACY)", "Australia":"Australien (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Niederlande (LEGACY)",
         "coord_null_data": "Es konnten keine Daten abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration.",
-        "coord_no_vehicle_data": "Es konnten keine Daten zu Deinem konfigurierten Fahrzeug abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration."
+        "coord_no_vehicle_data": "Es konnten keine Daten zu Deinem konfigurierten Fahrzeug abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration.",
+        "websocket_start_failed": "Der Websocket konnte innerhalb von einer Minute nicht gestartet werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration."
     },
     "en": {
         "account": "Account",
@@ -265,7 +266,8 @@ TRANSLATIONS: Final = {
         "lincoln_usa": "United States of America",
         "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)",
         "coord_null_data": "Coordinator could not provided any data. Please check your Home Assistant system log for possible error messages.",
-        "coord_no_vehicle_data": "Coordinator could not fetch essential information from your configured vehicle. Please check your Home Assistant system log for possible error messages."
+        "coord_no_vehicle_data": "Coordinator could not fetch essential information from your configured vehicle. Please check your Home Assistant system log for possible error messages.",
+        "websocket_start_failed": "The Websocket could not be started within one minute. Please check your Home Assistant system log for possible error messages."
     },
     "nl": {
         "account": "Account",
@@ -291,6 +293,7 @@ TRANSLATIONS: Final = {
         "lincoln_usa": "Verenigde Staten van Amerika",
         "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australië (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Nederland (LEGACY)",
         "coord_null_data": "Coördinator kon geen gegevens leveren. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen.",
-        "coord_no_vehicle_data": "Coördinator kon essentiële informatie van uw geconfigureerde voertuig niet ophalen. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen."
+        "coord_no_vehicle_data": "Coördinator kon essentiële informatie van uw geconfigureerde voertuig niet ophalen. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen.",
+        "websocket_start_failed": "De Websocket kon niet worden gestart binnen een minuut. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen."
     }
 }

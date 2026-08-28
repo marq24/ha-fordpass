@@ -856,7 +856,7 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
 
     # the WebSocket-related handling...
-    async def ws_connect(self, do_inventory_check:bool=False, skipp_init:bool=False):
+    async def ws_connect(self, ready_event:asyncio.Event=None, do_inventory_check:bool=True, skipp_init:bool=False):
         _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
 
@@ -971,7 +971,17 @@ class ConnectedFordPassVehicle:
 
                     # do we need to push new data event to the coordinator?
                     if new_data_arrived:
-                        self._ws_notify_for_new_data()
+                        # Signal that the first message has been processed and set instanly the new data
+                        # to the coordinator...
+                        if ready_event is not None and not ready_event.is_set():
+                            if self.coordinator is not None:
+                                self._ws_LAST_NEW_DATA_NOTIFY = time.time()
+                                self.coordinator.async_set_updated_data(self._data_container)
+                            ready_event.set()
+                        else:
+                            # in any other case we make sure, that we notify the coordinator for the newly
+                            # arrived data...
+                            self._ws_notify_for_new_data()
 
                     if do_housekeeping_checks:
                         # check if we need to update the messages...
@@ -1266,7 +1276,6 @@ class ConnectedFordPassVehicle:
         self._ws_debounced_update_task = asyncio.create_task(self._ws_debounce_coordinator_update())
 
     async def _ws_debounce_coordinator_update(self):
-        await asyncio.sleep(0.3)
         if self.coordinator is not None:
             elapsed = time.time() - self._ws_LAST_NEW_DATA_NOTIFY
             if elapsed < self.coordinator._ws_data_update_notify_interval_in_seconds:
@@ -1282,7 +1291,7 @@ class ConnectedFordPassVehicle:
         try:
             # if the ignition state has changed to 'OFF', we will wait 30 seconds before we trigger the full refresh
             # this is to ensure that the vehicle has enough time to send all the last data updates - and that the vehicle
-            # will be started again... (in a short while)
+            # will be started again... (after a short break/delay)
             _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): started")
             await asyncio.sleep(30)
             count = 0
@@ -1292,7 +1301,7 @@ class ConnectedFordPassVehicle:
                 await asyncio.sleep(random.uniform(2, 30))
 
             _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): starting the full update now")
-            updated_data = await self.update_all()
+            updated_data = await self.update_all_manually_this_is_deprecated_and_should_not_be_called()
             if updated_data is not None and self.coordinator is not None:
                 self.coordinator.async_set_updated_data(self._data_container)
 
@@ -1336,10 +1345,14 @@ class ConnectedFordPassVehicle:
             _LOGGER.info(f"{self.vli}ws_check_last_update(): force reconnect...")
             return False
 
+    async def update_users_garage_info(self):
+        _LOGGER.debug(f"{self.vli}call_on_init(): request users garage data...")
+        self._cached_vehicles_data = await self.req_vehicles()
+        return self._cached_vehicles_data
 
     # fetching the main data via classic requests...
-    async def update_all(self):
-        data = await self.req_status()
+    async def update_all_manually_this_is_deprecated_and_should_not_be_called(self):
+        data = await self.req_status_deprecated_to_not_use()
         if data is not None:
             await self._update_others(data)
         return data
@@ -1361,7 +1374,7 @@ class ConnectedFordPassVehicle:
 
             if not self._vehicle_options_init_complete:
                 if isinstance(self._cached_vehicles_data, list):
-                    # after August 2026
+                    # after API-Change FordPassApp 6.20.0
                     for a_veh_obj in self._cached_vehicles_data:
                         if self.vin == a_veh_obj.get("vin", "vin-unknown"):
                             tmp_cap = a_veh_obj.get("capabilities", None)
@@ -1412,54 +1425,6 @@ class ConnectedFordPassVehicle:
                             # VIN is completed...
                             self._vehicle_options_init_complete = True
                             break
-
-                elif isinstance(self._cached_vehicles_data, dict):
-                    # before August 2026
-                    if "vehicleProfile" in self._cached_vehicles_data:
-                        for a_vehicle_profile in self._cached_vehicles_data["vehicleProfile"]:
-                            if a_vehicle_profile["VIN"] == self.vin:
-
-                                # we must check if the vehicle supports 'remote climate control'...
-                                if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
-                                    self._remote_climate_control_supported = True
-                                    self._remote_climate_control_forced = True
-                                else:
-                                    self._remote_climate_control_forced = False
-                                    if "remoteClimateControl" in a_vehicle_profile:
-                                        self._remote_climate_control_supported = a_vehicle_profile["remoteClimateControl"]
-                                    elif "remoteHeatingCooling" in a_vehicle_profile:
-                                        self._remote_climate_control_supported = a_vehicle_profile["remoteHeatingCooling"]
-                                    else:
-                                        self._remote_climate_control_supported = False
-
-                                if "showEVBatteryLevel" in a_vehicle_profile:
-                                    self._preferred_charge_times_supported = a_vehicle_profile["showEVBatteryLevel"]
-                                    #self._energy_transfer_status_supported = a_vehicle_profile["showEVBatteryLevel"]
-
-                                    # I would like to have a more specific check here...
-                                    self._energy_transfer_logs_supported = a_vehicle_profile["showEVBatteryLevel"]
-                                else:
-                                    self._preferred_charge_times_supported = False
-                                    self._energy_transfer_status_supported = False
-                                    self._energy_transfer_logs_supported = True
-
-                                # tripAndChargeLogs is not present in the 'a_vehicle_profile'
-                                # if "tripAndChargeLogs" in a_vehicle_profile:
-                                #     val = a_vehicle_profile["tripAndChargeLogs"]
-                                #     if (isinstance(val, bool) and val) or val.upper() == "DISPLAY":
-                                #         _LOGGER.warning(f"AAA: {val}")
-                                #         self._energy_transfer_logs_supported = True
-                                #     else:
-                                #         _LOGGER.warning(f"BBB: {val}")
-                                #         self._energy_transfer_logs_supported = False
-                                # else:
-                                #     _LOGGER.warning(f"CCC: {a_vehicle_profile}")
-                                #     self._energy_transfer_logs_supported = False
-
-                                # ok record that we do not read the vehicle profile data again - since the init for this
-                                # VIN is completed...
-                                self._vehicle_options_init_complete = True
-                                break
 
         # only update remote climate data if not present yet
         if self._remote_climate_control_supported:
@@ -1590,8 +1555,12 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
     # ***********************************************************
 
-    async def req_status(self, do_as_post=False):
+    # with com.ford.fordpass 6.20.0 there are no request to
+    # https://api.autonomic.ai/v1beta/telemetry/sources/fordpass/vehicles/{vin}?lrdt=01-01-1970 00:00:00
+    # any longer - so we SHOULD REMOVE this... at least don't use it by default
+    async def req_status_deprecated_to_not_use(self, do_as_post=False):
         """Get Vehicle status from API"""
+        _LOGGER.warning(f"{self.vli}req_status_deprecated_to_not_use() CALLED - the URL might not be available in the future! - Please share this as an issue @ GitHub - TIA", stack_info=True)
         global _AUTO_FOUR_NULL_ONE_COUNTER
         try:
             # API-Reference?!
@@ -1827,16 +1796,6 @@ class ConnectedFordPassVehicle:
                 "countryCode": self.countrycode,
                 "locale": self.locale_code
             }
-            # before August 2026
-            # data_veh = {
-            #     "dashboardRefreshRequest": "All"
-            # }
-            # response_veh = await self.session.post(
-            #     f"{FORD_VEHICLE_API}/expdashboard/v1/details/",
-            #     headers=headers_veh,
-            #     data=json.dumps(data_veh),
-            #     timeout=self.timeout
-            # )
 
             # after August 2026 get a single car..
             # data_veh = {
@@ -1848,6 +1807,8 @@ class ConnectedFordPassVehicle:
             #     data=json.dumps(data_veh),
             #     timeout=self.timeout
             # )
+
+            # after API-Change FordPassApp 6.20.0
             response_veh = await self.session.get(
                 f"{FORD_VEHICLE_API}/fpcpl-user-garage-service/v1/user/garage",
                 headers=headers_veh,
@@ -1866,22 +1827,11 @@ class ConnectedFordPassVehicle:
                 if "@" in self.vli:
                     if result_veh is not None:
                         if isinstance(result_veh, list):
-                            # after AUGUST 2026
+                            # after API-Change FordPassApp 6.20.0
                             for a_new_veh_obj in result_veh:
-                                if self.vin == a_new_veh_obj.get("vin"):
+                                if self.vin == a_new_veh_obj.get("vin", "vin-unknown"):
                                     self.vli = f"[{a_new_veh_obj.get('profile', {}).get('model', 'unknown-model')}] "
                                     break
-                        elif isinstance(result_veh, dict):
-                            # before AUGUST 2026
-                            if "userVehicles" in result_veh and "vehicleDetails" in result_veh["userVehicles"]:
-                                #self._vehicles = result_veh["userVehicles"]["vehicleDetails"]
-                                #self._vehicle_name = {}
-                                if "vehicleProfile" in result_veh:
-                                    for a_vehicle in result_veh["vehicleProfile"]:
-                                        if "VIN" in a_vehicle and "model" in a_vehicle:
-                                            if self.vin == a_vehicle["VIN"]:
-                                                self.vli = f"[{a_vehicle['model']}] "
-                                                break
 
                 return result_veh
 
@@ -2304,6 +2254,7 @@ class ConnectedFordPassVehicle:
                                                                properties=None,
                                                                data_version="1.0.1",
                                                                wait_for_state=True)
+
     async def cancel_charge(self):
         # CANCEL_GLOBAL_CHARGE
         # worked till 2026/04/20...
@@ -2973,7 +2924,7 @@ class ConnectedFordPassVehicle:
                 if use_websocket:
                     updated_data = self._data_container
                 else:
-                    updated_data = await self.req_status()
+                    updated_data = await self.req_status_deprecated_to_not_use()
 
                 # Check states for command status
                 if updated_data is not None and ROOT_STATES in updated_data:

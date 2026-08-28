@@ -180,43 +180,45 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     coordinator = FordPassDataUpdateCoordinator(hass, config_entry, user, vin, region_key, update_interval_as_int=update_interval_as_int, save_token=True)
     await coordinator.bridge._rename_token_file_if_needed(user)
 
-    # HA can check if we can make an initial data refresh and report the state
-    # back to HA (we don't have to code this by ourselves, HA will do this for us)
-    # await coordinator.async_config_entry_first_refresh()
-
-    # well 'coordinator.async_config_entry_first_refresh()' does not work for our fordpass integration
-    # I must debug later why this is the case
-    coordinator.is_initphase = True
-    await coordinator.async_refresh()  # Get initial data
-    coordinator.is_initphase = False
-
-    # TO TEST STARTUP-ISSUES/ERRORS
-    # coordinator.data = {"metrics": {}}
-
-    is_essential_vehicle_data_available = FordpassDataHandler.is_essential_vehicle_data_available(coordinator.data)
-    if not coordinator.last_update_success or is_essential_vehicle_data_available is False:
-        # we should check if 'reauth' is required... and trigger it when
-        # it's necessary...
-        await coordinator._check_for_reauth()
-
-        # report the GUI the final error/reason/some sort of what to check
-        if not is_essential_vehicle_data_available:
-            lang = hass.config.language.lower()
-            if lang in TRANSLATIONS:
-                lang_map = TRANSLATIONS[lang]
-            else:
-                lang_map = TRANSLATIONS["en"]
-
-            if coordinator.data is None:
-                raise ConfigEntryNotReady(lang_map["coord_null_data"])
-            else:
-                raise ConfigEntryNotReady(lang_map["coord_no_vehicle_data"])
-        else:
-            raise ConfigEntryNotReady("")
+    # ok starting the init sequence...
+    lang = hass.config.language.lower()
+    if lang in TRANSLATIONS:
+        lang_map = TRANSLATIONS[lang]
     else:
-        await coordinator.read_config_on_startup(hass)
+        lang_map = TRANSLATIONS["en"]
 
-    # ws watchdog...
+    user_garage_data = await coordinator.bridge.update_users_garage_info()
+    if user_garage_data is None or len(user_garage_data) == 0:
+        _LOGGER.warning(f"Could not get any garage data for user: {user}/{region_key} - so we can't continue with the init sequence")
+        await coordinator._check_for_reauth()
+        raise ConfigEntryNotReady(lang_map["coord_null_data"])
+
+    # We have successfully requested the garage data for the user (with all available vehicles)
+    vehicle_is_active = False
+    for a_vehicle in user_garage_data:
+        if vin == a_vehicle.get("vin", "vin-unknown"):
+            _LOGGER.debug(f"Found the vehicle with VIN: {vin} in the initial requested garage data - so let's continue with the init sequence")
+            vehicle_is_active = True
+            break
+
+    if not vehicle_is_active:
+        raise ConfigEntryNotReady(lang_map["coord_no_vehicle_data"])
+
+    # so VIN is still available in our initial garage data... so we should start the websocket connection...
+    # and once that is established, we do the rest!
+    try:
+        if not await coordinator.start_websocket_and_wait_for_first_data():
+            _LOGGER.warning(f"The coordinator.start_websocket_and_wait_for_first_data() as returned FALSE")
+            raise ConfigEntryNotReady(lang_map["coord_no_vehicle_data"])
+
+    except BaseException as exc:
+        _LOGGER.error(f"Error starting websocket connection: {type(exc).__name__} - {exc}")
+        raise ConfigEntryNotReady(lang_map["websocket_start_failed"])
+
+    # init our vehicle and the supported features...
+    await coordinator.read_config_on_startup(hass)
+
+    # start the websocket watchdog...
     if hass.state is CoreState.running:
         await coordinator.start_watchdog()
     else:
@@ -553,7 +555,6 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._force_classic_requests = False
         self._ws_data_update_notify_interval_in_seconds = 5
         self._integration_start = time.time()
-        self.is_initphase = False
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval_as_int))
 
     async def clear_data(self):
@@ -571,7 +572,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             #
             try:
                 self._http_session.detach()
-            except BaseException as ex:
+            except BaseException as exc:
                 pass
 
     def get_new_client_session(self, vin: str) -> aiohttp.ClientSession:
@@ -584,6 +585,31 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._http_session = get_none_closed_cached_session(self.hass, vin, self.vli)
         return self._http_session
+
+    async def start_websocket_and_wait_for_first_data(self):
+        # 1. Create an event to signal when the connection is established/ready
+        connected_event = asyncio.Event()
+
+        # 2. Pass the event into your background task
+        self._a_task = self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(ready_event=connected_event), "ws_connection")
+
+        # 3. Wait ONLY until the first message is processed (or time out)
+        try:
+            async with asyncio.timeout(60):  # Protect against hanging forever
+                await connected_event.wait()
+        except TimeoutError:
+            _LOGGER.warning("Connection to websocket timed out after one minute!")
+            self._a_task.cancel()
+            # NOT SURE WHAT TO DO NOW ???!
+            raise
+
+        _LOGGER.debug(f"Connection to websocket established!")
+        is_essential_vehicle_data_available = FordpassDataHandler.is_essential_vehicle_data_available(self.data)
+        if not is_essential_vehicle_data_available:
+            return False
+
+        _LOGGER.info(f"Essential vehicle data is available after WebSocket connection has been established - that's just so GREAT! Available keys: {list(self.data.keys())} so let's move on...")
+        return True
 
     async def start_watchdog(self, event=None):
         """Start websocket watchdog."""
@@ -715,9 +741,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                 the_veh_data = self.data[ROOT_VEHICLES]
 
                 if isinstance(the_veh_data, list):
-                    # after August 2026
+                    # after API-Change FordPassApp 6.20.0
                     for a_veh_obj in the_veh_data:
-                        if self._vin == a_veh_obj.get("vin"):
+                        if self._vin == a_veh_obj.get("vin", "vin-unknown"):
                             tmp_pro = a_veh_obj.get("profile", None)
                             tmp_cap = a_veh_obj.get("capabilities", None)
 
@@ -792,75 +818,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                             self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", nn_capabilities_obj) and self._number_of_lighting_zones > 0
                             self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", nn_capabilities_obj)
 
-                elif isinstance(the_veh_data, dict):
-                    # before August 2026 veh_data is a dict
-                    # getting the engineType...
-                    if "vehicleProfile" in the_veh_data:
-                        for a_vehicle_profile in the_veh_data["vehicleProfile"]:
-                            if a_vehicle_profile["VIN"] == self._vin:
-
-                                if "model" in a_vehicle_profile:
-                                    self.vli = f"[{a_vehicle_profile['model']}] "
-
-                                if "engineType" in a_vehicle_profile:
-                                    self._engine_type = a_vehicle_profile["engineType"]
-                                    _LOGGER.debug(f"{self.vli}EngineType is: {self._engine_type}")
-
-                                if "numberOfLightingZones" in a_vehicle_profile:
-                                    self._number_of_lighting_zones = int(a_vehicle_profile["numberOfLightingZones"])
-                                    _LOGGER.debug(f"{self.vli}NumberOfLightingZones is: {self._number_of_lighting_zones}")
-
-                                if "transmissionIndicator" in a_vehicle_profile:
-                                    self._supports_GEARLEVERPOSITION = a_vehicle_profile["transmissionIndicator"] == "A"
-                                    _LOGGER.debug(f"{self.vli}GearLeverPosition support: {self._supports_GEARLEVERPOSITION}")
-
-                                # remote climate control stuff...
-                                if self._force_REMOTE_CLIMATE_CONTROL:
-                                    self._supports_REMOTE_CLIMATE_CONTROL = True
-                                    _LOGGER.debug(f"{self.vli}RemoteClimateControl FORCED: {self._supports_REMOTE_CLIMATE_CONTROL}")
-                                else:
-                                    if "remoteClimateControl" in a_vehicle_profile:
-                                        self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteClimateControl"]
-                                        _LOGGER.debug(f"{self.vli}RemoteClimateControl support: {self._supports_REMOTE_CLIMATE_CONTROL}")
-
-                                    if not self._supports_REMOTE_CLIMATE_CONTROL and "remoteHeatingCooling" in a_vehicle_profile:
-                                        self._supports_REMOTE_CLIMATE_CONTROL = a_vehicle_profile["remoteHeatingCooling"]
-                                        _LOGGER.debug(f"{self.vli}RemoteClimateControl/remoteHeatingCooling support: {self._supports_REMOTE_CLIMATE_CONTROL}")
-
-
-                                if "heatedSteeringWheel" in a_vehicle_profile:
-                                    self._supports_HEATED_STEERING_WHEEL = a_vehicle_profile["heatedSteeringWheel"]
-                                    _LOGGER.debug(f"{self.vli}HeatedSteeringWheel support: {self._supports_HEATED_STEERING_WHEEL}")
-
-                                self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_NONE
-                                if "driverHeatedSeat" in a_vehicle_profile:
-                                    # possible values: 'None', 'Heat Only', 'Heat with Vent'
-                                    heated_seat_value = a_vehicle_profile["driverHeatedSeat"].upper()
-                                    if heated_seat_value == "HEAT WITH VENT":
-                                        self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_AND_COOL
-                                    elif "HEAT" in heated_seat_value:
-                                        self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
-                                _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
-                                break
-                    else:
-                        _LOGGER.warning(f"{self.vli}No vehicleProfile in 'vehicles' found in coordinator data - no 'engineType' available! {self.data['vehicles']}")
-
-                    # check, if RemoteStart is supported
-                    if "vehicleCapabilities" in the_veh_data:
-                        for capability_obj in the_veh_data["vehicleCapabilities"]:
-                            if capability_obj["VIN"] == self._vin:
-                                nn_capability_obj = NonNullDict(capability_obj)
-                                self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
-                                self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", nn_capability_obj)
-                                self._supports_REMOTE_START = self._check_if_veh_capability_supported("remoteStart", nn_capability_obj)
-                                self._supports_TRAILER_LIGHT_CHECK = self._check_if_veh_capability_supported("trailerLightCheck", nn_capability_obj)
-                                self._supports_DEPARTURE_TIMES = self._check_if_veh_capability_supported("departureTimes", nn_capability_obj)
-                                self._supports_GUARD_MODE = self._check_if_veh_capability_supported("guardMode", nn_capability_obj)
-                                self._supports_ZONE_LIGHTING = self._check_if_veh_capability_supported("zoneLighting", nn_capability_obj) and self._number_of_lighting_zones > 0
-                                self._supports_HAF = self._check_if_veh_capability_supported("remotePanicAlarm", nn_capability_obj)
-                                break
-                    else:
-                        _LOGGER.warning(f"{self.vli}No vehicleCapabilities in 'vehicles' found in coordinator data - no 'support_remote_start' available! {self.data['vehicles']}")
+                else:
+                    _LOGGER.warning(f"{self.vli}No list object in coordinator '{ROOT_VEHICLES}' data - no engineType available! {self.the_veh_data}")
 
                 # check, if GuardMode is supported
                 # [original impl]
@@ -905,6 +864,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
+
+        # 1. check, if we are healthy...
         if self.bridge.require_reauth:
             self._available = False  # Mark as unavailable
             if not self._reauth_requested:
@@ -914,79 +875,71 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
             raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
 
-        else:
-            if self.bridge.ws_connected and self._force_classic_requests is False:
-                try:
-                    _LOGGER.debug(f"{self.vli}_async_update_data(): called (but websocket is active - no data will be requested!)")
-                    return self.bridge._data_container
+        # 2. the default should be that the websocket is connected...
+        if self.bridge.ws_connected and self._force_classic_requests is False:
+            try:
+                _LOGGER.debug(f"{self.vli}_async_update_data(): called (but websocket is active - no data will be requested!)")
+                return self.bridge._data_container
 
-                except UpdateFailed as exception:
-                    _LOGGER.warning(f"{self.vli}_async_update_data(): UpdateFailed: {type(exception).__name__} - {exception}")
-                    raise UpdateFailed() from exception
-                except BaseException as other:
-                    _LOGGER.warning(f"{self.vli}_async_update_data(): UpdateFailed unexpected: {type(other).__name__} - {other}")
-                    raise UpdateFailed() from other
+            except UpdateFailed as exception:
+                _LOGGER.warning(f"{self.vli}_async_update_data(): UpdateFailed: {type(exception).__name__} - {exception}")
+                raise UpdateFailed() from exception
+            except BaseException as other:
+                _LOGGER.warning(f"{self.vli}_async_update_data(): UpdateFailed unexpected: {type(other).__name__} - {other}")
+                raise UpdateFailed() from other
 
-            else:
-                should_call_update = True
-                if not self.is_initphase:
-                    if not self._force_classic_requests:
-                        # ignore all manual update requests during the first 5 minutes of the integration start...
-                        delta_since_start = time.time() - self._integration_start
-                        if delta_since_start < 300:
-                            should_call_update = False
-                            _LOGGER.info(f"{self.vli}_async_update_data(): Update skipped due to integration start phase - {delta_since_start}")
+        # 3. AS fallback ONLY scenario (websocket is not connected)...
+        should_call_update = True
+        if not self._force_classic_requests:
+            # ignore all manual update requests during the first 5 minutes of the integration start...
+            delta_since_start = time.time() - self._integration_start
+            if delta_since_start < 300:
+                should_call_update = False
+                _LOGGER.info(f"{self.vli}_async_update_data(): Update skipped due to integration start phase - {delta_since_start}")
 
-                if should_call_update:
-                    try:
-                        async with timeout(60):
-                            if self.bridge.status_updates_allowed:
-                                data = await self.bridge.update_all()
-                                if data is not None:
-                                    try:
-                                        _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
-                                    except BaseException:
-                                        pass
+        if should_call_update:
+            try:
+                async with timeout(60):
+                    if self.bridge.status_updates_allowed:
+                        # I hope the method name is already a hint, that this might not be so smart to call this
+                        # method anylonger...
+                        data = await self.bridge.update_all_manually_this_is_deprecated_and_should_not_be_called()
+                        if data is not None:
+                            try:
+                                _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
+                            except BaseException:
+                                pass
 
-                                    # only for private debugging
-                                    # self.write_data_debug(data)
-
-                                    # If data has now been fetched but was previously unavailable, log and reset
-                                    if not self._available:
-                                        _LOGGER.info(f"{self.vli}_async_update_data: Restored connection to FordPass for {self._vin}")
-                                        self._available = True
-                                else:
-                                    if self.bridge is not None and self.bridge._HAS_COM_ERROR:
-                                        _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
-                                    else:
-                                        _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
-                                    data = self.data
+                            # If data has now been fetched but was previously unavailable, log and reset
+                            if not self._available:
+                                _LOGGER.info(f"{self.vli}_async_update_data: Restored connection to FordPass for {self._vin}")
+                                self._available = True
+                        else:
+                            if self.bridge is not None and self.bridge._HAS_COM_ERROR:
+                                _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
                             else:
-                                _LOGGER.info(f"{self.vli}_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")
-                                data = self.data
-                            return data
-
-                    except asyncio.TimeoutError as timeout_err:
-                        # Mark as unavailable - but let the coordinator deal with the rest...
-                        self._available = False
-                        raise timeout_err
-
-                    except BaseException as ex:
-                        self._available = False  # Mark as unavailable
-                        _LOGGER.warning(f"{self.vli}_async_update_data(): Error communicating with FordPass for {self._vin} {type(ex).__name__} -> {str(ex)}")
-                        raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(ex).__name__}") from ex
-                else:
-                    if len(self.bridge._data_container) > 0:
-                        return self.bridge._data_container
+                                _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
+                            data = self.data
                     else:
-                        _LOGGER.warning(f"{self.vli}_async_update_data(): No data available - return 'None'")
-                        return None
+                        _LOGGER.info(f"{self.vli}_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")
+                        data = self.data
+                    return data
 
-    # def write_data_debug(self, data):
-    #     import time
-    #     with open(f"data/fordpass_data_{time.time()}.json", "w", encoding="utf-8") as outfile:
-    #         import json
-    #         json.dump(data, outfile)
+            except asyncio.TimeoutError as timeout_err:
+                # Mark as unavailable - but let the coordinator deal with the rest...
+                self._available = False
+                raise timeout_err
+
+            except BaseException as exc:
+                self._available = False  # Mark as unavailable
+                _LOGGER.warning(f"{self.vli}_async_update_data(): Error communicating with FordPass for {self._vin} {type(exc).__name__} -> {str(exc)}")
+                raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(exc).__name__}") from exc
+        else:
+            if len(self.bridge._data_container) > 0:
+                return self.bridge._data_container
+            else:
+                _LOGGER.warning(f"{self.vli}_async_update_data(): No data available - return 'None'")
+                return None
 
 
 class FordPassEntity(CustomFriendlyNameEntity):

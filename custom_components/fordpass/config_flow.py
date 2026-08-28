@@ -253,7 +253,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
 
-        test = await bridge.req_status()
+        test = await bridge.req_status_deprecated_to_not_use()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
 
         # Kudos @Humper
@@ -540,20 +540,8 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     profile_obj = a_veh_obj.get("profile", {})
                     self._vehicle_name[vin] = f"{profile_obj.get('year', '1970')} {profile_obj.get('model', 'unknow')}"
 
-                _LOGGER.debug(f"Extracted vehicle names [AFTER Aug2026]:  {self._vehicle_name}")
+                _LOGGER.debug(f"Extracted vehicle names:  {self._vehicle_name}")
                 return await self.async_step_vehicle()
-
-            elif isinstance(info, dict):
-                if "userVehicles" in info and "vehicleDetails" in info["userVehicles"]:
-                    self._vehicles = info["userVehicles"]["vehicleDetails"]
-                    self._vehicle_name = {}
-                    if "vehicleProfile" in info:
-                        for a_vehicle in info["vehicleProfile"]:
-                            if "VIN" in a_vehicle and "year" in a_vehicle and "model" in a_vehicle:
-                                self._vehicle_name[a_vehicle["VIN"]] = f"{a_vehicle['year']} {a_vehicle['model']}"
-
-                    _LOGGER.debug(f"Extracted vehicle names [BEFORE Aug2026]:  {self._vehicle_name}")
-                    return await self.async_step_vehicle()
 
         # the hard FALLBACK, if info is NONE, or not a list or dict
         _LOGGER.debug(f"NO VEHICLES FOUND in info {info}")
@@ -686,23 +674,11 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"async_step_vehicle(): a vehicle from backend response: {a_vehicle}")
 
             if "vin" in a_vehicle:
-                # after August 2026
-                a_veh_vin = a_vehicle["vin"]
+                # after API-Change FordPassApp 6.20.0
+                a_veh_vin = a_vehicle.get("vin", "vin-unknown")
                 if a_veh_vin not in already_configured_vins:
                     if a_veh_vin in self._vehicle_name:
                         available_vehicles[a_veh_vin] = f"{self._vehicle_name.get(a_veh_vin)} - {a_veh_vin}"
-                    else:
-                        available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
-
-            elif "VIN" in a_vehicle:
-                # before August 2026
-                a_veh_vin = a_vehicle["VIN"]
-                if a_veh_vin not in already_configured_vins:
-                    if a_veh_vin in self._vehicle_name:
-                        available_vehicles[a_veh_vin] = f"{self._vehicle_name[a_veh_vin]} - {a_veh_vin}"
-                    elif "nickName" in a_vehicle:
-                        self._vehicle_name[a_veh_vin] = a_vehicle["nickName"]
-                        available_vehicles[a_veh_vin] = f"{a_vehicle['nickName']} - {a_veh_vin}"
                     else:
                         available_vehicles[a_veh_vin] = f"'({a_veh_vin})"
 
