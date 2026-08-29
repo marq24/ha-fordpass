@@ -255,6 +255,7 @@ class ConnectedFordPassVehicle:
         self._ws_debounced_update_remote_climate_task = None
         self._ws_in_use_access_token = None
         self.ws_connected = False
+        self.ws_connection_start = 0 # the time.time() when this ws_connection was established...
         self._ws_LAST_UPDATE = 0
         self._ws_LAST_NEW_DATA_NOTIFY = 0
         self._last_ignition_state = INTEGRATION_INIT
@@ -912,6 +913,9 @@ class ConnectedFordPassVehicle:
         try:
             async with self.session.ws_connect(url=web_socket_url, headers=headers_ws, timeout=self.timeout) as ws:
                 _LOGGER.debug(f"{self.vli}REQUEST: WS_CONNECT {web_socket_url}")
+                # storing the time, when this ws_connection was established... (to avoid too many reconnections when
+                # impatient users using the force_update_data too frequently!
+                self.ws_connection_start = time.time()
 
                 # the FordApp does this everytime after athe ws_connection has been established
                 if do_inventory_check_shortly_after_ws_connect:
@@ -1062,65 +1066,74 @@ class ConnectedFordPassVehicle:
             self._LAST_MESSAGES_UPDATE = time.time()
 
         new_metrics = self._ws_update_key(data_obj, ROOT_METRICS, collected_keys)
-        if ROOT_STATES not in data_obj:
+        if ROOT_UPDTIME in data_obj:
             self._ws_update_key(data_obj, ROOT_UPDTIME, collected_keys)
 
-        # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
-        # SO NOTHING HAPPENS when the ignation change is detected !!! (we just log it on info level)
-        # check, if the 'ignitionStatus' has changed cause of the data that was received via the websocket...
-        # IF the state goes to 'OFF', we will trigger a complete integration data update
+        # listing for possible state changes...
         if ROOT_METRICS not in data_obj:
-
             # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
             new_ignition_state = self._data_container.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
-            _LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
-            if self._last_ignition_state != INTEGRATION_INIT:
-                if "OFF" == new_ignition_state and new_ignition_state != self._last_ignition_state:
-                    _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'OFF' (just as INFO)")
-                    # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
-                    # if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
-                    #     self._ws_debounced_full_refresh_task.cancel()
-                    # _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
-                    # self._ws_debounced_full_refresh_task = asyncio.create_task(self._ws_debounce_full_data_refresh())
+            new_ev_connect_state = self._data_container.get(ROOT_METRICS, {}).get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
+            new_remote_start_countdown = self._data_container.get(ROOT_METRICS, {}).get("remoteStartCountdownTimer", {}).get("value", -1)
+        else:
+            new_ignition_state = data_obj.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
+            new_ev_connect_state = data_obj.get(ROOT_METRICS, {}).get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
+            new_remote_start_countdown = data_obj.get(ROOT_METRICS, {}).get("remoteStartCountdownTimer", {}).get("value", -1)
 
-                elif "ON" == new_ignition_state:
-                    _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'ON' (just as INFO)")
-                    # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
-                    # # cancel any running the full refresh task if the new state is 'ON'...
-                    # if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
-                    #     _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
-                    #     self._ws_debounced_full_refresh_task.cancel()
+        if new_ignition_state is not None and new_ignition_state != INTEGRATION_INIT:
+            if self._last_ignition_state != INTEGRATION_INIT:
+                if new_ignition_state != self._last_ignition_state:
+                    _LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
+                    if "OFF" == new_ignition_state:
+                        _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'OFF' (just as INFO)")
+                        # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+                        # if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
+                        #     self._ws_debounced_full_refresh_task.cancel()
+                        # _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
+                        # self._ws_debounced_full_refresh_task = asyncio.create_task(self._ws_debounce_full_data_refresh())
+
+                    elif "ON" == new_ignition_state:
+                        _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'ON' (just as INFO)")
+                        # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+                        # # cancel any running the full refresh task if the new state is 'ON'...
+                        # if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
+                        #     _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
+                        #     self._ws_debounced_full_refresh_task.cancel()
 
             self._last_ignition_state = new_ignition_state
 
-            # when a remote start was triggered externally - the integration should update the
-            # update_remote_climate information
-            a_start_val = self._data_container.get(ROOT_METRICS, {}).get("remoteStartCountdownTimer", {}).get("value", 0)
-            new_remote_start_state = REMOTE_START_STATE_ACTIVE if a_start_val > 0 else REMOTE_START_STATE_INACTIVE
+        # when a remote start was triggered externally - the integration should update the
+        # update_remote_climate information
+        if new_remote_start_countdown is not None and new_remote_start_countdown != -1:
+            new_remote_start_state = REMOTE_START_STATE_ACTIVE if new_remote_start_countdown > 0 else REMOTE_START_STATE_INACTIVE
             if self._last_remote_start_state != INTEGRATION_INIT:
-                if REMOTE_START_STATE_ACTIVE == new_remote_start_state and self._last_remote_start_state != new_remote_start_state:
-                    if self._ws_debounced_update_remote_climate_task is not None and not self._ws_debounced_update_remote_climate_task.done():
-                        self._ws_debounced_update_remote_climate_task.cancel()
-                    self._ws_debounced_update_remote_climate_task = asyncio.create_task(self._ws_debounced_update_remote_climate())
+                if self._last_remote_start_state != new_remote_start_state:
+                    _LOGGER.info(f"{self.vli}ws(): NEW remote_start state '{new_remote_start_state}' | LAST remote_start state: '{self._last_remote_start_state}'")
+                    if REMOTE_START_STATE_ACTIVE == new_remote_start_state:
+                        if self._ws_debounced_update_remote_climate_task is not None and not self._ws_debounced_update_remote_climate_task.done():
+                            self._ws_debounced_update_remote_climate_task.cancel()
+                        self._ws_debounced_update_remote_climate_task = asyncio.create_task(self._ws_debounced_update_remote_climate())
 
             self._last_remote_start_state = new_remote_start_state
 
-
-            # listening for EV connect/disconnect state changes...
-            new_ev_connect_state = self._data_container.get(ROOT_METRICS, {}).get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
-            #_LOGGER.info(f"{self.vli}ws(): NEW EV connect state '{new_ev_connect_state}' | LAST EV connect state: '{self._last_ev_connect_state}'")
+        # listening for EV connect/disconnect state changes...
+        #_LOGGER.info(f"{self.vli}ws(): NEW EV connect state '{new_ev_connect_state}' | LAST EV connect state: '{self._last_ev_connect_state}'")
+        if new_ev_connect_state is not None and new_ev_connect_state != INTEGRATION_INIT:
             if self._last_ev_connect_state != INTEGRATION_INIT:
-                if "DISCONNECTED" == new_ev_connect_state and new_ev_connect_state != self._last_ev_connect_state:
-                    if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
-                        self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
-                    _LOGGER.debug(f"{self.vli}ws(): EV connect state changed to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 3min)")
-                    self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
+                if new_ev_connect_state != self._last_ev_connect_state:
+                    _LOGGER.info(f"{self.vli}ws(): NEW ev_connect state '{new_ev_connect_state}' | LAST ev_connect state: '{self._last_ev_connect_state}'")
+                    if "DISCONNECTED" == new_ev_connect_state:
+                        _LOGGER.debug(f"{self.vli}ws(): EV connect state changed to 'DISCONNECTED' -> triggering 'energy_transfer_logs' data update (will be started in 3min)")
+                        if self._ws_debounced_energy_transfer_logs_refresh_task is not None and not self._ws_debounced_energy_transfer_logs_refresh_task.done():
+                            self._ws_debounced_energy_transfer_logs_refresh_task.cancel()
+                        self._ws_debounced_energy_transfer_logs_refresh_task = asyncio.create_task(self._ws_debounce_update_energy_transfer_logs())
 
-                elif "CONNECTED" == new_ev_connect_state:
-                    pass
+                    elif "CONNECTED" == new_ev_connect_state:
+                        pass
 
             self._last_ev_connect_state = new_ev_connect_state
 
+        # finally, all check have been processed - return if there was any new data...
         return new_metrics or new_states or new_events or new_msg
 
     def _ws_update_key(self, data_obj, a_root_key, collected_keys):

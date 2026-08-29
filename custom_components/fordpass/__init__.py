@@ -555,6 +555,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._watchdog = None
         self._a_task = None
+        self._ws_restart_lock = asyncio.Lock()
 
         # the time that the ws_new_data_arrived_notification will between two notifications (to avoid flooding the
         # data coordinator with new data) - this was an attemp to reduce the load of my ha system... turned out
@@ -661,17 +662,19 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         """Reconnect the websocket if it fails."""
         await self._check_for_reauth()
 
-        if not self.bridge.ws_connected:
-            self._check_for_ws_task_and_cancel_if_running()
-            _LOGGER.info(f"{self.vli}Watchdog: websocket connect required")
-            self._a_task = self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
-            if self._a_task is not None:
-                _LOGGER.debug(f"{self.vli}Watchdog: task created {self._a_task.get_coro()}")
-        else:
-            _LOGGER.debug(f"{self.vli}Watchdog: websocket is connected")
-            self._available = True
-            if not self.bridge.ws_check_last_update():
+        # we need to ensure that we are not currently restarting the websocket (cause of a FORCED data sync)
+        async with self._ws_restart_lock:
+            if not self.bridge.ws_connected:
                 self._check_for_ws_task_and_cancel_if_running()
+                _LOGGER.info(f"{self.vli}Watchdog: websocket connect required")
+                self._a_task = self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(), "ws_connection")
+                if self._a_task is not None:
+                    _LOGGER.debug(f"{self.vli}Watchdog: task created {self._a_task.get_coro()}")
+            else:
+                _LOGGER.debug(f"{self.vli}Watchdog: websocket is connected")
+                self._available = True
+                if not self.bridge.ws_check_last_update():
+                    self._check_for_ws_task_and_cancel_if_running()
 
     def tag_supported_by_vehicle(self, a_tag: Tag) -> bool:
         if a_tag in FUEL_OR_PEV_ONLY_TAGS:
@@ -874,14 +877,34 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def force_async_update_now(self):
         """This method should be called when the integration wants that the current data of the coordinator will be updated"""
-        # currently I do not know how to implement this without the req_state() option - we will see - currently I am
-        # thinking about a re-connect to the websocket will/can solve this...
 
         # 1. ignoring all force update requests in the first 5 minutes after an integration restart...
         delta_since_start = time.time() - self._integration_start
         if delta_since_start < 300:
-            _LOGGER.warning(f"{self.vli}Ignoring force update request in the first 5 minutes after integration restart",  stack_info=True)
+            _LOGGER.info(f"{self.vli}force_async_update_now(): Ignoring force update request in the first 5 minutes after integration restart - wait for {int(300-delta_since_start)} seconds before retrying.")
             return
+
+        # 2. ignoring all force update requests after a fresh initialized ws_connection!
+        delta_since_ws_connect = time.time() - self.bridge.ws_connection_start
+        if delta_since_ws_connect < 120:
+            _LOGGER.info(f"{self.vli}force_async_update_now(): Ignoring force update request in the first 2 minutes after a fresh ws_connection - wait for {int(120-delta_since_ws_connect)} seconds before retrying.")
+            return
+
+        # 3. ok integration restart is at least 5min ago - and the last ws_connection is also older than two minutes...
+        # now disconnect the ws()...
+        async with self._ws_restart_lock:
+            _LOGGER.debug(f"{self.vli}force_async_update_now(): RESTARTING websocket connection (step 1/3) - first end the current connection!")
+            self._check_for_ws_task_and_cancel_if_running()
+
+            # before we RECONNECT, we sleep for two seconds...
+            await asyncio.sleep(2)
+
+            # finally, restart with our new method!
+            _LOGGER.debug(f"{self.vli}force_async_update_now(): RESTARTING websocket connection (step 2/3) - now trying to reconnect")
+            if not await self.start_websocket_and_wait_for_first_data():
+                _LOGGER.info(f"{self.vli}force_async_update_now(): requested restart of websocket connection FAILED! - we need to rely on the watchdog now!")
+            else:
+                _LOGGER.debug(f"{self.vli}force_async_update_now(): RESTARTING websocket connection (step 3/3) - new connection established - all good!")
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
@@ -907,13 +930,14 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         # 3.1 the first thing we do is to check if this 'self.bridge.ws_connected == False' is for the last 10 times
         # the default update_interval triggered...
+        now_time = time.time()
         if self._first_time_async_update_data_run_into_ws_connected_is_false is None:
-            self._first_time_async_update_data_run_into_ws_connected_is_false = time().time()
+            self._first_time_async_update_data_run_into_ws_connected_is_false = now_time
 
-        if time().time() - self._first_time_async_update_data_run_into_ws_connected_is_false > self.update_interval * 10:
+        if now_time - self._first_time_async_update_data_run_into_ws_connected_is_false > self.update_interval * 10:
             raise UpdateFailed(f"No WebSocket connection was available since '{self._first_time_async_update_data_run_into_ws_connected_is_false}' - we stop return state data!")
 
-        # 3.2. if this is just a "temp" situtaion we return 'stale' data... (but let the user know about this)
+        # 3.2. if this is just a "temp" situation, we return 'stale' data... (but let the user know about this)
         if len(self.bridge._data_container) > 0:
             _LOGGER.info(f"{self.vli}_async_update_data(): was called, but there is no WebSocket connection, return probably `stale` data!")
             return self.bridge._data_container
