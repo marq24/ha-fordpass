@@ -2063,11 +2063,11 @@ class FordpassDataHandler:
     # BUTTON actions
     ##################
     async def reload_data(coordinator, vehicle):
-        await coordinator.async_request_refresh_force_classic_requests()
+        await coordinator.force_async_update_now()
 
     async def request_update_and_reload(coordinator, vehicle):
         await vehicle.request_update()
-        await coordinator.async_request_refresh_force_classic_requests()
+        await coordinator.force_async_update_now()
 
     async def lock_vehicle(coordinator, vehicle):
         await vehicle.lock()

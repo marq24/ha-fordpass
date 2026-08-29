@@ -244,18 +244,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
 
         await asyncio.sleep(10)
-        await coordinator.async_request_refresh_force_classic_requests()
+        await coordinator.force_async_update_now()
 
     async def async_clear_tokens_service(call: ServiceCall):
         #await hass.async_add_executor_job(service_clear_tokens, hass, call, coordinator)
         """Clear the token file in config directory, only use in emergency"""
         _LOGGER.debug(f"Running Service 'clear_tokens'")
-        await coordinator.bridge.clear_token()
+        coordinator.bridge.clear_token()
         await asyncio.sleep(5)
-        await coordinator.async_request_refresh_force_classic_requests()
+        await coordinator.force_async_update_now()
 
     async def poll_api_service(call: ServiceCall):
-        await coordinator.async_request_refresh_force_classic_requests()
+        await coordinator.force_async_update_now()
 
     async def handle_reload_service(call: ServiceCall):
         """Handle reload service call."""
@@ -323,7 +323,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
             return False
 
         #await asyncio.sleep(2)
-        #await coordinator.async_request_refresh_force_classic_requests()
+        #await coordinator.force_async_update_now()
         return True
 
     async def async_delete_departure_schedule_by_days_service(call: ServiceCall):
@@ -552,9 +552,21 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._watchdog = None
         self._a_task = None
-        self._force_classic_requests = False
-        self._ws_data_update_notify_interval_in_seconds = 5
+
+        # the time that the ws_new_data_arrived_notification will between two notifications (to avoid flooding the
+        # data coordinator with new data) - this was an attemp to reduce the load of my ha system... turned out
+        # that 250.000 DeviceTracker entities will kill your HA - BUT ONLY when you access the frontend via an chrome
+        # based browser... Safari (on iOS rockst that) and Firefox can handle that also quite well... only "high end"
+        # Chromium engine is not able to handle the js stuff - thanks for NOTHING Google!
+        self._ws_data_update_notify_interval_in_seconds = 1
+
+        # I think this is no longer in use...
         self._integration_start = time.time()
+
+        # the 'first' time the asyc_update_data report that there is no WebSocket connection... so if this happens
+        # for a longer period of time (10 x update interval), we will raise an `UpdateFailed` exception
+        self._first_time_async_update_data_run_into_ws_connected_is_false = None
+
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=update_interval_as_int))
 
     async def clear_data(self):
@@ -857,10 +869,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         return is_supported
 
-    async def async_request_refresh_force_classic_requests(self):
-        self._force_classic_requests = True
+    async def force_async_update_now(self):
+        """This method should be called when the integration wants that the current data of the coordinator will be updated"""
+        # currently I do not know how to implement this without the req_state() option - we will see - currently I am
+        # thinking about a re-connect to the websocket will/can solve this...
         await self.async_request_refresh()
-        self._force_classic_requests = False
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
@@ -876,67 +889,78 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error VIN: {self._vin} requires re-authentication")
 
         # 2. the default should be that the websocket is connected...
-        if self.bridge.ws_connected and self._force_classic_requests is False:
-            try:
-                _LOGGER.debug(f"{self.vli}_async_update_data(): called (but websocket is active - no data will be requested!)")
-                return self.bridge._data_container
+        if self.bridge.ws_connected:
+            self._first_time_async_update_data_run_into_ws_connected_is_false = None
+            _LOGGER.debug(f"{self.vli}_async_update_data(): called (but websocket is active - no data will be requested!)")
+            return self.bridge._data_container
 
-            except UpdateFailed as exception:
-                _LOGGER.warning(f"{self.vli}_async_update_data(): UpdateFailed: {type(exception).__name__} - {exception}")
-                raise UpdateFailed() from exception
-            except BaseException as other:
-                _LOGGER.warning(f"{self.vli}_async_update_data(): UpdateFailed unexpected: {type(other).__name__} - {other}")
-                raise UpdateFailed() from other
+        # 3. so the websocket is not connected... what can we do here since req_state() endpoint has gone (or better
+        #    might not be available in the future) - we can cry like a baby?
 
-        # 3. AS fallback ONLY scenario (websocket is not connected)...
-        should_call_update = True
-        if not self._force_classic_requests:
-            # ignore all manual update requests during the first 5 minutes of the integration start...
-            delta_since_start = time.time() - self._integration_start
-            if delta_since_start < 300:
-                should_call_update = False
-                _LOGGER.info(f"{self.vli}_async_update_data(): Update skipped due to integration start phase - {delta_since_start}")
+        # 3.1 the first thing we do is to check if this 'self.bridge.ws_connected == False' is for the last 10 times
+        # the default update_interval triggered...
+        if self._first_time_async_update_data_run_into_ws_connected_is_false is None:
+            self._first_time_async_update_data_run_into_ws_connected_is_false = time().time()
 
-        if should_call_update:
-            try:
-                async with timeout(60):
-                    # I hope the method name is already a hint, that this might not be so smart to call this
-                    # method anylonger...
-                    data = await self.bridge.update_all_manually_this_is_deprecated_and_should_not_be_called()
-                    if data is not None:
-                        try:
-                            _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
-                        except BaseException:
-                            pass
+        if time().time() - self._first_time_async_update_data_run_into_ws_connected_is_false > self.update_interval * 10:
+            raise UpdateFailed(f"No WebSocket connection was available since '{self._first_time_async_update_data_run_into_ws_connected_is_false}' - we stop return state data!")
 
-                        # If data has now been fetched but was previously unavailable, log and reset
-                        if not self._available:
-                            _LOGGER.info(f"{self.vli}_async_update_data: Restored connection to FordPass for {self._vin}")
-                            self._available = True
-                    else:
-                        if self.bridge is not None and self.bridge._HAS_COM_ERROR:
-                            _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
-                        else:
-                            _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
-                        data = self.data
-
-                    return data
-
-            except asyncio.TimeoutError as timeout_err:
-                # Mark as unavailable - but let the coordinator deal with the rest...
-                self._available = False
-                raise timeout_err
-
-            except BaseException as exc:
-                self._available = False  # Mark as unavailable
-                _LOGGER.warning(f"{self.vli}_async_update_data(): Error communicating with FordPass for {self._vin} {type(exc).__name__} -> {str(exc)}")
-                raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(exc).__name__}") from exc
+        # 3.2. if this is just a "temp" situtaion we return 'stale' data... (but let the user know about this)
+        if len(self.bridge._data_container) > 0:
+            _LOGGER.info(f"{self.vli}_async_update_data(): was called, but there is no WebSocket connection, return probably `stale` data!")
+            return self.bridge._data_container
         else:
-            if len(self.bridge._data_container) > 0:
-                return self.bridge._data_container
-            else:
-                _LOGGER.warning(f"{self.vli}_async_update_data(): No data available - return 'None'")
-                return None
+            _LOGGER.warning(f"{self.vli}_async_update_data():  was called, but there is no WebSocket connection, No data available - return 'None'")
+            return None
+
+        # # 3. AS fallback ONLY scenario (websocket is not connected)...
+        # should_call_update = True
+        # # ignore all manual update requests during the first 5 minutes of the integration start...
+        # delta_since_start = time.time() - self._integration_start
+        # if delta_since_start < 300:
+        #     should_call_update = False
+        #     _LOGGER.info(f"{self.vli}_async_update_data(): Update skipped due to integration start phase - {delta_since_start}")
+        #
+        # if should_call_update:
+        #     try:
+        #         async with timeout(60):
+        #             # I hope the method name is already a hint, that this might not be so smart to call this
+        #             # method anylonger...
+        #             data = await self.bridge.update_all_manually_this_is_deprecated_and_should_not_be_called()
+        #             if data is not None:
+        #                 try:
+        #                     _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
+        #                 except BaseException:
+        #                     pass
+        #
+        #                 # If data has now been fetched but was previously unavailable, log and reset
+        #                 if not self._available:
+        #                     _LOGGER.info(f"{self.vli}_async_update_data: Restored connection to FordPass for {self._vin}")
+        #                     self._available = True
+        #             else:
+        #                 if self.bridge is not None and self.bridge._HAS_COM_ERROR:
+        #                     _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
+        #                 else:
+        #                     _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
+        #                 data = self.data
+        #
+        #             return data
+        #
+        #     except asyncio.TimeoutError as timeout_err:
+        #         # Mark as unavailable - but let the coordinator deal with the rest...
+        #         self._available = False
+        #         raise timeout_err
+        #
+        #     except BaseException as exc:
+        #         self._available = False  # Mark as unavailable
+        #         _LOGGER.warning(f"{self.vli}_async_update_data(): Error communicating with FordPass for {self._vin} {type(exc).__name__} -> {str(exc)}")
+        #         raise UpdateFailed(f"Error communicating with FordPass for {self._vin} cause of {type(exc).__name__}") from exc
+        # else:
+        #     if len(self.bridge._data_container) > 0:
+        #         return self.bridge._data_container
+        #     else:
+        #         _LOGGER.warning(f"{self.vli}_async_update_data(): No data available - return 'None'")
+        #         return None
 
 
 class FordPassEntity(CustomFriendlyNameEntity):
