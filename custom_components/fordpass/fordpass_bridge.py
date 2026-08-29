@@ -876,7 +876,7 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
 
     # the WebSocket-related handling...
-    async def ws_connect(self, ready_event:asyncio.Event=None, do_inventory_check:bool=True, skipp_init:bool=False):
+    async def ws_connect(self, ready_event:asyncio.Event=None, do_inventory_check_shortly_after_ws_connect:bool=True, skipp_init:bool=False):
         _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
 
@@ -895,11 +895,6 @@ class ConnectedFordPassVehicle:
             if not skipp_init:
                 await self._update_others(self._data_container)
 
-        if do_inventory_check:
-            if not await self.req_vehicles_inventory_check_int():
-                _LOGGER.debug(f"{self.vli}ws_connect(): req_vehicles_inventory_check_int() failed, will not establish WebSocket connection")
-                return None
-
         headers_ws = {
             **defaultHeadersDec2025,
             "Connection": "Upgrade", # this will overwrite the "Keep-Alive" from the defaultHeadersDec2025
@@ -912,10 +907,26 @@ class ConnectedFordPassVehicle:
         }
         web_socket_url = f"{AUTONOMIC_WS_URL}/telemetry/sources/fordpass/vehicles/{self.vin}/ws"
 
+        inventory_task = None
         self._ws_in_use_access_token = self.auto_access_token
         try:
             async with self.session.ws_connect(url=web_socket_url, headers=headers_ws, timeout=self.timeout) as ws:
                 _LOGGER.debug(f"{self.vli}REQUEST: WS_CONNECT {web_socket_url}")
+
+                # the FordApp does this everytime after athe ws_connection has been established
+                if do_inventory_check_shortly_after_ws_connect:
+                    async def vehicles_inventory_check():
+                        await asyncio.sleep(0.25)
+                        try:
+                            async with asyncio.timeout(60):
+                                if not await self.req_vehicles_inventory_check_int():
+                                    _LOGGER.info(f"{self.vli}ws_connect(): req_vehicles_inventory_check_int() failed?!")
+                        except TimeoutError:
+                            _LOGGER.info(f"{self.vli}ws_connect(): req_vehicles_inventory_check_int() timeout!")
+
+                    # I guess I must also handle the resultig task somehow... at least I should (must?) cancel it
+                    # when the websocket connection might be restarted, but the request has not completed yet???
+                    inventory_task = asyncio.create_task(vehicles_inventory_check())
 
                 self.ws_connected = True
                 _LOGGER.info(f"{self.vli}connected to websocket: {web_socket_url}")
@@ -1026,6 +1037,18 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}ws_connect(): skipping ws_close() (since ws is unbound)")
         except BaseException as e:
             _LOGGER.error(f"{self.vli}ws_connect(): Error while calling ws_close(): {type(e).__name__} - {e}")
+
+        # if there is a running inventory task, we must cancel it
+        if inventory_task is not None:
+            try:
+                if not inventory_task.done():
+                    inventory_task.cancel()
+                    try:
+                        await inventory_task
+                    except asyncio.CancelledError:
+                        print("Inventory_task successfully cancelled.")
+            except BaseException as e:
+                _LOGGER.error(f"{self.vli}ws_connect(): Error while calling inventory_task: {type(e).__name__} - {e}")
 
         self.ws_connected = False
         return None
@@ -1915,14 +1938,14 @@ class ConnectedFordPassVehicle:
             if 200 <= response_inv.status <= 205:
                 inventory_data = await response_inv.json()
                 await self._local_logging(response_inv, "inventory_vehicles", inventory_data)
-                _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() FINE")
+                _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() - successful (no clue what to do with this data yet)")
                 return True
             else:
                 _LOGGER.info(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check returned {response_inv.status}")
                 return False
 
         except Exception as e:
-            _LOGGER.debug(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check failed: {e}")
+            _LOGGER.warning(f"{self.vli}req_vehicles_inventory_check_int() - inventory pre-check failed: {e}")
             return False
 
     async def req_remote_climate(self):
