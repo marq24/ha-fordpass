@@ -1,0 +1,14 @@
+{
+  "services": {
+    "refresh_status_dont_use": "mdi:skull-crossbones-outline",
+    "refresh_status": "mdi:sync",
+    "clear_tokens": "mdi:delete-empty",
+    "reload": "mdi:reload",
+    "poll_api": "mdi:cog-refresh-outline",
+    "delete_message": "mdi:forum-remove",
+    "update_departure_schedule": "mdi:calendar-refresh",
+    "delete_departure_schedule_by_days": "mdi:calendar-remove",
+    "delete_departure_schedule_by_ids": "mdi:calendar-remove"
+
+  }
+}
