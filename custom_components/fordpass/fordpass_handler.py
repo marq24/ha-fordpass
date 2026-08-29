@@ -2067,7 +2067,10 @@ class FordpassDataHandler:
 
     async def request_update_and_reload(coordinator, vehicle):
         await vehicle.request_update()
-        await coordinator.force_async_update_now()
+        # when we send a UPDATE request to the vehicle, THEN all new data is already
+        # provided via the command_handler! - no need to FORCE a manual update
+        # afterward!
+        #await coordinator.force_async_update_now()
 
     async def lock_vehicle(coordinator, vehicle):
         await vehicle.lock()

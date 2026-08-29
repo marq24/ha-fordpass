@@ -243,8 +243,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         elif status in [200, 201, 202]:
             _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
 
-        await asyncio.sleep(10)
-        await coordinator.force_async_update_now()
+        # when we send a UPDATE request to the vehicle, THEN all new data is already
+        # provided via the command_handler! - no need to FORCE a manual update
+        # afterward!
+        #await asyncio.sleep(10)
+        #await coordinator.force_async_update_now()
 
     async def async_clear_tokens_service(call: ServiceCall):
         #await hass.async_add_executor_job(service_clear_tokens, hass, call, coordinator)
@@ -873,7 +876,12 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         """This method should be called when the integration wants that the current data of the coordinator will be updated"""
         # currently I do not know how to implement this without the req_state() option - we will see - currently I am
         # thinking about a re-connect to the websocket will/can solve this...
-        await self.async_request_refresh()
+
+        # 1. ignoring all force update requests in the first 5 minutes after an integration restart...
+        delta_since_start = time.time() - self._integration_start
+        if delta_since_start < 300:
+            _LOGGER.warning(f"{self.vli}Ignoring force update request in the first 5 minutes after integration restart",  stack_info=True)
+            return
 
     async def _async_update_data(self):
         """Fetch data from FordPass."""
