@@ -900,29 +900,26 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if should_call_update:
             try:
                 async with timeout(60):
-                    if self.bridge.status_updates_allowed:
-                        # I hope the method name is already a hint, that this might not be so smart to call this
-                        # method anylonger...
-                        data = await self.bridge.update_all_manually_this_is_deprecated_and_should_not_be_called()
-                        if data is not None:
-                            try:
-                                _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
-                            except BaseException:
-                                pass
+                    # I hope the method name is already a hint, that this might not be so smart to call this
+                    # method anylonger...
+                    data = await self.bridge.update_all_manually_this_is_deprecated_and_should_not_be_called()
+                    if data is not None:
+                        try:
+                            _LOGGER.debug(f"{self.vli}_async_update_data: total number of items: {len(data[ROOT_METRICS])} metrics, {len(data[ROOT_MESSAGES])} messages, {len(data[ROOT_VEHICLES]['vehicleProfile'])} vehicles for {self._vin}")
+                        except BaseException:
+                            pass
 
-                            # If data has now been fetched but was previously unavailable, log and reset
-                            if not self._available:
-                                _LOGGER.info(f"{self.vli}_async_update_data: Restored connection to FordPass for {self._vin}")
-                                self._available = True
-                        else:
-                            if self.bridge is not None and self.bridge._HAS_COM_ERROR:
-                                _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
-                            else:
-                                _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
-                            data = self.data
+                        # If data has now been fetched but was previously unavailable, log and reset
+                        if not self._available:
+                            _LOGGER.info(f"{self.vli}_async_update_data: Restored connection to FordPass for {self._vin}")
+                            self._available = True
                     else:
-                        _LOGGER.info(f"{self.vli}_async_update_data: Updates not allowed for {self._vin} - since '__request_and_poll_command' is running, returning old data")
+                        if self.bridge is not None and self.bridge._HAS_COM_ERROR:
+                            _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} cause of '_HAS_COM_ERROR' (returning OLD data object)")
+                        else:
+                            _LOGGER.info(f"{self.vli}_async_update_data: 'data' was None for {self._vin} (returning OLD data object)")
                         data = self.data
+
                     return data
 
             except asyncio.TimeoutError as timeout_err:

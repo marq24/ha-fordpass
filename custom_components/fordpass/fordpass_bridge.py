@@ -229,7 +229,6 @@ class ConnectedFordPassVehicle:
             self.stored_tokens_location = tokens_location
 
         self._is_reauth_required = False
-        self.status_updates_allowed = True
 
         self.coordinator = coordinator
         # our main data container that holds all data that have been fetched from the vehicle
@@ -2735,7 +2734,7 @@ class ConnectedFordPassVehicle:
                 # not used yet - since we do not have a command_id or similar,
                 # see: 'elif command == "setRemoteClimateControl":'
                 #if check_command is not None:
-                #    await self.__wait_for_state(command_id=None, state_command_str=check_command, use_websocket=self.ws_connected)
+                #    await self.__wait_for_state(command_id=None, state_command_str=check_command)
 
                 if return_response_content:
                     return response
@@ -2758,10 +2757,14 @@ class ConnectedFordPassVehicle:
             if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"{self.vli}__request_and_poll_command_autonomic() - COMM ERROR")
                 return False
-            else:
-                _LOGGER.debug(f"{self.vli}__request_and_poll_command_autonomic(): auto_access_token exist? {self.auto_access_token is not None}")
-                if self.auto_access_token is None:
-                    return None
+
+            _LOGGER.debug(f"{self.vli}__request_and_poll_command_autonomic(): auto_access_token exist? {self.auto_access_token is not None}")
+            if self.auto_access_token is None:
+                return None
+
+            if wait_for_state and not self.ws_connected:
+                _LOGGER.info(f"{self.vli}__request_and_poll_command_autonomic(): NO WEBSOCKET CONNECTION, skipping (wait_for_state required) command '{write_command}'")
+                return None
 
             headers = {
                 **apiHeaders,
@@ -2794,9 +2797,8 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}REQUEST: {post_req.request_info.method} {post_req.request_info.url}")
 
             return await self.__request_and_poll_comon(request_response_obj=post_req,
-                                                       state_command_str=write_command,
-                                                       use_websocket=self.ws_connected,
-                                                       wait_for_state=wait_for_state)
+                                                   state_command_str=write_command,
+                                                   wait_for_state=wait_for_state)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -2813,10 +2815,14 @@ class ConnectedFordPassVehicle:
             if self._HAS_COM_ERROR:
                 _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford() - COMM ERROR")
                 return False
-            else:
-                _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford(): access_token exist? {self.access_token is not None}")
-                if self.access_token is None:
-                    return None
+
+            _LOGGER.debug(f"{self.vli}__request_and_poll_command_ford(): access_token exist? {self.access_token is not None}")
+            if self.access_token is None:
+                return None
+
+            if not self.ws_connected:
+                _LOGGER.info(f"{self.vli}__request_and_poll_command_ford(): NO WEBSOCKET CONNECTION, skipping command_key '{command_key}'")
+                return None
 
             headers = {
                 **apiHeaders,
@@ -2855,8 +2861,7 @@ class ConnectedFordPassVehicle:
             _LOGGER.debug(f"{self.vli}REQUEST: {post_req.request_info.method} {post_req.request_info.url}")
 
             return await self.__request_and_poll_comon(request_response_obj=post_req,
-                                                       state_command_str=command,
-                                                       use_websocket=self.ws_connected)
+                                                       state_command_str=command)
 
         except BaseException as e:
             if not await self.__check_for_closed_session(e):
@@ -2892,8 +2897,7 @@ class ConnectedFordPassVehicle:
     #             timeout=self.timeout
     #         )
     #         return await self.__request_and_poll_comon(request_obj=req_object,
-    #                                              state_command_str=url_command,
-    #                                              use_websocket=self.ws_connected)
+    #                                              state_command_str=url_command)
     #
     #     except BaseException as e:
     #         if not await self.__check_for_closed_session(e):
@@ -2904,8 +2908,8 @@ class ConnectedFordPassVehicle:
     #         self._HAS_COM_ERROR = True
     #         return False
 
-    async def __request_and_poll_comon(self, request_response_obj, state_command_str, use_websocket, wait_for_state:bool=True):
-        _LOGGER.debug(f"{self.vli}__request_and_poll_comon(): Testing command status: {request_response_obj.status} (check by {'WebSocket' if use_websocket else 'polling'})")
+    async def __request_and_poll_comon(self, request_response_obj, state_command_str, wait_for_state:bool=True):
+        _LOGGER.debug(f"{self.vli}__request_and_poll_comon(): Testing command status: {request_response_obj.status}")
 
         if not (200 <= request_response_obj.status <= 205):
             if request_response_obj.status in (401, 402, 403, 404, 405):
@@ -2930,17 +2934,14 @@ class ConnectedFordPassVehicle:
 
         # ok we have our command reference id, now we can/should wait for a positive state change
         if wait_for_state:
-            return await self.__wait_for_state(command_id, state_command_str, use_websocket=use_websocket)
+            return await self.__wait_for_state(command_id, state_command_str)
         else:
             return True
 
-    async def __wait_for_state(self, command_id, state_command_str, use_websocket):
-        # Wait for backend to process command
-        await asyncio.sleep(2)
-
-        # Only set status updates flag when polling
-        if not use_websocket:
-            self.status_updates_allowed = False
+    async def __wait_for_state(self, command_id, state_command_str):
+        # Wait for backend to process command bus since we are now the WebSocket-ONLY implementation,
+        # the wait time should be really short...
+        await asyncio.sleep(0.75)
 
         try:
             i = 0
@@ -2948,15 +2949,10 @@ class ConnectedFordPassVehicle:
                 if i > 0:
                     _LOGGER.debug(f"{self.vli}__wait_for_state(): retry again [count: {i}] waiting for '{state_command_str}' - COMM ERRORS: {self._HAS_COM_ERROR}")
 
-                # Get data based on method
-                if use_websocket:
-                    updated_data = self._data_container
-                else:
-                    # IF we are not connected via the websocket, then this is anyhow a situation where
-                    # we seam to be trapped (I must check if I would/will remove the none-websocket
-                    # part completely. So only when the websocket is connected, we allow commands where we must
-                    # listen too 'state' changes)
-                    updated_data = await self.req_status_deprecated_to_not_use()
+                # for historical reasons, we keep the 'updated_data' object...
+                # -> in the past we had a switch between websocket and non-websocket implementation
+                # so the states data had different source - but now there is ONLY one!
+                updated_data = self._data_container
 
                 # Check states for command status
                 if updated_data is not None and ROOT_STATES in updated_data:
@@ -2993,8 +2989,6 @@ class ConnectedFordPassVehicle:
 
                                 if to_state in ["SUCCESS", "COMMAND_SUCCEEDED_ON_DEVICE"]:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): EXCELLENT! Command succeeded")
-                                    if not use_websocket:
-                                        self.status_updates_allowed = True
                                     return True
 
                                 elif to_state == "COMMAND_FAILED_ON_DEVICE":
@@ -3011,14 +3005,10 @@ class ConnectedFordPassVehicle:
                                         _LOGGER.warning(f"{self.vli}__wait_for_state(): Error during status checking - {type(err).__name__} - {err}")
 
                                     _LOGGER.info(f"{self.vli}__wait_for_state(): Command FAILED ON DEVICE - vehicle rejected the command. Error: {error_context} (code: {error_code})")
-                                    if not use_websocket:
-                                        self.status_updates_allowed = True
                                     return False
 
                                 elif "EXPIRED" == to_state:
                                     _LOGGER.info(f"{self.vli}__wait_for_state(): Command EXPIRED - wait is OVER")
-                                    if not use_websocket:
-                                        self.status_updates_allowed = True
                                     return False
 
                                 elif to_state in ["REQUEST_QUEUED", "RECEIVED_BY_DEVICE"] or "IN_PROGRESS" in to_state or "DELIVERY" in to_state:
@@ -3047,8 +3037,5 @@ class ConnectedFordPassVehicle:
                 _LOGGER.warning(f"{self.vli}__wait_for_state(): Error during status checking - {type(exc).__name__} - {exc}")
             else:
                 _LOGGER.info(f"{self.vli}__wait_for_state(): RuntimeError - Session was closed occurred - but a new Session could be generated")
-
-        if not use_websocket:
-            self.status_updates_allowed = True
 
         return False
