@@ -253,6 +253,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                                            coordinator=None,
                                            storage_path=Path(self.hass.config.config_dir).joinpath(STORAGE_DIR))
 
+        # this is for MANUAL VIN input, which should anyhow never appear (so I keep it right now)
         test = await bridge.req_status_deprecated_to_not_use()
         _LOGGER.debug(f"GOT SOMETHING BACK? {test}")
 

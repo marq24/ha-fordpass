@@ -160,7 +160,8 @@ class ConnectedFordPassVehicle:
     _last_ignition_state: str | None = None
     _last_remote_start_state: str | None = None
     _last_ev_connect_state: str | None = None
-    _ws_debounced_full_refresh_task: asyncio.Task | None = None
+    # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+    # _ws_debounced_full_refresh_task: asyncio.Task | None = None
     _ws_debounced_preferred_charge_times_refresh_task: asyncio.Task | None = None
     _ws_debounced_energy_transfer_logs_refresh_task: asyncio.Task | None = None
     _ws_debounced_update_remote_climate_task: asyncio.Task | None = None
@@ -248,7 +249,8 @@ class ConnectedFordPassVehicle:
 
         # websocket connection related variables
         self._ws_debounced_update_task = None
-        self._ws_debounced_full_refresh_task = None
+        # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+        # self._ws_debounced_full_refresh_task = None
         self._ws_debounced_preferred_charge_times_refresh_task = None
         self._ws_debounced_energy_transfer_logs_refresh_task = None
         self._ws_debounced_update_remote_climate_task = None
@@ -1041,25 +1043,31 @@ class ConnectedFordPassVehicle:
         if ROOT_STATES not in data_obj:
             self._ws_update_key(data_obj, ROOT_UPDTIME, collected_keys)
 
+        # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+        # SO NOTHING HAPPENS when the ignation change is detected !!! (we just log it on info level)
         # check, if the 'ignitionStatus' has changed cause of the data that was received via the websocket...
         # IF the state goes to 'OFF', we will trigger a complete integration data update
         if ROOT_METRICS not in data_obj:
 
             # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
             new_ignition_state = self._data_container.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
-            #_LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
+            _LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
             if self._last_ignition_state != INTEGRATION_INIT:
                 if "OFF" == new_ignition_state and new_ignition_state != self._last_ignition_state:
-                    if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
-                        self._ws_debounced_full_refresh_task.cancel()
-                    _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
-                    self._ws_debounced_full_refresh_task = asyncio.create_task(self._ws_debounce_full_data_refresh())
+                    _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'OFF' (just as INFO)")
+                    # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+                    # if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
+                    #     self._ws_debounced_full_refresh_task.cancel()
+                    # _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'OFF' -> triggering full data update (will be started in 30sec)")
+                    # self._ws_debounced_full_refresh_task = asyncio.create_task(self._ws_debounce_full_data_refresh())
 
                 elif "ON" == new_ignition_state:
-                    # cancel any running the full refresh task if the new state is 'ON'...
-                    if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
-                        _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
-                        self._ws_debounced_full_refresh_task.cancel()
+                    _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'ON' (just as INFO)")
+                    # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+                    # # cancel any running the full refresh task if the new state is 'ON'...
+                    # if self._ws_debounced_full_refresh_task is not None and not self._ws_debounced_full_refresh_task.done():
+                    #     _LOGGER.debug(f"{self.vli}ws(): ignition state changed to 'ON' -> canceling any running full refresh task")
+                    #     self._ws_debounced_full_refresh_task.cancel()
 
             self._last_ignition_state = new_ignition_state
 
@@ -1306,28 +1314,29 @@ class ConnectedFordPassVehicle:
                 self._ws_LAST_NEW_DATA_NOTIFY = time.time()
                 self.coordinator.async_set_updated_data(self._data_container)
 
-    async def _ws_debounce_full_data_refresh(self):
-        try:
-            # if the ignition state has changed to 'OFF', we will wait 30 seconds before we trigger the full refresh
-            # this is to ensure that the vehicle has enough time to send all the last data updates - and that the vehicle
-            # will be started again... (after a short break/delay)
-            _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): started")
-            await asyncio.sleep(30)
-            count = 0
-            while not self.status_updates_allowed and count < 11:
-                _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): waiting for status updates to be allowed... retry: {count}")
-                count += 1
-                await asyncio.sleep(random.uniform(2, 30))
-
-            _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): starting the full update now")
-            updated_data = await self.update_all_manually_this_is_deprecated_and_should_not_be_called()
-            if updated_data is not None and self.coordinator is not None:
-                self.coordinator.async_set_updated_data(self._data_container)
-
-        except CancelledError:
-            _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): was canceled - all good")
-        except BaseException as ex:
-            _LOGGER.warning(f"{self.vli}_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex).__name__} - {ex}")
+    # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
+    # async def _ws_debounce_full_data_refresh(self):
+    #     try:
+    #         # if the ignition state has changed to 'OFF', we will wait 30 seconds before we trigger the full refresh
+    #         # this is to ensure that the vehicle has enough time to send all the last data updates - and that the vehicle
+    #         # will be started again... (after a short break/delay)
+    #         _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): started")
+    #         await asyncio.sleep(30)
+    #         count = 0
+    #         while not self.status_updates_allowed and count < 11:
+    #             _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): waiting for status updates to be allowed... retry: {count}")
+    #             count += 1
+    #             await asyncio.sleep(random.uniform(2, 30))
+    #
+    #         _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): starting the full update now")
+    #         updated_data = await self.update_all_manually_this_is_deprecated_and_should_not_be_called()
+    #         if updated_data is not None and self.coordinator is not None:
+    #             self.coordinator.async_set_updated_data(self._data_container)
+    #
+    #     except CancelledError:
+    #         _LOGGER.debug(f"{self.vli}_ws_debounce_full_data_refresh(): was canceled - all good")
+    #     except BaseException as ex:
+    #         _LOGGER.warning(f"{self.vli}_ws_debounce_full_data_refresh(): Error during full data refresh - {type(ex).__name__} - {ex}")
 
     async def _ws_debounced_update_remote_climate(self):
         try:
@@ -2943,6 +2952,10 @@ class ConnectedFordPassVehicle:
                 if use_websocket:
                     updated_data = self._data_container
                 else:
+                    # IF we are not connected via the websocket, then this is anyhow a situation where
+                    # we seam to be trapped (I must check if I would/will remove the none-websocket
+                    # part completely. So only when the websocket is connected, we allow commands where we must
+                    # listen too 'state' changes)
                     updated_data = await self.req_status_deprecated_to_not_use()
 
                 # Check states for command status
