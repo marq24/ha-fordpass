@@ -194,13 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Oppdater kjøretøyets status",
-            "description": "Ber bilen om de nyeste opplysningene (kan ta opptil 5 min før statusen er oppdatert).",
-            "fields": {
-                "vin": {
-                    "name": "VIN",
-                    "description": "Oppgi et VIN-nummer for å bare oppdatere det aktuelle kjøretøyet (uten VIN oppdateres alle tillagte kjøretøy)"
-                }
-            }
+            "description": "Ber bilen om de nyeste opplysningene (kan ta opptil 5 min før statusen er oppdatert)."
         },
         "clear_tokens": {
             "name": "Tøm token-cache",

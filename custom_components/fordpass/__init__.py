@@ -235,6 +235,28 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     # SERVICES from here...
     # simple service implementations (might be moved to separate service.py)
+    async def async_legacy_refresh_status_service(call: ServiceCall):
+        # this actually should not be called - this will put your
+        # Fordpass account at risk to be (temporary) locked by Ford
+        _LOGGER.debug(f"Running Service 'legacy_refresh_status'")
+        status = await coordinator.bridge.request_update()
+        if status:
+            _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh request processed - now sleep for 30 seconds... before proceeding")
+            await asyncio.sleep(30)
+            _LOGGER.warning(f"[@{coordinator.vli}] You called the Service legacy_refresh_status: This service should not be called, since it's might result in a (temporary) lock of your used Ford/Lincoln account - You have been warned!")
+            state_data = await coordinator.bridge.req_status_deprecated_to_not_use(do_as_post=False, show_warning=False)
+            if state_data is not None and isinstance(state_data, dict):
+                updates_keys = []
+                for a_key in coordinator.bridge._data_container.keys():
+                    if a_key in state_data and state_data[a_key] is not None:
+                        updates_keys.append(a_key)
+                        coordinator.bridge._data_container[a_key] = state_data[a_key]
+
+                if len(updates_keys) > 0:
+                    _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: new data was fetched via req_status (that should no longer be used) updated keys: {updates_keys}")
+                    # finally trigger the update in the data coordinator...
+                    coordinator.bridge._ws_notify_for_new_data()
+
     async def async_refresh_status_service(call: ServiceCall):
         _LOGGER.debug(f"Running Service 'refresh_status'")
         status = await coordinator.bridge.request_update()
@@ -398,6 +420,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
         return True
 
+    hass.services.async_register(DOMAIN, "refresh_status_dont_use", async_legacy_refresh_status_service)
     hass.services.async_register(DOMAIN, "refresh_status", async_refresh_status_service)
     hass.services.async_register(DOMAIN, "clear_tokens", async_clear_tokens_service)
     hass.services.async_register(DOMAIN, "poll_api", poll_api_service)
@@ -447,6 +470,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
                 hass.services.async_remove(DOMAIN, "delete_departure_schedule_by_days")
                 hass.services.async_remove(DOMAIN, "delete_departure_schedule_by_ids")
 
+        hass.services.async_remove(DOMAIN, "refresh_status_dont_use")
         hass.services.async_remove(DOMAIN, "refresh_status")
         hass.services.async_remove(DOMAIN, "clear_tokens")
         hass.services.async_remove(DOMAIN, "poll_api")

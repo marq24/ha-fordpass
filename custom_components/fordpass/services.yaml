@@ -1,12 +1,7 @@
+refresh_status_dont_use:
+  description: "LEGACY OPERATION - ONLY USE WHEN YOU ARE AWARE WHAT YOU ARE DOING and IF YOU ACCEPT THE RISK OF YOUR FORD ACCOUNT BEING (tmep) BANNED"
 refresh_status:
   description: "Poll car for latest status (Takes up to 5mins to update once this function has been run!)"
-  fields:
-    vin:
-      name: Vin
-      description: "Parse a vin number to only refresh the specified vehicle (Default refreshes all added vehicles)"
-      example: "1C4GJ25342B521742"
-      selector:
-        text:
 clear_tokens:
   description: "Clear the cached tokens"
 reload:

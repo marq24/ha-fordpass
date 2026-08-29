@@ -1621,9 +1621,11 @@ class ConnectedFordPassVehicle:
     # with com.ford.fordpass 6.20.0 there are no request to
     # https://api.autonomic.ai/v1beta/telemetry/sources/fordpass/vehicles/{vin}?lrdt=01-01-1970 00:00:00
     # any longer - so we SHOULD REMOVE this... at least don't use it by default
-    async def req_status_deprecated_to_not_use(self, do_as_post=False):
+    async def req_status_deprecated_to_not_use(self, do_as_post=False, show_warning=True):
         """Get Vehicle status from API"""
-        _LOGGER.warning(f"{self.vli}req_status_deprecated_to_not_use() CALLED - the URL might not be available in the future! - Please share this as an issue @ GitHub - TIA", stack_info=True)
+        if show_warning:
+            _LOGGER.warning(f"{self.vli}req_status_deprecated_to_not_use() CALLED - the URL might not be available in the future! - Please share this as an issue @ GitHub - TIA", stack_info=True)
+
         global _AUTO_FOUR_NULL_ONE_COUNTER
         try:
             # API-Reference?!

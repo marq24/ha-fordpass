@@ -193,15 +193,13 @@
         }
     },
     "services": {
+        "refresh_status_dont_use": {
+            "name": "Refresh Vehicle Status LEGACY-Implementation [WARNING: HIGH-RISK!] (don't use this if you are not aware of the possible consequences)",
+            "description": "ONLY USE THIS ACTION, WHEN YOU ARE ACCEPT THE RISK, THAT YOUR ACCOUNT MIGHT BE BANNED (temporary) BY FORD/LINCOLN, since this action is using an endpoint no longer in use by Ford.\nDo not claim, that this integration have broken your account, when you did that on purpose!"
+        },
         "refresh_status": {
             "name": "Refresh Vehicle Status",
-            "description": "Poll car for latest status (Takes up to 5mins to update once this function has been run!)",
-            "fields": {
-                "vin": {
-                    "name": "VIN",
-                    "description": "Enter a vin number to only refresh the specified vehicle (Default refreshes all added vehicles)"
-                }
-            }
+            "description": "Poll car for latest status (Takes up to 5mins to update once this function has been run!)"
         },
         "clear_tokens": {
             "name": "Clear Tokens",

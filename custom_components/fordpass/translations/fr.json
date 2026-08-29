@@ -194,13 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Actualiser l'état du véhicule",
-            "description": "Interroger la voiture pour obtenir le dernier état (peut prendre jusqu'à 5 minutes pour se mettre à jour après exécution de cette fonction !)",
-            "fields": {
-                "vin": {
-                    "name": "VIN",
-                    "description": "Saisissez un numéro VIN pour ne rafraîchir que le véhicule spécifié (par défaut, rafraîchit tous les véhicules ajoutés)"
-                }
-            }
+            "description": "Interroger la voiture pour obtenir le dernier état (peut prendre jusqu'à 5 minutes pour se mettre à jour après exécution de cette fonction !)"
         },
         "clear_tokens": {
             "name": "Effacer les jetons",

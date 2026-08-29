@@ -194,13 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Opdatér køretøjsstatus",
-            "description": "Beder bilen om de nyeste data (det kan tage op til 5 min., før status er opdateret).",
-            "fields": {
-                "vin": {
-                    "name": "Stelnummer (VIN)",
-                    "description": "Indtast et stelnummer for kun at opdatere det pågældende køretøj (uden angivelse opdateres alle tilføjede køretøjer)"
-                }
-            }
+            "description": "Beder bilen om de nyeste data (det kan tage op til 5 min., før status er opdateret)."
         },
         "clear_tokens": {
             "name": "Ryd token-cache",

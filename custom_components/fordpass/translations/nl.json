@@ -194,13 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Vernieuw voertuigstatus",
-            "description": "Poll auto op nieuwste status (Het duurt tot 5 minuten voordat deze functie wordt bijgewerkt na uitvoering!)",
-            "fields": {
-                "vin": {
-                    "name": "VIN",
-                    "description": "Voer een VIN-nummer in om alleen het opgegeven voertuig te vernieuwen (Vernieuwt standaard alle toegevoegde voertuigen)"
-                }
-            }
+            "description": "Poll auto op nieuwste status (Het duurt tot 5 minuten voordat deze functie wordt bijgewerkt na uitvoering!)"
         },
         "clear_tokens": {
             "name": "Wis tokens",

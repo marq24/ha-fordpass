@@ -194,13 +194,7 @@
     "services": {
         "refresh_status": {
             "name": "Uppdatera fordonsstatus",
-            "description": "Begär de senaste uppgifterna från bilen (kan ta upp till 5 min innan statusen är uppdaterad).",
-            "fields": {
-                "vin": {
-                    "name": "VIN",
-                    "description": "Ange ett VIN-nummer för att bara uppdatera det angivna fordonet (utan VIN uppdateras alla tillagda fordon)"
-                }
-            }
+            "description": "Begär de senaste uppgifterna från bilen (kan ta upp till 5 min innan statusen är uppdaterad)."
         },
         "clear_tokens": {
             "name": "Rensa token-cache",

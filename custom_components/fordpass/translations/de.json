@@ -195,13 +195,7 @@
     "services": {
         "refresh_status": {
             "name": "Fahrzeugstatus aktualisieren",
-            "description": "Aktualisiert den Status und die Entitäten des Fahrzeugs. Der Vorgang kann bis zu 5 Minuten dauern.",
-            "fields": {
-                "vin": {
-                    "name": "FIN",
-                    "description": "Wenn angegeben, aktualisiert nur den Status des Fahrzeugs mit dieser FIN. Ansonsten wird den Status aller Fahrzeuge aktualisiert."
-                }
-            }
+            "description": "Aktualisiert den Status und die Entitäten des Fahrzeugs. Der Vorgang kann bis zu 5 Minuten dauern."
         },
         "clear_tokens": {
             "name": "Token-Cache leeren",
