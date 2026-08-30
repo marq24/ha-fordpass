@@ -254,6 +254,7 @@ class ConnectedFordPassVehicle:
         self._ws_debounced_energy_transfer_logs_refresh_task = None
         self._ws_debounced_update_remote_climate_task = None
         self._ws_in_use_access_token = None
+        self._ws_in_use_expires_at = None
         self.ws_connected = False
         self.ws_connection_start = 0 # the time.time() when this ws_connection was established...
         self._ws_LAST_UPDATE = 0
@@ -626,7 +627,11 @@ class ConnectedFordPassVehicle:
                 return ERROR
 
     async def refresh_auto_token_func(self, cur_token_data):
+        # to be able to refresh the auto token, we need a valid (ford) refresh_token...
+        # we are just so LUCKY that the current REFRESH_token is lasting very long! (= 6 months),
+        # so for now I simply assume that it's ALWAYS valid...
         _LOGGER.debug(f"{self.vli}refresh_auto_token_func()")
+
         auto_token = await self._request_auto_token()
         if auto_token is None or auto_token is False:
             self.auto_access_token = None
@@ -672,10 +677,13 @@ class ConnectedFordPassVehicle:
                     "accept": "*/*",
                     "content-type": "application/x-www-form-urlencoded"
                 }
-                # it looks like, that the auto_refresh_token is useless here...
-                # but for now I (marq24) keep this in the code...
+
+                # to be able to refresh the auto token, we need the (main/ford) refresh_token...
+                # we are just so LUCKY that the current REFRESH_token is valid for 6 months),
+                # so for now I simply assume that it's ALWAYS valid... (and we do not implement
+                # anly additional checks to refresh the main token here)
                 data = {
-                    "subject_token": self.access_token,
+                    "subject_token": self.refresh_token,
                     "subject_issuer": "fordpass",
                     "client_id": "fordpass-prod",
                     "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -910,6 +918,7 @@ class ConnectedFordPassVehicle:
 
         inventory_task = None
         self._ws_in_use_access_token = self.auto_access_token
+        self._ws_in_use_expires_at = self.auto_expires_at
         try:
             async with self.session.ws_connect(url=web_socket_url, headers=headers_ws, timeout=self.timeout) as ws:
                 _LOGGER.debug(f"{self.vli}REQUEST: WS_CONNECT {web_socket_url}")
@@ -954,6 +963,7 @@ class ConnectedFordPassVehicle:
                                             # it looks like we have sent a new access token... and the backend just
                                             # replied with an HTTP status code...
                                             self._ws_in_use_access_token = self.auto_access_token
+                                            self._ws_in_use_expires_at = self.auto_expires_at
                                             _LOGGER.debug(f"{self.vli}ws_connect(): received HTTP status 202 - auto token update accepted")
                                         else:
                                             _LOGGER.debug(f"{self.vli}ws_connect(): received HTTP status: {status} - OK")
@@ -1278,6 +1288,10 @@ class ConnectedFordPassVehicle:
     async def _ws_check_for_auth_token_refresh(self, ws):
         # check the age of auto auth_token... and if' it's near the expiry date, we should refresh it
         try:
+            # this is just for my personal info...
+            if self._ws_in_use_expires_at and time.time() + 45 > self._ws_in_use_expires_at:
+                _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): IN-USE auto token expires in less than 45 seconds - we might have already a new one?")
+
             if self.auto_expires_at and time.time() + 45 > self.auto_expires_at:
                 _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token expires in less than 45 seconds - try to refresh")
 
@@ -1290,7 +1304,7 @@ class ConnectedFordPassVehicle:
 
                 await self.refresh_auto_token_func(prev_token_data)
 
-            # could be that another process has refreshed the auto token...
+            # could be that another process has (also/already) refreshed the auto token...
             if self.auto_access_token is not None:
                 if self.auto_access_token != self._ws_in_use_access_token:
                     _LOGGER.debug(f"{self.vli}_ws_check_for_auth_token_refresh(): auto token has been refreshed -> update websocket")
