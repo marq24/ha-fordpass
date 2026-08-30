@@ -15,7 +15,8 @@ TO_REDACT = {
     "vehicleId",
     "deviceId",
     "vehicleImage",
-    "address"
+    "address",
+    "location"
 }
 
 

@@ -416,8 +416,8 @@ class Tag(ApiKey, Enum):
                     state_fn=lambda data, prev_state: len(FordpassDataHandler.get_states(data)),
                     attrs_fn=lambda data, units: FordpassDataHandler.get_states(data))
     VEHICLES = ApiKey(key="vehicles",
-                      state_fn=lambda data, prev_state: len(FordpassDataHandler.get_vehicles(data)),
-                      attrs_fn=lambda data, units: FordpassDataHandler.get_vehicles(data))
+                      state_fn=lambda data, prev_state: len(FordpassDataHandler.get_vehicle(data)),
+                      attrs_fn=lambda data, units: FordpassDataHandler.get_vehicle(data))
 
 # tags that are only available for gas/diesel/plugin-hybrid (PHEV) vehicles...
 FUEL_OR_PEV_ONLY_TAGS: Final = [
@@ -816,10 +816,13 @@ SENSORS = [
         native_unit_of_measurement=PERCENTAGE,
         has_entity_name=True,
     ),
+    # based on feedback in https://github.com/marq24/ha-fordpass/discussions/261
+    # we skip existence check because it is not always available
     ExtSensorEntityDescription(
         tag=Tag.PARKING_BRAKE,
         key=Tag.PARKING_BRAKE.key,
         icon="mdi:car-brake-parking",
+        skip_existence_check=True,
         has_entity_name=True,
     ),
     ExtSensorEntityDescription(
@@ -980,6 +983,7 @@ SENSORS = [
         key=Tag.OTA_SCHEDULE.key,
         icon="mdi:update",
         device_class=SensorDeviceClass.TIMESTAMP,
+        skip_existence_check=True,
         has_entity_name=True,
         entity_category=EntityCategory.DIAGNOSTIC
     ),
