@@ -272,7 +272,7 @@ class ConnectedFordPassVehicle:
             self.api_response_data[a_type] = []
 
         data_list = self.api_response_data.get(a_type)
-        if len(data_list) > (20 if a_type == "ws" else 5):
+        if len(data_list) > (29 if a_type == "ws" else 4):
             data_list.pop(0)
 
         req_txt = f"{response.request_info.url}" if response is not None and hasattr(response, "request_info") else ("WEBSOCKET" if a_type == "ws" else "UNKNOWN")

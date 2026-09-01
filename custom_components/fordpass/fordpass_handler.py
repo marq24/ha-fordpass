@@ -817,22 +817,43 @@ class FordpassDataHandler:
                 return await vehicle.pause_charge()
 
     def _get_eleveh_charging_power_from_metrics(data_metrics):
-        if "xevBatteryChargerVoltageOutput" in data_metrics and "xevBatteryChargerCurrentOutput" in data_metrics:
-            ch_volt = float(data_metrics.get("xevBatteryChargerVoltageOutput", {}).get("value", 0))
-            ch_amps = float(data_metrics.get("xevBatteryChargerCurrentOutput", {}).get("value", 0))
-            if isinstance(ch_volt, Number) and ch_volt != 0 and isinstance(ch_amps, Number) and ch_amps != 0:
-                return round((ch_volt * ch_amps) / 1000, 2)
-            elif isinstance(ch_volt, Number) and ch_volt != 0 and "xevBatteryIoCurrent" in data_metrics:
-                # Get Battery Io Current for DC Charging calculation
-                batt_amps = float(data_metrics.get("xevBatteryIoCurrent", {}).get("value", 0))
-                # DC Charging calculation: Use absolute value for amperage to handle negative values
-                if isinstance(batt_amps, Number) and batt_amps != 0:
-                    return round((ch_volt * abs(batt_amps)) / 1000, 2)
-                else:
-                    return 0
-            else:
-                return 0
-        return None
+        def parse_metric_int(key):
+            """Extracts (float_value, datetime) or (0.0, None) if missing/invalid."""
+            if key not in data_metrics:
+                return 0.0, None
+
+            a_data_obj = data_metrics[key]
+            val = float(a_data_obj.get("value", 0))
+            try:
+                dt = datetime.fromisoformat(a_data_obj.get("updateTime", "1970-01-01T00:00:00Z"))
+            except BaseException:
+                dt = None
+            return val, dt
+
+        # 1. Parse voltage
+        volt, _ = parse_metric_int("xevBatteryChargerVoltageOutput")
+        if not isinstance(volt, Number) or volt == 0:
+            return 0 if "xevBatteryChargerVoltageOutput" in data_metrics else None
+
+        # 2. Parse charger and battery current metrics
+        ch_amps, ch_dt = parse_metric_int("xevBatteryChargerCurrentOutput")
+        batt_amps, batt_dt = parse_metric_int("xevBatteryIoCurrent")
+
+        # 3. Determine amperage based on the newer timestamps
+        if ch_dt and batt_dt:
+            amps_to_use_for_calc = ch_amps if ch_dt > batt_dt else abs(batt_amps)
+        elif ch_dt:
+            amps_to_use_for_calc = ch_amps
+        elif batt_dt:
+            amps_to_use_for_calc = abs(batt_amps)
+        else:
+            amps_to_use_for_calc = 0
+
+        # 4. Calculate power (kW)
+        if isinstance(amps_to_use_for_calc, Number) and amps_to_use_for_calc != 0:
+            return round((volt * amps_to_use_for_calc) / 1000, 2)
+
+        return 0
 
     def get_elveh_charging_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
