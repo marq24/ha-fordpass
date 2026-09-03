@@ -958,7 +958,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if self._first_time_async_update_data_run_into_ws_connected_is_false is None:
             self._first_time_async_update_data_run_into_ws_connected_is_false = now_time
 
-        if now_time - self._first_time_async_update_data_run_into_ws_connected_is_false > self.update_interval * 10:
+        if int(now_time - self._first_time_async_update_data_run_into_ws_connected_is_false) > int(self._update_interval_seconds * 10):
             raise UpdateFailed(f"No WebSocket connection was available since '{self._first_time_async_update_data_run_into_ws_connected_is_false}' - we stop return state data!")
 
         # 3.2. if this is just a "temp" situation, we return 'stale' data... (but let the user know about this)
