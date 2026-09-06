@@ -1095,7 +1095,6 @@ class ConnectedFordPassVehicle:
         if new_ignition_state is not None and new_ignition_state != INTEGRATION_INIT:
             if self._last_ignition_state != INTEGRATION_INIT:
                 if new_ignition_state != self._last_ignition_state:
-                    _LOGGER.info(f"{self.vli}ws(): NEW ignition state '{new_ignition_state}' | LAST ignition state: '{self._last_ignition_state}'")
                     if "OFF" == new_ignition_state:
                         _LOGGER.info(f"{self.vli}ws(): ignition state changed to 'OFF' (just as INFO)")
                         # AFTER August 2026 - the 'req_status' should no longer be used - so this part of the code should be removed
@@ -1237,7 +1236,7 @@ class ConnectedFordPassVehicle:
                 collected_keys.append(a_root_key)
 
             if a_root_key == ROOT_UPDTIME:
-                _LOGGER.info(f"{self.vli}ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
+                _LOGGER.debug(f"{self.vli}ws(): this is a 'heartbeat': {data_obj[a_root_key]} {collected_keys}")
 
             return True
 
