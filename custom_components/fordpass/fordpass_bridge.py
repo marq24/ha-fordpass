@@ -265,6 +265,10 @@ class ConnectedFordPassVehicle:
         self._last_remote_start_state = INTEGRATION_INIT
         self._last_ev_connect_state = INTEGRATION_INIT
 
+        # we MUST limit the number of calls to the request_update() function - since users are not willing
+        # to listen - and believe they are smart - HiHo Generation TikTok
+        self._request_update_calls_limiter = []
+
         _LOGGER.info(f"{self.vli}init vehicle object for vin: '{self.vin}' - using token from: '{self.stored_tokens_location}'")
 
     async def _local_logging(self, response, a_type, data):
@@ -2555,8 +2559,30 @@ class ConnectedFordPassVehicle:
         """Issue an unlock command to the doors"""
         return await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="unlock")
 
-    async def request_update(self):
+
+    async def request_update(self, force:bool=False):
         """Send request to vehicle for update"""
+        # it's really sad that integration users seam to ignore all information provided concerning the possible
+        # negative impact calling 'request_update' from HA automations - this is a simple rate limit implementation
+        # that makes sure that in 24h the call just can be made 24 times
+        if not force:
+            now = time.time()
+            # 86400 = One DAY_IN_SECONDS! (24 * 60 * 60)
+            # 86340 = One Day minus one minute!
+            now_minus_a_day = now - 86340
+            while self._request_update_calls_limiter and self._request_update_calls_limiter[0] <= now_minus_a_day:
+                self._request_update_calls_limiter.pop(0)
+
+            if len(self._request_update_calls_limiter) > 23:
+                # The earliest call will expire exactly 24 hours after it was placed
+                next_time_dt = datetime.fromtimestamp(self._request_update_calls_limiter[0] + 86400)
+                formatted_time = next_time_dt.strftime("%H:%M:%S")
+                formatted_date = next_time_dt.strftime("%b %d")
+                _LOGGER.info(f"[@{self.vli}] request_update: RATELIMIT EXCEEDED - you can try it again at {formatted_time} on {formatted_date}")
+                return False
+
+            self._request_update_calls_limiter.append(now)
+
         status = await self.__request_and_poll_command_autonomic(baseurl=AUTONOMIC_URL, write_command="statusRefresh")
         return status
 

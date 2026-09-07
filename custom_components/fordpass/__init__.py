@@ -260,10 +260,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     async def async_refresh_status_service(call: ServiceCall):
         _LOGGER.debug(f"Running Service 'refresh_status'")
         status = await coordinator.bridge.request_update()
-        if status == 401:
-            _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Invalid VIN?! (status 401)")
-        elif status in [200, 201, 202]:
-            _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
+        if isinstance(status, int):
+            if status == 401:
+                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Invalid VIN?! (status 401)")
+            elif status in [200, 201, 202]:
+                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
+        elif isinstance(status, bool):
+            if status:
+                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
+            else:
+                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: FAILED")
 
         # when we send a UPDATE request to the vehicle, THEN all new data is already
         # provided via the command_handler! - no need to FORCE a manual update

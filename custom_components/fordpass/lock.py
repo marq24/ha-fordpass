@@ -49,7 +49,7 @@ class FordPassLock(FordPassEntity, LockEntity):
             if Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED":
                 await asyncio.sleep(25)
                 if Tag.ALARM.get_state(self.coordinator.data).upper() != "ARMED":
-                    await self.coordinator.bridge.request_update()
+                    await self.coordinator.bridge.request_update(force=True)
 
             _LOGGER.debug(f"async_lock status: {status} - after waiting for alarm 'ARMED' state")
 
