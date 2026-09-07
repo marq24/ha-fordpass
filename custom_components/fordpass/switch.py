@@ -57,7 +57,7 @@ class FordPassSwitch(FordPassEntity, SwitchEntity):
             if isinstance(state, bool):
                 return state
             else:
-                return state.upper() == "ON"
+                return  any(state.lower() == a_check for a_check in ("on", "true", "1", "yes", "display"))
         else:
             return None
 

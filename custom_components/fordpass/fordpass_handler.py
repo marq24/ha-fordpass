@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from datetime import timedelta, datetime
 from numbers import Number
 from re import sub
@@ -26,6 +27,7 @@ from .const_shared import (
     VEHICLE_LOCK_STATE_UNLOCKED,
     REMOTE_START_STATE_ACTIVE,
     REMOTE_START_STATE_INACTIVE,
+    REMOTE_START_EXPIREDATE,
     HONK_AND_FLASH,
     DAYS_MAP,
     OTA_DEPLOYMENT_STATE_MAP,
@@ -1023,10 +1025,23 @@ class FordpassDataHandler:
         return await vehicle.set_zone_lighting(target_value, current_value)
 
 
+    # internal helper, which checks additional for the expireDate of the remoteStartCountdownTimer metric
+    # that the code set internally when processing websocket messages...
+    def _get_remote_start_countdown_with_expire_date_check(data) -> int:
+        remote_start_countdown_obj = FordpassDataHandler.get_metrics(data).get("remoteStartCountdownTimer", {})
+        val = remote_start_countdown_obj.get("value", -1)
+        if val > 0:
+            if REMOTE_START_EXPIREDATE in remote_start_countdown_obj and remote_start_countdown_obj[REMOTE_START_EXPIREDATE] is not None:
+                #_LOGGER.debug(f"RemoteStartCountdownTimer value check: {val} -> expireDate: {datetime.fromtimestamp(remote_start_countdown_obj[REMOTE_START_EXPIREDATE]).strftime("%H:%M:%S")}")
+                expire_date = float(remote_start_countdown_obj[REMOTE_START_EXPIREDATE])
+                if time.time() >= expire_date:
+                    val = 0
+        return val
+
     # REMOTE_START state + on_off
     def get_remote_start_state(data, prev_state=None):
-        val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
-        return "ON" if val > 0 else "OFF"
+        val = FordpassDataHandler._get_remote_start_countdown_with_expire_date_check(data) > 0
+        return "ON" if val else "OFF"
 
     # this was 'IGNITION' switch - we keep the key name for compatibility...
     async def on_off_remote_start(data, vehicle, turn_on:bool) -> bool:
@@ -1038,8 +1053,8 @@ class FordpassDataHandler:
 
     # REMOTE_START_STATUS state + attributes
     def get_remote_start_status_state(data, prev_state=None):
-        val = FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)
-        return REMOTE_START_STATE_ACTIVE if val > 0 else REMOTE_START_STATE_INACTIVE
+        val = FordpassDataHandler._get_remote_start_countdown_with_expire_date_check(data) > 0
+        return REMOTE_START_STATE_ACTIVE if val else REMOTE_START_STATE_INACTIVE
 
     def get_remote_start_status_attrs(data, units:UnitSystem):
         return {"countdown": FordpassDataHandler.get_value_for_metrics_key(data, "remoteStartCountdownTimer", 0)}

@@ -28,7 +28,8 @@ from .const_shared import (
     ZONE_LIGHTS_VALUE_OFF,
     REMOTE_START_STATE_ACTIVE,
     REMOTE_START_STATE_INACTIVE,
-    HONK_AND_FLASH
+    REMOTE_START_EXPIREDATE,
+    HONK_AND_FLASH,
 )
 from .fordpass_handler import (
     ROOT_STATES,
@@ -1083,14 +1084,29 @@ class ConnectedFordPassVehicle:
 
         # listing for possible state changes...
         if ROOT_METRICS not in data_obj:
-            # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
-            new_ignition_state = self._data_container.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
-            new_ev_connect_state = self._data_container.get(ROOT_METRICS, {}).get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
-            new_remote_start_countdown = self._data_container.get(ROOT_METRICS, {}).get("remoteStartCountdownTimer", {}).get("value", -1)
+            a_dict = self._data_container.get(ROOT_METRICS, {})
         else:
-            new_ignition_state = data_obj.get(ROOT_METRICS, {}).get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
-            new_ev_connect_state = data_obj.get(ROOT_METRICS, {}).get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
-            new_remote_start_countdown = data_obj.get(ROOT_METRICS, {}).get("remoteStartCountdownTimer", {}).get("value", -1)
+            a_dict = data_obj.get(ROOT_METRICS, {})
+            # check if we have received an updated 'remoteStartCountdownTimer' - and if this is the
+            # case, we calculate the final expiry date [since it can happen that we do not get
+            # the information that the 'remoteStartCountdownTimer' is 0 - or no longer present]
+            if "remoteStartCountdownTimer" in a_dict and "value" in a_dict["remoteStartCountdownTimer"]:
+                remote_start_countdown_obj = a_dict.get("remoteStartCountdownTimer", {})
+                # we must check/verify what unit the 'remoteStartCountdownTimer' has - I currently
+                # assume it is in seconds...
+                countdown_value = remote_start_countdown_obj.get("value", -1)
+                if countdown_value > -1:
+                    expire_date_value = time.time() + countdown_value
+                    remote_start_countdown_obj[REMOTE_START_EXPIREDATE] = expire_date_value
+                    if countdown_value == 0:
+                        _LOGGER.debug(f"New RemoteStartCountdown value is 0 (ZERO), so RemoteStart should be INACTIVE")
+                    else:
+                        _LOGGER.debug(f"New RemoteStartCountdown value: {int(countdown_value)} -> countdown expires at: {datetime.fromtimestamp(expire_date_value).strftime("%H:%M:%S")}")
+
+        # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
+        new_ignition_state = a_dict.get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
+        new_ev_connect_state = a_dict.get("xevPlugChargerStatus", {}).get("value", INTEGRATION_INIT).upper()
+        new_remote_start_countdown = a_dict.get("remoteStartCountdownTimer", {}).get("value", -1)
 
         if new_ignition_state is not None and new_ignition_state != INTEGRATION_INIT:
             if self._last_ignition_state != INTEGRATION_INIT:
