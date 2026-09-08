@@ -892,7 +892,11 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
 
     # the WebSocket-related handling...
-    async def ws_connect(self, ready_event:asyncio.Event=None, do_inventory_check_shortly_after_ws_connect:bool=True, skipp_init:bool=False):
+    async def ws_connect(self,
+                         ready_event:asyncio.Event=None,
+                         do_inventory_check_shortly_after_ws_connect:bool=True,
+                         init_other_data:bool=True,
+                         purge_root_metrics:bool=False):
         _LOGGER.debug(f"{self.vli}ws_connect() STARTED...")
         self.ws_connected = False
 
@@ -905,10 +909,14 @@ class ConnectedFordPassVehicle:
             if self.auto_access_token is None:
                 return None
 
-        if len(self._data_container.get(ROOT_METRICS, {})) == 0:
-            _LOGGER.info(f"{self.vli}ws_connect(): no metrics data available - need to init our data-container")
+        if len(self._data_container.get(ROOT_METRICS, {})) == 0 or purge_root_metrics:
+            if purge_root_metrics:
+                _LOGGER.info(f"{self.vli}ws_connect(): purging current meta-data container [size: {len(self._data_container.get(ROOT_METRICS, {}))}]- will re-init it from the websocket data")
+            else:
+                _LOGGER.info(f"{self.vli}ws_connect(): no metrics data available - need to init our data-container")
+
             self._data_container[ROOT_METRICS] = {}
-            if not skipp_init:
+            if init_other_data:
                 await self._update_others(self._data_container)
 
         headers_ws = {

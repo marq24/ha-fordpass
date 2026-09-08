@@ -207,7 +207,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # so VIN is still available in our initial garage data... so we should start the websocket connection...
     # and once that is established, we do the rest!
     try:
-        if not await coordinator.start_websocket_and_wait_for_first_data():
+        if not await coordinator.start_websocket_and_wait_for_first_data(is_integration_init=True):
             _LOGGER.warning(f"The coordinator.start_websocket_and_wait_for_first_data() as returned FALSE")
             raise ConfigEntryNotReady(lang_map["coord_no_vehicle_data"])
 
@@ -632,12 +632,17 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._http_session = get_none_closed_cached_session(self.hass, vin, self.vli)
         return self._http_session
 
-    async def start_websocket_and_wait_for_first_data(self):
+    async def start_websocket_and_wait_for_first_data(self, is_integration_init:bool):
         # 1. Create an event to signal when the connection is established/ready
         connected_event = asyncio.Event()
 
         # 2. Pass the event into your background task
-        self._a_task = self._config_entry.async_create_background_task(self.hass, self.bridge.ws_connect(ready_event=connected_event), "ws_connection")
+        target = self.bridge.ws_connect(
+            ready_event=connected_event,
+            purge_root_metrics=True,
+            init_other_data=is_integration_init
+        )
+        self._a_task = self._config_entry.async_create_background_task(self.hass, target, "ws_connection")
 
         # 3. Wait ONLY until the first message is processed (or time out)
         try:
@@ -931,7 +936,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
             # finally, restart with our new method!
             _LOGGER.debug(f"{self.vli}force_async_update_now(): RESTARTING websocket connection (step 2/3) - now trying to reconnect")
-            if not await self.start_websocket_and_wait_for_first_data():
+            if not await self.start_websocket_and_wait_for_first_data(is_integration_init=False):
                 _LOGGER.info(f"{self.vli}force_async_update_now(): requested restart of websocket connection FAILED! - we need to rely on the watchdog now!")
             else:
                 _LOGGER.debug(f"{self.vli}force_async_update_now(): RESTARTING websocket connection (step 3/3) - new connection established - all good!")
