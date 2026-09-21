@@ -1108,12 +1108,21 @@ class ConnectedFordPassVehicle:
                 # assume it is in seconds...
                 countdown_value = remote_start_countdown_obj.get("value", -1)
                 if countdown_value > -1:
-                    expire_date_value = time.time() + countdown_value
+                    update_time_val = None
+                    try:
+                        update_time_val = remote_start_countdown_obj.get("updateTime", "1970-01-01T00:00:00Z")
+                        dt = datetime.fromisoformat(update_time_val)
+                    except BaseException:
+                        _LOGGER.debug(f"{self.vli}New RemoteStartCountdown failure: could not parse '{update_time_val}' to datetime - using time.time() as default")
+                        # this is equal to 'time.time()'
+                        dt = datetime.now(timezone.utc)
+
+                    expire_date_value = dt.timestamp() + countdown_value
                     remote_start_countdown_obj[REMOTE_START_EXPIREDATE] = expire_date_value
                     if countdown_value == 0:
-                        _LOGGER.debug(f"New RemoteStartCountdown value is 0 (ZERO), so RemoteStart should be INACTIVE")
+                        _LOGGER.debug(f"{self.vli}New RemoteStartCountdown value is 0 (ZERO), so RemoteStart should be INACTIVE")
                     else:
-                        _LOGGER.debug(f"New RemoteStartCountdown value: {int(countdown_value)} -> countdown expires at: {datetime.fromtimestamp(expire_date_value).strftime("%H:%M:%S")}")
+                        _LOGGER.debug(f"{self.vli}New RemoteStartCountdown value: {int(countdown_value)} -> countdown expires at: {datetime.fromtimestamp(expire_date_value).strftime("%H:%M:%S")}")
 
         # compare 'ignitionStatus' reading with default impl in FordPassDataHandler!
         new_ignition_state = a_dict.get("ignitionStatus", {}).get("value", INTEGRATION_INIT).upper()
