@@ -11,7 +11,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.restore_state import RestoreEntity, RestoredExtraData, async_get, StoredState
+from homeassistant.helpers.restore_state import RestoreEntity, RestoredExtraData, async_get, StoredState, \
+    RestoreStateData
 
 from . import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from .const import DOMAIN
@@ -29,7 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     sensors = []
 
     check_data_availability = coordinator.data is not None and len(coordinator.data.get(ROOT_METRICS, {})) > 0
-    storage = async_get(hass)
+    storage:RestoreStateData = async_get(hass)
     the_platform = entity_platform.async_get_current_platform().domain
 
     for a_entity_description in SENSORS:
@@ -64,7 +65,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
             # make sure that the entity_id will have the correct domain!
             # in 'some' cases the domain was 'fordpass.' instead of the expected 'sensor.'
             entity_id = f"{the_platform}.{sensor.entity_id.split('.')[1]}".lower()
-            restored_state = storage.last_states.get(entity_id, None)
+
+            # related to #275
+            if hasattr(storage, "async_get_stored_state"):
+                restored_state = storage.async_get_stored_state.get(entity_id, None)
+            elif hasattr(storage, "last_states"):
+                restored_state = storage.last_states.get(entity_id, None)
+            else:
+                restored_state = None
+
             if restored_state is not None and isinstance(restored_state, StoredState) and restored_state.state is not None and restored_state.state.state is not None:
                 try:
                     # the restored value MUST be number (since we use the 'total_increasing' state_class
