@@ -2595,7 +2595,7 @@ class ConnectedFordPassVehicle:
                 next_time_dt = datetime.fromtimestamp(self._request_update_calls_limiter[0] + 86400)
                 formatted_time = next_time_dt.strftime("%H:%M:%S")
                 formatted_date = next_time_dt.strftime("%b %d")
-                _LOGGER.info(f"[@{self.vli}] request_update: RATELIMIT EXCEEDED - you can try it again at {formatted_time} on {formatted_date}")
+                _LOGGER.info(f"{self.vli}request_update: RATELIMIT EXCEEDED - you can try it again at {formatted_time} on {formatted_date}")
                 return False
 
             self._request_update_calls_limiter.append(now)
