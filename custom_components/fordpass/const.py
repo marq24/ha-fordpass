@@ -200,7 +200,7 @@ REGIONS: Final = {
         "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19
         "locale": "nl-BE",
         "login_url": "https://login.ford.com",
-        "countrycode": "NLD"
+        "countrycode": "BEL"
     },
 
     # we use the 'usa' as the default region...,
