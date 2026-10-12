@@ -21,24 +21,25 @@ UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-acces
 BRAND_OPTIONS = ["ford", "lincoln"]
 
 DEFAULT_REGION_FORD: Final = "rest_of_world"
-REGION_OPTIONS_FORD: Final = ["fra", "deu", "dnk", "ita", "nld", "esp", "nor", "pol", "gbr", "prt", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
+REGION_OPTIONS_FORD: Final = ["fra", "deu", "dnk", "ita", "nld", "esp", "nor", "pol", "gbr", "prt", "bel", "rest_of_europe", "aus", "nzl", "zaf", "bra", "arg", "can", "mex", "usa", "rest_of_world"]
 
 REGION_OPTIONS_LINCOLN: Final = ["lincoln_usa"]
 DEFAULT_REGION_LINCOLN: Final = "lincoln_usa"
 
-LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands"]
+LEGACY_REGION_KEYS: Final = ["USA", "Canada", "Australia", "UK&Europe", "Netherlands", "Belgium"]
 LEGACY_TO_ACTIVE_REGION_MAP: Final = {
     "USA":          "usa",
     "Canada":       "can",
     "Australia":    "aus",
     "UK&Europe":    "rest_of_europe",
-    "Netherlands":  "nld"
+    "Netherlands":  "nld",
+    "Belgium":      "bel"
 }
 
 REGION_APP_IDS: Final = {
     "africa":           "71AA9ED7-B26B-4C15-835E-9F35CC238561", # South Africa, ...
     "asia_pacific":     "39CD6590-B1B9-42CB-BEF9-0DC1FDB96260", # Australia, Thailand, New Zealand, ...
-    "europe":           "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # used for germany, france, italy, netherlands, uk, rest_of_europe
+    "europe":           "667D773E-1BDC-4139-8AD0-2B16474E8DC7", # used for germany, france, italy, netherlands, uk, belgium rest_of_europe
     "north_america":    "BFE8C5ED-D687-4C19-A5DD-F92CDFC4503A", # used for canada, usa, mexico
     "south_america":    "C1DFFEF5-5BA5-486A-9054-8B39A9DF9AFC", # Argentina, Brazil, ...
 }
@@ -194,6 +195,14 @@ REGIONS: Final = {
         "countrycode": "ZAF"
     },
 
+    # checked 2025/06/08 - working fine...
+    "bel": {
+        "app_id": REGION_APP_IDS["europe"], # 1E8C7794-FF5F-49BC-9596-A1E0C86C5B19
+        "locale": "nl-BE",
+        "login_url": "https://login.ford.com",
+        "countrycode": "NLD"
+    },
+
     # we use the 'usa' as the default region...,
     "rest_of_world": {
         "app_id": REGION_APP_IDS["north_america"],
@@ -207,7 +216,8 @@ REGIONS: Final = {
     "UK&Europe":    {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "en-GB", "login_url": "https://login.ford.co.uk", "countrycode": "GBR"},
     "Australia":    {"app_id": "5C80A6BB-CF0D-4A30-BDBF-FC804B5C1A98", "locale": "en-AU", "login_url": "https://login.ford.com", "countrycode": "AUS"},
     "USA":          {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-US", "login_url": "https://login.ford.com", "countrycode": "USA"},
-    "Canada":       {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-CA", "login_url": "https://login.ford.com", "countrycode": "USA"}
+    "Canada":       {"app_id": "71A3AD0A-CF46-4CCF-B473-FC7FE5BC4592", "locale": "en-CA", "login_url": "https://login.ford.com", "countrycode": "USA"},
+    "Belgium":      {"app_id": "1E8C7794-FF5F-49BC-9596-A1E0C86C5B19", "locale": "nl-BE", "login_url": "https://login.ford.be", "countrycode": "BEL"}
 }
 
 REGIONS_STRICT = REGIONS.copy()
@@ -234,10 +244,11 @@ TRANSLATIONS: Final = {
         "usa": "Die Vereinigten Staaten von Amerika",
         "bra": "Brasilien",
         "arg": "Argentinien",
+        "bel": "Belgien",
         "rest_of_europe": "Andere europäische Länder",
         "rest_of_world": "Rest der Welt",
         "lincoln_usa": "Vereinigten Staaten von Amerika",
-        "USA": "USA (LEGACY)", "Canada":"Kanada (LEGACY)", "Australia":"Australien (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Niederlande (LEGACY)",
+        "USA": "USA (LEGACY)", "Canada":"Kanada (LEGACY)", "Australia":"Australien (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Niederlande (LEGACY)", "Belgium":"Belgien (LEGACY)",
         "coord_null_data": "Es konnten keine Daten abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration.",
         "coord_no_vehicle_data": "Es konnten keine Daten zu Deinem konfigurierten Fahrzeug abgerufen werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration.",
         "websocket_start_failed": "Der Websocket konnte innerhalb von einer Minute nicht gestartet werden. Bitte prüfe Dein Home Assistant System Protokoll auf mögliche Fehlermeldungen der Integration."
@@ -261,10 +272,11 @@ TRANSLATIONS: Final = {
         "usa": "The United States of America",
         "bra": "Brazil",
         "arg": "Argentina",
+        "bel": "Belgium",
         "rest_of_europe": "Other European Countries",
         "rest_of_world": "Rest of the World",
         "lincoln_usa": "United States of America",
-        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)",
+        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australia (LEGACY)", "UK&Europe":"UK&Europe (LEGACY)", "Netherlands":"Netherlands (LEGACY)", "Belgium":"Belgium (LEGACY)",
         "coord_null_data": "Coordinator could not provided any data. Please check your Home Assistant system log for possible error messages.",
         "coord_no_vehicle_data": "Coordinator could not fetch essential information from your configured vehicle. Please check your Home Assistant system log for possible error messages.",
         "websocket_start_failed": "The Websocket could not be started within one minute. Please check your Home Assistant system log for possible error messages."
@@ -288,10 +300,11 @@ TRANSLATIONS: Final = {
         "usa": "Verenigde Staten van Amerika",
         "bra": "Brazilië",
         "arg": "Argentinië",
+        "bel": "België",
         "rest_of_europe": "Overige Europese landen",
         "rest_of_world": "Rest van de wereld",
         "lincoln_usa": "Verenigde Staten van Amerika",
-        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australië (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Nederland (LEGACY)",
+        "USA": "USA (LEGACY)", "Canada":"Canada (LEGACY)", "Australia":"Australië (LEGACY)", "UK&Europe":"UK&Europa (LEGACY)", "Netherlands":"Nederland (LEGACY)","Belgium":"België (LEGACY)",
         "coord_null_data": "Coördinator kon geen gegevens leveren. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen.",
         "coord_no_vehicle_data": "Coördinator kon essentiële informatie van uw geconfigureerde voertuig niet ophalen. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen.",
         "websocket_start_failed": "De Websocket kon niet worden gestart binnen een minuut. Controleer uw Home Assistant-systeemlogboek op mogelijke foutmeldingen."
