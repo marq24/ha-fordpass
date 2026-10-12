@@ -239,9 +239,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         # this actually should not be called - this will put your
         # Fordpass account at risk to be (temporary) locked by Ford
         _LOGGER.debug(f"Running Service 'legacy_refresh_status'")
-        status = await coordinator.bridge.request_update()
+        force_val = False
+        coord_data = coordinator.data
+        if coord_data:
+            ignition_val = Tag.IGNITION_STATUS.get_state(coord_data)
+            if ignition_val:
+                if str(ignition_val).lower() == "on":
+                    _LOGGER.debug(f"[@{coordinator.vli}] async_legacy_refresh_status_service(): ignoring possible ratelimit, since 'ignitionStatus' is '{ignition_val}'")
+                    force_val = True
+
+        status = await coordinator.bridge.request_update(force=force_val)
         if status:
-            _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh request processed - now sleep for 30 seconds... before proceeding")
+            _LOGGER.debug(f"[@{coordinator.vli}] async_legacy_refresh_status_service(): Refresh request processed - now sleep for 30 seconds... before proceeding")
             await asyncio.sleep(30)
             _LOGGER.warning(f"[@{coordinator.vli}] You called the Service legacy_refresh_status: This service should not be called, since it's might result in a (temporary) lock of your used Ford/Lincoln account - You have been warned!")
             state_data = await coordinator.bridge.req_status_deprecated_to_not_use(do_as_post=False, show_warning=False)
@@ -253,23 +262,32 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                         coordinator.bridge._data_container[a_key] = state_data[a_key]
 
                 if len(updates_keys) > 0:
-                    _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: new data was fetched via req_status (that should no longer be used) updated keys: {updates_keys}")
+                    _LOGGER.debug(f"[@{coordinator.vli}] async_legacy_refresh_status_service(): new data was fetched via req_status (that should no longer be used) updated keys: {updates_keys}")
                     # finally trigger the update in the data coordinator...
                     coordinator.bridge._ws_notify_for_new_data()
 
     async def async_refresh_status_service(call: ServiceCall):
         _LOGGER.debug(f"Running Service 'refresh_status'")
-        status = await coordinator.bridge.request_update()
+        force_val = False
+        coord_data = coordinator.data
+        if coord_data:
+            ignition_val = Tag.IGNITION_STATUS.get_state(coord_data)
+            if ignition_val:
+                if str(ignition_val).lower() == "on":
+                    _LOGGER.debug(f"[@{coordinator.vli}] async_refresh_status_service(): ignoring possible ratelimit, since 'ignitionStatus' is '{ignition_val}'")
+                    force_val = True
+
+        status = await coordinator.bridge.request_update(force=force_val)
         if isinstance(status, int):
             if status == 401:
-                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Invalid VIN?! (status 401)")
+                _LOGGER.debug(f"[@{coordinator.vli}] async_refresh_status_service(): Invalid VIN?! (status 401)")
             elif status in [200, 201, 202]:
-                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
+                _LOGGER.debug(f"[@{coordinator.vli}] async_refresh_status_service(): Refresh sent")
         elif isinstance(status, bool):
             if status:
-                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: Refresh sent")
+                _LOGGER.debug(f"[@{coordinator.vli}] async_refresh_status_service(): Refresh sent")
             else:
-                _LOGGER.debug(f"[@{coordinator.vli}] refresh_status: FAILED")
+                _LOGGER.debug(f"[@{coordinator.vli}] async_refresh_status_service(): FAILED")
 
         # when we send a UPDATE request to the vehicle, THEN all new data is already
         # provided via the command_handler! - no need to FORCE a manual update

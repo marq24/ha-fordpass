@@ -2130,11 +2130,17 @@ class FordpassDataHandler:
         await coordinator.force_async_update_now()
 
     async def request_update_and_reload(coordinator, vehicle):
-        await vehicle.request_update()
-        # when we send a UPDATE request to the vehicle, THEN all new data is already
-        # provided via the command_handler! - no need to FORCE a manual update
-        # afterward!
-        #await coordinator.force_async_update_now()
+        # this is the BUTTON implementation
+        force_val = False
+        coord_data = coordinator.data
+        if coord_data:
+            ignition_val = FordpassDataHandler.get_value_for_metrics_key(coord_data, "ignitionStatus", "off")
+            if ignition_val:
+                if str(ignition_val).lower() == "on":
+                    _LOGGER.debug(f"request_update_and_reload(): ignoring possible ratelimit, since 'ignitionStatus' is '{ignition_val}'")
+                    force_val = True
+
+        await vehicle.request_update(force=force_val)
 
     async def lock_vehicle(coordinator, vehicle):
         await vehicle.lock()
