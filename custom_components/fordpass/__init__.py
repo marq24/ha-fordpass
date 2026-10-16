@@ -67,7 +67,7 @@ from .fordpass_handler import (
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-PLATFORMS:Final = [Platform.BUTTON, Platform.LOCK, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH, Platform.SELECT, Platform.DEVICE_TRACKER]
+PLATFORMS:Final = [Platform.BUTTON, Platform.LOCK, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH, Platform.SELECT, Platform.DEVICE_TRACKER, Platform.IMAGE]
 WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
 class NonNullDict(dict):
@@ -879,6 +879,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                                     self._supports_HEATED_HEATED_SEAT_MODE = RCC_SEAT_MODE_HEAT_ONLY
                             _LOGGER.debug(f"{self.vli}DriverHeatedSeat support mode: {self._supports_HEATED_HEATED_SEAT_MODE}")
 
+                            if "vehicleImage" in nn_profile_obj:
+                                self._veh_image_url = nn_profile_obj.none_null_get("vehicleImage", None)
+
                             # ok now the classic 'capabilities'...
                             self._supports_ALARM = Tag.ALARM.get_state(self.data) != UNSUPPORTED
                             self._supports_REMOTE_LOCK = self._check_if_veh_capability_supported("remoteLock", nn_capabilities_obj)
@@ -1046,6 +1049,14 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         #     else:
         #         _LOGGER.warning(f"{self.vli}_async_update_data(): No data available - return 'None'")
         #         return None
+
+    async def async_get_vehicle_image_bytes(self, a_url:str=None):
+        if a_url:
+            return await self.bridge.request_vehicle_image_bytes(a_url)
+
+        # the fallback...
+        if self._veh_image_url:
+            return await self.bridge.request_vehicle_image_bytes(self._veh_image_url)
 
 
 class FordPassEntity(CustomFriendlyNameEntity):

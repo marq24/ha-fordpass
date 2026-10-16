@@ -1784,6 +1784,15 @@ class FordpassDataHandler:
             "weeklySchedule": weekly_schedule,
         }
 
+    def get_vehicle_image_url(data, prev_state=None):
+        veh_obj = FordpassDataHandler.get_vehicle(data)
+        if veh_obj:
+            return veh_obj.get("profile",{}).get("vehicleImage", None)
+
+    #######################################
+    ## END OF STATES/ATTRIBUES functions ##
+    #######################################
+
     # the last successfully installed ECU/firmware package, sourced from events.configurationUpdateEvent.
     # depending on push type this has been observed both as a top-level key of "events" and nested one
     # level deeper under "events.customEvents" - we check both rather than trust either shape blindly.

@@ -286,6 +286,7 @@
             "closewindows":         {"name": "Close All Windows"}
         },
         "device_tracker":   {"tracker": {"name": "Vehicle Tracker"}},
+        "image":            {"vehicleimage":  {"name":  "Vehicle Picture"}},
         "lock":             {"doorlock":{"name": "Doors"}},
         "switch": {
             "ignition":                 {"name": "RC (❄|☀): Start [RemoteControl]"},

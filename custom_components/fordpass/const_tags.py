@@ -419,6 +419,9 @@ class Tag(ApiKey, Enum):
                       state_fn=lambda data, prev_state: len(FordpassDataHandler.get_vehicle(data)),
                       attrs_fn=lambda data, units: FordpassDataHandler.get_vehicle(data))
 
+    VEHICLE_IMAGE = ApiKey(key="vehicleImage",
+                      state_fn=FordpassDataHandler.get_vehicle_image_url)
+
 # tags that are only available for gas/diesel/plugin-hybrid (PHEV) vehicles...
 FUEL_OR_PEV_ONLY_TAGS: Final = [
     Tag.FUEL,

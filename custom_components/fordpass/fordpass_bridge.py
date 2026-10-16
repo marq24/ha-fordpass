@@ -1499,6 +1499,11 @@ class ConnectedFordPassVehicle:
 
                             nn_capabilities_obj = NonNullDict(tmp_cap)
 
+                            # store the vehicle image URL...
+                            tmp_profile = a_veh_obj.get("profile", None)
+                            if tmp_profile:
+                                self._vehicle_image_url = tmp_profile.get("vehicleImage", None)
+
                             # we must check if the vehicle supports 'remote climate control'...
                             if hasattr(self.coordinator, "_force_REMOTE_CLIMATE_CONTROL") and self.coordinator._force_REMOTE_CLIMATE_CONTROL:
                                 self._remote_climate_control_supported = True
@@ -1669,6 +1674,25 @@ class ConnectedFordPassVehicle:
     # ***********************************************************
     # ***********************************************************
     # ***********************************************************
+
+    async def request_vehicle_image_bytes(self, url):
+        _LOGGER.debug(f"{self.vli}request_vehicle_image_bytes(): {url}")
+        try:
+            headers = {
+                **apiHeaders,
+                "auth-token": self.access_token,
+                "Application-Id": self.app_id,
+            }
+            async with self.session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    content_type = response.headers.get("content-type")
+                    return content_type, await response.read()
+
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            _LOGGER.debug(f"{self.vli}request_vehicle_image_bytes caused: {type(exc).__name__} - {exc}")
+
+        return None
+
 
     # with com.ford.fordpass 6.20.0 there are no request to
     # https://api.autonomic.ai/v1beta/telemetry/sources/fordpass/vehicles/{vin}?lrdt=01-01-1970 00:00:00

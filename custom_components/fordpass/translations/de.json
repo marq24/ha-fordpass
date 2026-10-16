@@ -280,6 +280,7 @@
             "trailerlightcheckoff": {"name": "Trailer Light Check: AUS"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
+        "image":            {"vehicleimage":  {"name":  "Fahrzeug Abbildung"}},
         "lock":             {"doorlock":{"name": "Verriegelung"}},
         "switch": {
             "ignition":                 {"name": "RC (❄|☀): Start [RemoteControl]"},
