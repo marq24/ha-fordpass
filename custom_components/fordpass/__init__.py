@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as the_entity_registry
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.icon import icon_for_battery_level
@@ -1058,6 +1059,43 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         if self._veh_image_url:
             return await self.bridge.request_vehicle_image_bytes(self._veh_image_url)
 
+    @property
+    def gen_device_info(self) -> DeviceInfo:
+        """Return device information about this device."""
+
+        ## messages are login/user bound... so we create an own device for the user objects
+        #if not self._tag in [Tag.MESSAGES, Tag.MESSAGES_DELETE_LAST, Tag.MESSAGES_DELETE_ALL]:
+        model = "unknown"
+        if ROOT_VEHICLES in self.data and self.data[ROOT_VEHICLES] is not None:
+            vehicles_obj = self.data[ROOT_VEHICLES]
+            if isinstance(vehicles_obj, list):
+                for a_vehicle in vehicles_obj:
+                    if a_vehicle["vin"] == self._vin:
+                        a_profile_obj = a_vehicle.get('profile', {})
+                        model = f"{a_profile_obj.get('year', '')} {a_profile_obj.get('model', 'unknown')}"
+
+            elif isinstance(vehicles_obj, dict):
+                if "vehicleProfile" in vehicles_obj and vehicles_obj["vehicleProfile"] is not None:
+                    for a_vehicle in vehicles_obj["vehicleProfile"]:
+                        if a_vehicle["VIN"] == self._vin:
+                            model = f"{a_vehicle['year']} {a_vehicle['model']}"
+
+        return {
+            "identifiers": {(DOMAIN, self._vin)},
+            "name": f"VIN: {self._vin}",
+            "model": f"{model}",
+            "manufacturer": MANUFACTURER_LINCOLN if self._is_brand_lincoln else MANUFACTURER_FORD
+        }
+        # else:
+        #     a_config_entry = self._config_entry
+        #     name = a_config_entry.data.get(CONF_USERNAME, "unknown_user")
+        #     region = a_config_entry.data.get(CONF_REGION, DEFAULT_REGION_FORD)
+        #     return {
+        #         "identifiers": {(DOMAIN, f"{name}µ@µ{region}")},
+        #         "name": f"{self.lang_map.get("account", "Account")}: {name} [{self.lang_map.get(region, "Unknown")}]",
+        #         "manufacturer": MANUFACTURER_LINCOLN if self._is_brand_lincoln else MANUFACTURER_FORD
+        #     }
+
 
 class FordPassEntity(CustomFriendlyNameEntity):
     """Defines a base FordPass entity."""
@@ -1092,7 +1130,7 @@ class FordPassEntity(CustomFriendlyNameEntity):
 
     @property
     def device_id(self):
-        return f"fordpass_did_{self.self.coordinator._vin.lower()}"
+        return f"fordpass_did_{self.coordinator._vin.lower()}"
 
     @property
     def unique_id(self):
@@ -1100,43 +1138,9 @@ class FordPassEntity(CustomFriendlyNameEntity):
         return f"fordpass_uid_{self.coordinator._vin}_{self._tag.key}".lower()
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo:
         """Return device information about this device."""
-        if self._tag is None:
-            return None
-
-        ## messages are login/user bound... so we create an own device for the user objects
-        #if not self._tag in [Tag.MESSAGES, Tag.MESSAGES_DELETE_LAST, Tag.MESSAGES_DELETE_ALL]:
-        model = "unknown"
-        if ROOT_VEHICLES in self.coordinator.data and self.coordinator.data[ROOT_VEHICLES] is not None:
-            vehicles_obj = self.coordinator.data[ROOT_VEHICLES]
-            if isinstance(vehicles_obj, list):
-                for a_vehicle in vehicles_obj:
-                    if a_vehicle["vin"] == self.coordinator._vin:
-                        a_profile_obj = a_vehicle.get('profile', {})
-                        model = f"{a_profile_obj.get('year', '')} {a_profile_obj.get('model', 'unknown')}"
-
-            elif isinstance(vehicles_obj, dict):
-                if "vehicleProfile" in vehicles_obj and vehicles_obj["vehicleProfile"] is not None:
-                    for a_vehicle in vehicles_obj["vehicleProfile"]:
-                        if a_vehicle["VIN"] == self.coordinator._vin:
-                            model = f"{a_vehicle['year']} {a_vehicle['model']}"
-
-        return {
-            "identifiers": {(DOMAIN, self.coordinator._vin)},
-            "name": f"VIN: {self.coordinator._vin}",
-            "model": f"{model}",
-            "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD
-        }
-        # else:
-        #     a_config_entry = self.coordinator._config_entry
-        #     name = a_config_entry.data.get(CONF_USERNAME, "unknown_user")
-        #     region = a_config_entry.data.get(CONF_REGION, DEFAULT_REGION_FORD)
-        #     return {
-        #         "identifiers": {(DOMAIN, f"{name}µ@µ{region}")},
-        #         "name": f"{self.coordinator.lang_map.get("account", "Account")}: {name} [{self.coordinator.lang_map.get(region, "Unknown")}]",
-        #         "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD
-        #     }
+        return self.coordinator.gen_device_info
 
     def _friendly_name_internal(self) -> str | None:
         """Return the friendly name.

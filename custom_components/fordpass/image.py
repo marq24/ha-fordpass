@@ -1,7 +1,8 @@
 import asyncio
 import logging
-
+from pathlib import Path
 from datetime import datetime
+
 from homeassistant.components.image import ImageEntity, Image, ImageContentTypeError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -28,22 +29,28 @@ async def async_setup_entry(
 class VehicleImageEntity(ImageEntity):
     _attr_has_entity_name = True
 
-    def __init__(self, hass: HomeAssistant, coordinator:FordPassDataUpdateCoordinator):
+    def __init__(self, hass: HomeAssistant, coordinator: FordPassDataUpdateCoordinator):
         # Pass hass to the parent ImageEntity so it sets up access tokens correctly
         super().__init__(hass)
         self.coordinator = coordinator
+        self.vin_lower = self.coordinator._vin.lower()
         self._image_lock = asyncio.Lock()
         self._tag = Tag.VEHICLE_IMAGE
         self._attr_translation_key = self._tag.key.lower()
-        self.entity_id = f"{Platform.IMAGE}.fordpass_{self.coordinator._vin.lower()}_{self._tag.key}".lower()
+        self.entity_id = f"{Platform.IMAGE}.fordpass_{self.vin_lower}_{self._tag.key}".lower()
 
         self._img_data = None
         self._img_type = None
         self.image_last_updated = datetime.now()
 
+        # Define persistent local storage paths in the Home Assistant config directory
+        base_path = Path(hass.config.path("fordpass-data"))
+        self._image_path = base_path / f"vehicle_image_{self.vin_lower}.jpg" # Extension will adapt/serve bytes regardless, but keep generic
+        self._type_path = base_path / f"vehicle_image_{self.vin_lower}.type"
+
     @property
     def device_id(self):
-        return f"fordpass_did_{self.self.coordinator._vin.lower()}"
+        return f"fordpass_did_{self.vin_lower}"
 
     @property
     def unique_id(self):
@@ -52,11 +59,8 @@ class VehicleImageEntity(ImageEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return {
-            "identifiers": {(DOMAIN, self.coordinator._vin)},
-            "name": f"VIN: {self.coordinator._vin}",
-            "manufacturer": MANUFACTURER_LINCOLN if self.coordinator._is_brand_lincoln else MANUFACTURER_FORD,
-        }
+        """Return device information about this device."""
+        return self.coordinator.gen_device_info
 
     @property
     def image_url(self) -> str | None:
@@ -66,20 +70,49 @@ class VehicleImageEntity(ImageEntity):
         return None
 
     async def _async_load_image_from_url(self, url: str) -> Image | None:
-        """Load an image by url."""
-        _LOGGER.debug(f"_async_load_image_from_url(): '{url}'")
+        """Load an image by url or fallback to permanent local storage."""
+        _LOGGER.debug(f"_async_load_image_from_url(): called with '{url}'")
         async with self._image_lock:
             try:
-                if self._img_data is None:
-                    self._img_type, self._img_data = await self.coordinator.async_get_vehicle_image_bytes(a_url=self._tag.get_state(self.coordinator.data, None))
+                # 1. Check in-memory cache first
+                if self._img_data is None or self._img_type is None:
+                    # 2. Check if both the image file and content-type metadata exist locally on disk
+                    file_exists = await self.hass.async_add_executor_job(
+                        lambda: self._image_path.exists() and self._type_path.exists()
+                    )
 
-                return Image(
-                    content=self._img_data,
-                    content_type=self._img_type,
-                )
+                    if file_exists:
+                        _LOGGER.debug(f"_async_load_image_from_url(): loading vehicle image and type from local storage: {self._image_path}")
+                        def _load_local():
+                            img_bytes = self._image_path.read_bytes()
+                            img_type = self._type_path.read_text(encoding="utf-8").strip()
+                            return img_bytes, img_type
+
+                        self._img_data, self._img_type = await self.hass.async_add_executor_job(_load_local)
+                    else:
+                        # 3. Fetch from coordinator if not available locally
+                        url_to_fetch = self._tag.get_state(self.coordinator.data, None)
+                        if url_to_fetch:
+                            self._img_type, self._img_data = await self.coordinator.async_get_vehicle_image_bytes(a_url=url_to_fetch)
+
+                            # Save permanently to disk along with its actual content type
+                            if self._img_data and self._img_type:
+                                def _save_local():
+                                    self._image_path.parent.mkdir(parents=True, exist_ok=True)
+                                    self._image_path.write_bytes(self._img_data)
+                                    self._type_path.write_text(self._img_type, encoding="utf-8")
+
+                                await self.hass.async_add_executor_job(_save_local)
+                                _LOGGER.debug(f"_async_load_image_from_url(): saved vehicle image and type to local storage: {self._image_path}")
+
+                if self._img_data and self._img_type:
+                    return Image(
+                        content=self._img_data,
+                        content_type=self._img_type,
+                    )
             except ImageContentTypeError:
-                _LOGGER.info(f"_async_load_image_from_url(): {self.entity_id}: Image from {url} has invalid content type: {self._img_type}")
-            except BaseException as ex:
-                _LOGGER.info(f"_async_load_image_from_url(): Exception {type(ex).__name__} - {ex}")
+                _LOGGER.info(f"_async_load_image_from_url(): image from {url} has invalid content type: {self._img_type}")
+            except Exception as ex:
+                _LOGGER.info(f"_async_load_image_from_url(): Exception {type(ex).__name__}: {ex}")
 
         return None
