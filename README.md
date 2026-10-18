@@ -1,4 +1,4 @@
-# Ford™ (aka FordPass™) for Home Assistant support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles
+# <sub><img src="https://raw.githubusercontent.com/marq24/ha-fordpass/main/custom_components/fordpass/brand/icon.png" style="align:bottom;height:42px;"></sub> Ford™ (aka FordPass™) for Home Assistant support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles
 ## Supporting all Ford vehicles with Ford™App (aka FordPass™) & Lincoln vehicles with Lincoln™App (aka The Lincoln Way™) connectivity
 
 <!--
