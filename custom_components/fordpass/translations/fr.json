@@ -298,6 +298,7 @@
         "sensor": {
             "odometer":                 {"name": "Odomètre"},
             "fuel":                     {"name": "Carburant"},
+            "fuelrange":                {"name": "Autonomie carburant"},
             "battery":                  {"name": "Batterie (12V)"},
             "oil":                      {"name": "Durée de vie de l'huile"},
             "tirepressure":             {"name": "Pression des pneus"},

@@ -214,6 +214,13 @@ class FordpassDataHandler:
 
         return attrs
 
+    # FUEL RANGE (distance to empty) state
+    def get_fuel_range_state(data, prev_state=None):
+        fuel_range = FordpassDataHandler.get_value_for_metrics_key(data, "fuelRange")
+        if isinstance(fuel_range, Number):
+            return round(float(fuel_range))
+        return None
+
 
     # SOC state + attributes
     def get_soc_state(data, prev_state=None):

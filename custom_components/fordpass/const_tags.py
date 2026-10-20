@@ -225,6 +225,8 @@ class Tag(ApiKey, Enum):
     FUEL                = ApiKey(key="fuel",
                                  state_fn=FordpassDataHandler.get_fuel_state,
                                  attrs_fn=FordpassDataHandler.get_fuel_attrs)
+    FUEL_RANGE          = ApiKey(key="fuelRange",
+                                 state_fn=FordpassDataHandler.get_fuel_range_state)
     BATTERY             = ApiKey(key="battery",
                                  state_fn=FordpassDataHandler.get_battery_state,
                                  attrs_fn=FordpassDataHandler.get_battery_attrs)
@@ -425,6 +427,7 @@ class Tag(ApiKey, Enum):
 # tags that are only available for gas/diesel/plugin-hybrid (PHEV) vehicles...
 FUEL_OR_PEV_ONLY_TAGS: Final = [
     Tag.FUEL,
+    Tag.FUEL_RANGE,
     Tag.ENGINE_OIL_TEMP,
     # Tag.CHECK_ENGINE_LIGHT,
     # Tag.LOW_FUEL_WARNING,
@@ -508,6 +511,17 @@ SENSORS = [
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.FUEL_RANGE,
+        key=Tag.FUEL_RANGE.key,
+        icon="mdi:gas-station",
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        suggested_display_precision=0,
+        has_entity_name=True,
+        skip_existence_check=True,
     ),
     # Tag.BATTERY: {"icon": "mdi:car-battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": PERCENTAGE},
     ExtSensorEntityDescription(
