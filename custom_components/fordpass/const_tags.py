@@ -515,13 +515,12 @@ SENSORS = [
     ExtSensorEntityDescription(
         tag=Tag.FUEL_RANGE,
         key=Tag.FUEL_RANGE.key,
-        icon="mdi:gas-station",
+        icon="mdi:map-marker-distance",
         device_class=SensorDeviceClass.DISTANCE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         suggested_display_precision=0,
-        has_entity_name=True,
-        skip_existence_check=True,
+        has_entity_name=True
     ),
     # Tag.BATTERY: {"icon": "mdi:car-battery", "state_class": "measurement", "api_key": "batteryStateOfCharge", "measurement": PERCENTAGE},
     ExtSensorEntityDescription(

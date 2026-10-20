@@ -302,6 +302,7 @@
         "sensor": {
             "odometer":                 {"name": "Kilometerstand"},
             "fuel":                     {"name": "Tankanzeige"},
+            "fuelrange":                {"name": "Reichweite (verbleibend)"},
             "battery":                  {"name": "Batterie (12V)"},
             "oil":                      {"name": "Öl Qualität"},
             "tirepressure":             {"name": "Reifendruck-Kontrollsystem & Drücke"},
