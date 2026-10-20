@@ -796,9 +796,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def supportPureEvOrPluginEv(self) -> bool:
-        # looks like that 'HEV' are just have an additional 48V battery getting energy from breaking...
-        # and also looks like that there is no special EV related data present in state object (json)
-        return self._engine_type is not None and self._engine_type in ["BEV", "HEV", "PHEV"]
+        # HEV (non-rechargeable hybrid) has no EV charging/plug data - it only has fuel.
+        # So EV-only entities are shown only for BEV and PHEV.
+        return self._engine_type is not None and self._engine_type in ["BEV", "PHEV"]
 
     @property
     def supportFuel(self) -> bool:
