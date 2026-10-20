@@ -14,6 +14,10 @@ CONF_VIN: Final = "vin"
 
 CONF_FORCE_REMOTE_CLIMATE_CONTROL: Final = "force_remote_climate_control"
 
+CONF_ENGINE_TYPE_OVERRIDE: Final = "engine_type_override"
+ENGINE_TYPE_AUTO: Final = "auto"
+ENGINE_TYPE_OPTIONS: Final = [ENGINE_TYPE_AUTO, "ICE", "BEV", "HEV", "PHEV"]
+
 UPDATE_INTERVAL: Final = "update_interval"
 UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-access_token expires after 5 minutes (300 seconds)
 

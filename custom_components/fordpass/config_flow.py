@@ -40,6 +40,9 @@ from .const import (
     CONF_BRAND,
     CONF_VIN,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
+    CONF_ENGINE_TYPE_OVERRIDE,
+    ENGINE_TYPE_AUTO,
+    ENGINE_TYPE_OPTIONS,
     BRAND_OPTIONS,
 
     UPDATE_INTERVAL,
@@ -819,5 +822,6 @@ class FordPassOptionsFlowHandler(OptionsFlow):
         options = {vol.Optional(CONF_PRESSURE_UNIT, default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
                    vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL, default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
                    vol.Optional(CONF_LOG_TO_FILESYSTEM, default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
+                   vol.Optional(CONF_ENGINE_TYPE_OVERRIDE, default=self._options.get(CONF_ENGINE_TYPE_OVERRIDE, ENGINE_TYPE_AUTO)): vol.In(ENGINE_TYPE_OPTIONS),
                    vol.Optional(UPDATE_INTERVAL, default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int}
         return self.async_show_form(step_id="init", data_schema=vol.Schema(options), description_placeholders={"integration_name": "fordpass"})

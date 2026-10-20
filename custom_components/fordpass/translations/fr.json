@@ -179,13 +179,15 @@
                     "update_interval": "Intervalle pour interroger l'API Ford (secondes)",
                     "scan_interval": "Intervalle pour interroger l'API Ford (secondes)",
                     "force_remote_climate_control": "Les options de contrôle climatique à distance (❄|☀) doivent toujours être disponibles",
-                    "log_to_filesystem": "Enregistrer les réponses API sur le système de fichiers local de Home Assistant"
+                    "log_to_filesystem": "Enregistrer les réponses API sur le système de fichiers local de Home Assistant",
+                    "engine_type_override": "Type de motorisation (remplace la détection automatique)"
                 },
                 "data_description": {
                     "update_interval": "L'intervalle de mise à jour minimum est de 30 secondes",
                     "scan_interval": "L'intervalle de mise à jour minimum est de 30 secondes",
                     "force_remote_climate_control": "Si vous activez cette option, le réglage spécifié par Ford sera ignoré.",
-                    "log_to_filesystem": "Cette option ne devrait pas être activée sur une longue période !\rLes fichiers peuvent être trouvés: './storage/{integration_name}/data_dumps'"
+                    "log_to_filesystem": "Cette option ne devrait pas être activée sur une longue période !\rLes fichiers peuvent être trouvés: './storage/{integration_name}/data_dumps'",
+                    "engine_type_override": "Laissez sur 'auto' pour une détection automatique. Forcez une valeur si des entités EV/carburant incorrectes apparaissent pour votre véhicule."
                 },
                 "description": "Options de configuration pour l'intégration"
             }

@@ -180,13 +180,15 @@
                     "update_interval": "Interval to poll Ford-API requests (Seconds)",
                     "scan_interval": "Interval to poll Ford-API requests (Seconds)",
                     "force_remote_climate_control": "The remote climate (❄|☀) control options should always be available",
-                    "log_to_filesystem": "Log API responses to local HA filesystem"
+                    "log_to_filesystem": "Log API responses to local HA filesystem",
+                    "engine_type_override": "Engine type (override auto-detection)"
                 },
                 "data_description": {
                     "update_interval": "The minimum update interval is 30 seconds",
                     "scan_interval": "The minimum update interval is 30 seconds",
                     "force_remote_climate_control": "If you activate this option, the setting specified by Ford will be ignored.",
-                    "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/{integration_name}/data_dumps'"
+                    "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/{integration_name}/data_dumps'",
+                    "engine_type_override": "Leave on 'auto' to detect automatically. Force a value if wrong EV/fuel entities appear for your vehicle."
                 },
                 "description": "Configuration options for the Integration"
             }

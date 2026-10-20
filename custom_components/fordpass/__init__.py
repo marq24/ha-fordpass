@@ -31,6 +31,8 @@ from .const import (
     CONF_IS_SUPPORTED,
     CONF_VIN,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
+    CONF_ENGINE_TYPE_OVERRIDE,
+    ENGINE_TYPE_AUTO,
     DEFAULT_REGION_FORD,
     REGION_OPTIONS_LINCOLN,
     UPDATE_INTERVAL,
@@ -910,6 +912,11 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
         else:
             _LOGGER.warning(f"{self.vli}DATA is NONE!!! - {self.data}")
+
+        engine_type_override = self._config_entry.options.get(CONF_ENGINE_TYPE_OVERRIDE, ENGINE_TYPE_AUTO)
+        if engine_type_override and engine_type_override != ENGINE_TYPE_AUTO:
+            _LOGGER.info(f"{self.vli}EngineType OVERRIDDEN from '{self._engine_type}' to '{engine_type_override}'")
+            self._engine_type = engine_type_override
 
     def _check_if_veh_capability_supported(self, a_capability: str, capabilities: NonNullDict) -> bool:
         """Check if a specific vehicle capability is supported."""
