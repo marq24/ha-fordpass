@@ -798,6 +798,8 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     def supportPureEvOrPluginEv(self) -> bool:
         # HEV (non-rechargeable hybrid) has no EV charging/plug data - it only has fuel.
         # So EV-only entities are shown only for BEV and PHEV.
+        # 2026/10/20 HEV removed by a user comit/pr (who owns a HEV) - so probably this is
+        # the right thing to do
         return self._engine_type is not None and self._engine_type in ["BEV", "PHEV"]
 
     @property
