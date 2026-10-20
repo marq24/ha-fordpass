@@ -308,6 +308,7 @@
         "sensor": {
             "odometer":                 {"name": "Odometer"},
             "fuel":                     {"name": "Fuel"},
+            "fuelrange":                {"name": "Fuel Range"},
             "battery":                  {"name": "Battery (12V)"},
             "oil":                      {"name": "Oil Life"},
             "tirepressure":             {"name": "Tire Pressure Monitoring System & Pressures"},
