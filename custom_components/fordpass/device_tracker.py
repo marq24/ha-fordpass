@@ -8,7 +8,7 @@ from . import FordPassEntity
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import Tag
-from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
+from .fordpass_handler import FordpassDataHandler, UNSUPPORTED, GpsAddressMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         _LOGGER.debug(f"{coordinator.vli}Vehicle does not support GPS")
 
 
-class FordPassCarTracker(FordPassEntity, TrackerEntity):
+class FordPassCarTracker(GpsAddressMixin, FordPassEntity, TrackerEntity):
     def __init__(self, coordinator):
         super().__init__(entity_type=Platform.DEVICE_TRACKER, a_tag=Tag.TRACKER, coordinator=coordinator)
 
@@ -46,7 +46,11 @@ class FordPassCarTracker(FordPassEntity, TrackerEntity):
     def extra_state_attributes(self):
         """Return the state attributes of the tracker."""
         # we don't need units here!
-        return self._tag.get_attributes(self.coordinator.data, None )
+        attrs = self._tag.get_attributes(self.coordinator.data, None)
+        # reverse geocoded address (resolved asynchronously)
+        if self._address and attrs is not None:
+            attrs["address"] = self._address
+        return attrs
 
     @property
     def icon(self):

@@ -18,7 +18,7 @@ from . import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import SENSORS, ExtSensorEntityDescription, Tag
-from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
+from .fordpass_handler import FordpassDataHandler, UNSUPPORTED, GpsAddressMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,7 +109,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 #     return last_sensor_data is not None and last_sensor_data.state not in (None, UNSUPPORTED)
 
 
-class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
+class FordPassSensor(GpsAddressMixin, FordPassEntity, SensorEntity, RestoreEntity):
     _previous_state: Any|None = None
 
     def __init__(self, coordinator:FordPassDataUpdateCoordinator, entity_description:ExtSensorEntityDescription):
@@ -125,7 +125,11 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
     @property
     def extra_state_attributes(self):
         """Return sensor attributes"""
-        return self._tag.get_attributes(self.coordinator.data, self.coordinator.units)
+        attrs = self._tag.get_attributes(self.coordinator.data, self.coordinator.units)
+        # reverse geocoded address (GPS only; resolved asynchronously)
+        if self._address and attrs is not None:
+            attrs["address"] = self._address
+        return attrs
 
     @property
     def native_value(self):

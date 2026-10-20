@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -7,6 +8,7 @@ from re import sub
 from typing import Final, Iterable
 
 from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt
 from homeassistant.util.unit_system import UnitSystem
 
@@ -2231,3 +2233,120 @@ class FordpassDataHandler:
 
     async def trailer_light_check_disable(coordinator, vehicle):
         await vehicle.trailer_light_check_disable()
+
+
+# --- GPS reverse geocoding (human readable address) ---------------------------
+# Nominatim (OpenStreetMap) usage policy: identify the app with a User-Agent and
+# stay at/below 1 request/second. The cache and the rate limiter are shared by
+# all GPS entities of all vehicles.
+_NOMINATIM_URL: Final = "https://nominatim.openstreetmap.org/reverse"
+_NOMINATIM_USER_AGENT: Final = "ha-fordpass/1.0 (Home Assistant custom integration)"
+_NOMINATIM_MIN_INTERVAL: Final = 1.0  # seconds between two Nominatim requests
+_ADDRESS_PRECISION: Final = 4  # decimals, ~11 m: ignores GPS jitter while parked
+
+_address_cache: dict[tuple[float, float], str | None] = {}
+_address_lock = asyncio.Lock()
+_address_last_request: float = 0.0
+
+
+def gps_address_key(lat: float, lon: float) -> tuple[float, float]:
+    """Rounded cache key: same parking spot -> same address."""
+    return round(lat, _ADDRESS_PRECISION), round(lon, _ADDRESS_PRECISION)
+
+
+def get_cached_gps_address(lat: float, lon: float) -> str | None:
+    """Return an already resolved address from cache (no network)."""
+    return _address_cache.get(gps_address_key(lat, lon))
+
+
+async def async_reverse_geocode(hass, lat: float, lon: float) -> str | None:
+    """Resolve a position to a display address via Nominatim (cached, 1 req/s)."""
+    global _address_last_request
+    if lat is None or lon is None:
+        return None
+    key = gps_address_key(lat, lon)
+    if key in _address_cache:
+        return _address_cache[key]
+
+    async with _address_lock:
+        if key in _address_cache:  # resolved while we waited for the lock
+            return _address_cache[key]
+        wait = _address_last_request + _NOMINATIM_MIN_INTERVAL - time.monotonic()
+        if wait > 0:
+            await asyncio.sleep(wait)
+        _address_last_request = time.monotonic()
+        address = None
+        try:
+            session = async_get_clientsession(hass)
+            async with asyncio.timeout(10):
+                async with session.get(
+                    _NOMINATIM_URL,
+                    params={
+                        "format": "jsonv2",
+                        "lat": lat,
+                        "lon": lon,
+                        "accept-language": hass.config.language,
+                    },
+                    headers={"User-Agent": _NOMINATIM_USER_AGENT},
+                ) as response:
+                    response.raise_for_status()
+                    address = (await response.json()).get("display_name")
+        except Exception as exc:  # network/HTTP/JSON errors must never break updates
+            _LOGGER.debug(f"Nominatim reverse geocode failed for {key}: {type(exc).__name__} {exc}")
+            return None
+        _address_cache[key] = address  # ponytail: never expires, add a TTL if memory matters
+        return address
+
+
+class GpsAddressMixin:
+    """Adds a lazily reverse-geocoded 'address' attribute to GPS entities.
+
+    The lookup runs as a background task (never inside a state property) and is
+    triggered by the coordinator update, so state reads stay synchronous.
+    """
+
+    _address: str | None = None
+    _address_key: tuple[float, float] | None = None
+    _address_task: asyncio.Task | None = None
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._schedule_address_update()
+
+    async def async_will_remove_from_hass(self):
+        if self._address_task is not None and not self._address_task.done():
+            self._address_task.cancel()
+        await super().async_will_remove_from_hass()
+
+    def _handle_coordinator_update(self) -> None:
+        self._schedule_address_update()
+        super()._handle_coordinator_update()
+
+    def _schedule_address_update(self) -> None:
+        if self._tag.key not in ("gps", "tracker"):
+            return
+        lat = FordpassDataHandler.get_gps_lat(self.coordinator.data)
+        lon = FordpassDataHandler.get_gps_lon(self.coordinator.data)
+        if lat is None or lon is None:
+            return
+        key = gps_address_key(lat, lon)
+        if key == self._address_key:
+            return
+        cached = get_cached_gps_address(lat, lon)
+        if cached is not None:
+            self._address, self._address_key = cached, key
+            return
+        self._address_key = key  # one request per position, not one per update
+        self._address_task = self.hass.async_create_task(
+            self._async_update_address(lat, lon, key)
+        )
+
+    async def _async_update_address(self, lat: float, lon: float, key: tuple[float, float]) -> None:
+        address = await async_reverse_geocode(self.hass, lat, lon)
+        if key != self._address_key:
+            return  # vehicle moved while we were waiting: a newer lookup wins
+        if address is None:
+            self._address_key = None  # allow a retry on the next coordinator update
+            return
+        self._address = address
+        self.async_write_ha_state()
