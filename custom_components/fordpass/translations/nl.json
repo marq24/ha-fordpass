@@ -359,6 +359,10 @@
             "tirepressure": {
                 "name": "Bandenspanning"
             },
+            "batteryvoltage": {"name": "Batterijspanning (12V)"},
+            "tirepressurestatus": {"name": "Bandenspanningsstatus"},
+            "tirepressuresystemstatus": {"name": "Bandenspanningssysteem"},
+            "hoodstatus": {"name": "Motorkap"},
             "gps": {
                 "name": "GPS JSON"
             },

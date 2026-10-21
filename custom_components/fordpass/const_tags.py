@@ -246,6 +246,12 @@ class Tag(ApiKey, Enum):
     TIRE_PRESSURE       = ApiKey(key="tirePressure",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_at_index_for_metrics_key(data, "tirePressureSystemStatus", 0),
                                  attrs_fn=FordpassDataHandler.get_tire_pressure_attrs)
+    TIRE_PRESSURE_STATUS = ApiKey(key="tirePressureStatus",
+                                  state_fn=FordpassDataHandler.get_tire_pressure_status_state)
+    TIRE_PRESSURE_SYSTEM_STATUS = ApiKey(key="tirePressureSystemStatus",
+                                         state_fn=FordpassDataHandler.get_tire_pressure_system_status_state)
+    HOOD_STATUS         = ApiKey(key="hoodStatus",
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "hoodStatus"))
     GPS                 = ApiKey(key="gps",
                                  state_fn=FordpassDataHandler.get_gps_state,
                                  attrs_fn=FordpassDataHandler.get_gps_attrs)
@@ -353,7 +359,8 @@ class Tag(ApiKey, Enum):
     ACCELERATOR_PEDAL   = ApiKey(key="acceleratorPedalPosition",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "acceleratorPedalPosition", None))
     PARKING_BRAKE       = ApiKey(key="parkingBrakeStatus",
-                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"),
+                                 attrs_fn=lambda data, units: FordpassDataHandler.get_metrics_dict(data, "parkingBrakeStatus"))
     TORQUE_TRANSMISSION = ApiKey(key="torqueAtTransmission",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "torqueAtTransmission", None))
     WHEEL_TORQUE        = ApiKey(key="wheelTorqueStatus",
@@ -531,15 +538,16 @@ SENSORS = [
         native_unit_of_measurement=PERCENTAGE,
         has_entity_name=True,
     ),
-    # ExtSensorEntityDescription(
-    #     tag=Tag.BATTERY_VOLTAGE,
-    #     key=Tag.BATTERY_VOLTAGE.key,
-    #     icon="mdi:lightning-bolt",
-    #     device_class=SensorDeviceClass.VOLTAGE,
-    #     state_class=SensorStateClass.MEASUREMENT,
-    #     has_entity_name=True,
-    #     entity_category=EntityCategory.DIAGNOSTIC,
-    # ),
+    ExtSensorEntityDescription(
+        tag=Tag.BATTERY_VOLTAGE,
+        key=Tag.BATTERY_VOLTAGE.key,
+        icon="mdi:lightning-bolt",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement="V",
+        has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     # ExtSensorEntityDescription(
     #     tag=Tag.BATTERY_LOAD_STATUS,
     #     key=Tag.BATTERY_LOAD_STATUS.key,
@@ -562,6 +570,28 @@ SENSORS = [
         key=Tag.TIRE_PRESSURE.key,
         icon="mdi:car-tire-alert",
         has_entity_name=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.TIRE_PRESSURE_STATUS,
+        key=Tag.TIRE_PRESSURE_STATUS.key,
+        icon="mdi:car-tire-alert",
+        has_entity_name=True,
+        skip_existence_check=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.TIRE_PRESSURE_SYSTEM_STATUS,
+        key=Tag.TIRE_PRESSURE_SYSTEM_STATUS.key,
+        icon="mdi:car-tire-alert",
+        has_entity_name=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        skip_existence_check=True,
+    ),
+    ExtSensorEntityDescription(
+        tag=Tag.HOOD_STATUS,
+        key=Tag.HOOD_STATUS.key,
+        icon="mdi:car-door",
+        has_entity_name=True,
+        skip_existence_check=True,
     ),
     # Tag.GPS: {"icon": "mdi:radar", "api_key": "position"},
     ExtSensorEntityDescription(
@@ -822,6 +852,7 @@ SENSORS = [
         key=Tag.BRAKE_TORQUE.key,
         icon="mdi:car-brake-hold",
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         has_entity_name=True,
     ),
     ExtSensorEntityDescription(

@@ -313,6 +313,28 @@ class FordpassDataHandler:
         return attrs
 
 
+    # TIRE PRESSURE STATUS (summary)
+    def get_tire_pressure_status_state(data, prev_state=None):
+        statuses = FordpassDataHandler.get_metrics(data).get("tirePressureStatus", [])
+        if not isinstance(statuses, list) or not statuses:
+            return None
+        found = False
+        for status in statuses:
+            value = status.get("value")
+            if value is None:
+                continue
+            found = True
+            if str(value).upper() != "NORMAL":
+                return value
+        return "NORMAL" if found else None
+
+    # TIRE PRESSURE SYSTEM STATUS (TPMS)
+    def get_tire_pressure_system_status_state(data, prev_state=None):
+        statuses = FordpassDataHandler.get_metrics(data).get("tirePressureSystemStatus", [])
+        if isinstance(statuses, list) and statuses:
+            return statuses[0].get("value")
+        return None
+
     # GPS state + attributes [+ LAT & LON getters for device tracker]
     def get_gps_state(data, prev_state=None):
         return FordpassDataHandler.get_metrics(data).get("position", {}).get("value", {}).get("location", {})
@@ -1151,7 +1173,6 @@ class FordpassDataHandler:
         # Fields that are only relevant for non-electric vehicles
         if "xevBatteryVoltage" not in data_metrics:
             metric_fields.append("engineSpeed")
-            metric_fields.append("tripFuelEconomy")
 
         for field in metric_fields:
             if field in data_metrics and "value" in data_metrics[field]:
@@ -1275,14 +1296,16 @@ class FordpassDataHandler:
         return attrs or None
 
 
-    # # BATTERY_VOLTAGE state (12V primary battery)
-    # def get_battery_voltage_state(data, prev_state=None):
-    #     data_metrics = FordpassDataHandler.get_metrics(data)
-    #     if "batteryVoltage" in data_metrics:
-    #         if data_metrics["batteryVoltage"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
-    #             return FordpassDataHandler.get_value_for_metrics_key(data, "batteryVoltage")
-    #     return None
-    #
+    # BATTERY VOLTAGE state (12V primary battery)
+    def get_battery_voltage_state(data, prev_state=None):
+        data_metrics = FordpassDataHandler.get_metrics(data)
+        if "batteryVoltage" in data_metrics:
+            if str(data_metrics["batteryVoltage"].get("vehicleBattery", "")).lower() == "primary_battery":
+                value = FordpassDataHandler.get_value_for_metrics_key(data, "batteryVoltage")
+                if isinstance(value, Number):
+                    return round(float(value), 1)
+        return None
+
     # # BATTERY_LOAD_STATUS state (12V primary battery)
     # def get_battery_load_status_state(data, prev_state=None):
     #     data_metrics = FordpassDataHandler.get_metrics(data)
