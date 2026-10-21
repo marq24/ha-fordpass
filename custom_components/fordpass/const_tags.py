@@ -353,7 +353,8 @@ class Tag(ApiKey, Enum):
     ACCELERATOR_PEDAL   = ApiKey(key="acceleratorPedalPosition",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "acceleratorPedalPosition", None))
     PARKING_BRAKE       = ApiKey(key="parkingBrakeStatus",
-                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"))
+                                 state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "parkingBrakeStatus"),
+                                 attrs_fn=FordpassDataHandler.get_parking_brake_attrs)
     TORQUE_TRANSMISSION = ApiKey(key="torqueAtTransmission",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "torqueAtTransmission", None))
     WHEEL_TORQUE        = ApiKey(key="wheelTorqueStatus",
@@ -822,6 +823,7 @@ SENSORS = [
         key=Tag.BRAKE_TORQUE.key,
         icon="mdi:car-brake-hold",
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         has_entity_name=True,
     ),
     ExtSensorEntityDescription(

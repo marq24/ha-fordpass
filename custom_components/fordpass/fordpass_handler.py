@@ -1215,6 +1215,15 @@ class FordpassDataHandler:
             return {"ambientTemp": FordpassDataHandler.localize_temperature(ambient_temp, units)}
         return None
 
+    # PARKING_BRAKE attribute
+    def get_parking_brake_attrs(data, units:UnitSystem):
+        parking_brake_data = FordpassDataHandler.get_metrics_dict(data, "parkingBrakeStatus")
+        if parking_brake_data is None or not isinstance(parking_brake_data, dict):
+            return None
+        attrs = {}
+        if "parkingBrakeType" in parking_brake_data:
+            attrs["type"] = parking_brake_data.get("parkingBrakeType", UNSUPPORTED)
+        return attrs or None
 
     # CABIN_TEMP state + attributes (from trip data)
     def get_cabin_temperature_state(data, prev_state=None):
