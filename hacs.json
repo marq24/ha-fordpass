@@ -1,7 +1,5 @@
 {
   "name": "Ford™ (aka FordPass) support for EV/PHEV/Petrol/Diesel Ford & Lincoln Vehicles",
-  "zip_release": true,
-  "filename": "fordpass.zip",
   "content_in_root": false,
   "homeassistant": "2026.7.0",
   "hacs": "1.18.0",
