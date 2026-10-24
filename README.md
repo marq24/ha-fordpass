@@ -195,6 +195,9 @@ Charge control of your EV is experimental. The Integration can (try to) start a 
 
 So do not expect that the charging control will work with all charging stations. Personally, I use [evcc.io to control the charging](https://evcc.io/) of my Ford Mustang Mach-E.
 
+## Surplus Charge (PV surplus charging & emergency charging)
+
+An automation that uses the Charge Control of this integration to start a surplus charge session can be found in the [Surplus Charge (PV surplus charging & emergency charging)](./doc/Surplus%20Charge.md) section.
 
 ## Use of a separate FordPass™/The Lincoln Way™ account is recommended
 
