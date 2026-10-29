@@ -40,6 +40,7 @@ class ApiKey(NamedTuple):
     on_off_fn: Callable[[dict, Any, bool], Any] = None
     select_fn: Callable[[dict, Any, str, str], Any] = None
     press_fn: Callable[[DataUpdateCoordinator, Any], Any] = None
+    excluded_attrs: frozenset[str] = None
 
 class Tag(ApiKey, Enum):
 
@@ -296,7 +297,8 @@ class Tag(ApiKey, Enum):
                                  state_fn=FordpassDataHandler.get_remote_start_countdown_state)
     MESSAGES            = ApiKey(key="messages",
                                  state_fn=FordpassDataHandler.get_messages_state,
-                                 attrs_fn=FordpassDataHandler.get_messages_attrs)
+                                 attrs_fn=FordpassDataHandler.get_messages_attrs,
+                                 excluded_attrs = frozenset({"json_src"}))
     DIESEL_SYSTEM_STATUS= ApiKey(key="dieselSystemStatus",
                                  state_fn=lambda data, prev_state: FordpassDataHandler.get_value_for_metrics_key(data, "dieselExhaustFilterStatus"),
                                  attrs_fn=FordpassDataHandler.get_diesel_system_status_attrs)
@@ -411,10 +413,20 @@ class Tag(ApiKey, Enum):
     # Debug Sensors (Disabled by default)
     EVENTS = ApiKey(key="events",
                     state_fn=lambda data, prev_state: len(FordpassDataHandler.get_events(data)),
-                    attrs_fn=lambda data, units: FordpassDataHandler.get_events(data))
+                    attrs_fn=lambda data, units: FordpassDataHandler.get_events(data),
+                    excluded_attrs=frozenset({
+                        "privacySettingsEvent",
+                        "customEvents",
+                        "xevPlugChargerStatusEvent",
+                    }))
     METRICS = ApiKey(key="metrics",
                      state_fn=lambda data, prev_state: len(FordpassDataHandler.get_metrics(data)),
-                     attrs_fn=lambda data, units: FordpassDataHandler.get_metrics(data))
+                     attrs_fn=lambda data, units: FordpassDataHandler.get_metrics(data),
+                     excluded_attrs=frozenset({
+                         "indicators",
+                         "configurations",
+                         "customMetrics",
+                     }))
     STATES = ApiKey(key="states",
                     state_fn=lambda data, prev_state: len(FordpassDataHandler.get_states(data)),
                     attrs_fn=lambda data, units: FordpassDataHandler.get_states(data))
