@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/marq24/ha-fordpass/issues",
   "loggers": ["custom_components.fordpass"],
   "requirements": [],
-  "version": "2026.10.7"
+  "version": "2026.10.8"
 }
