@@ -122,6 +122,9 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
         self._previous_state = None
         super().__init__(entity_type=Platform.SENSOR, a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
+        if hasattr(self, "_Entity__combined_unrecorded_attributes") and len(self._Entity__combined_unrecorded_attributes) > 0:
+            _LOGGER.debug(f"{coordinator.vli}SENSOR '{entity_description.tag}' has unrecorded attributes: {self._Entity__combined_unrecorded_attributes}")
+
     @property
     def extra_state_attributes(self):
         """Return sensor attributes"""
