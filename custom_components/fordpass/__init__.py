@@ -1123,6 +1123,9 @@ class FordPassEntity(CustomFriendlyNameEntity):
         self.entity_id = f"{entity_type}.fordpass_{self.coordinator._vin.lower()}_{a_tag.key}".lower()
         self._tag = a_tag
 
+        if a_tag.excluded_attrs:
+            self._unrecorded_attributes = a_tag.excluded_attrs
+
     def _name_internal(self, device_class_name: str | None, platform_translations: dict[str, Any], ) -> str | UndefinedType | None:
         tmp = super()._name_internal(device_class_name, platform_translations)
         if self._attr_name_addon is not None:
