@@ -74,7 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
             # related to #275
             if hasattr(storage, "async_get_stored_state"):
-                restored_state = storage.async_get_stored_state.get(entity_id, None)
+                restored_state = storage.async_get_stored_state(entity_id)
             elif hasattr(storage, "last_states"):
                 restored_state = storage.last_states.get(entity_id, None)
             else:
