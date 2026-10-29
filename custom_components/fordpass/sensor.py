@@ -11,8 +11,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
-from homeassistant.helpers.restore_state import RestoreEntity, RestoredExtraData, async_get, StoredState, \
-    RestoreStateData
+from homeassistant.helpers.restore_state import (
+    async_get,
+    RestoreEntity,
+    RestoredExtraData,
+    RestoreStateData,
+    StoredState,
+)
 
 from . import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from .const import DOMAIN
@@ -122,7 +127,7 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
         self._previous_state = None
         super().__init__(entity_type=Platform.SENSOR, a_tag=entity_description.tag, coordinator=coordinator, description=entity_description)
 
-        if hasattr(self, "_Entity__combined_unrecorded_attributes") and len(self._Entity__combined_unrecorded_attributes) > 0:
+        if hasattr(self, "_Entity__combined_unrecorded_attributes") and len(self._Entity__combined_unrecorded_attributes) > 1:
             _LOGGER.debug(f"{coordinator.vli}SENSOR '{entity_description.tag}' has unrecorded attributes: {self._Entity__combined_unrecorded_attributes}")
 
     @property
