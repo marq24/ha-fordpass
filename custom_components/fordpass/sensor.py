@@ -43,12 +43,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         if a_entity_description.tag == Tag.FIRMWARE_UPDATE_HISTORY:
             # a special sensor implementation created by TheHangMan97
             sensor = FordPassFirmwareUpdateHistorySensor(coordinator, a_entity_description)
-        elif a_entity_description.tag == Tag.MESSAGES:
-            sensor = FordPassMessagesSensor(coordinator, a_entity_description)
-        elif a_entity_description.tag == Tag.EVENTS:
-            sensor = FordPassEventsSensor(coordinator, a_entity_description)
-        elif a_entity_description.tag == Tag.METRICS:
-            sensor = FordPassMetricsSensor(coordinator, a_entity_description)
         else:
             sensor = FordPassSensor(coordinator, a_entity_description)
             # # we want to restore the last known 'id' of the energyTransferLogs
@@ -116,6 +110,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
 
 class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
+    # HA caches Recorder exclusions at class creation; keep definitions on Tags.
+    # The union applies to every sensor, while live attributes remain available.
+    _unrecorded_attributes = frozenset().union(
+        *(tag.excluded_attrs or frozenset() for tag in Tag)
+    )
     _previous_state: Any|None = None
 
     def __init__(self, coordinator:FordPassDataUpdateCoordinator, entity_description:ExtSensorEntityDescription):
@@ -149,34 +148,6 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
         # if self._tag == Tag.REMOTE_START_COUNTDOWN:
         #     return state and Tag.REMOTE_START_STATUS.get_state(self.coordinator.data) == REMOTE_START_STATE_ACTIVE
         return state
-
-
-# Keep these exclusions on dedicated classes: Home Assistant combines them at
-# class creation time. The payloads remain available in live state (see #294).
-class FordPassMessagesSensor(FordPassSensor):
-    """Omit the duplicate raw message payload from Recorder."""
-
-    _unrecorded_attributes = frozenset({"json_src"})
-
-
-class FordPassEventsSensor(FordPassSensor):
-    """Omit large diagnostic event payloads from Recorder."""
-
-    _unrecorded_attributes = frozenset({
-        "privacySettingsEvent",
-        "customEvents",
-        "xevPlugChargerStatusEvent",
-    })
-
-
-class FordPassMetricsSensor(FordPassSensor):
-    """Omit large diagnostic metric payloads from Recorder."""
-
-    _unrecorded_attributes = frozenset({
-        "indicators",
-        "configurations",
-        "customMetrics",
-    })
 
 
 class FordPassFirmwareUpdateHistorySensor(FordPassSensor):
