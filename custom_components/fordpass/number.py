@@ -30,7 +30,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             continue
 
         entity = FordPassNumber(coordinator, a_entity_description)
-        if a_entity_description.skip_existence_check or not check_data_availability:
+        if coordinator._skip_DATA_EXIST_CHECK or a_entity_description.skip_existence_check or not check_data_availability:
             entities.append(entity)
         else:
             # calling the state reading function to check if the entity should be added (if there is any data)

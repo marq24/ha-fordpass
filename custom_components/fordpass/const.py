@@ -13,6 +13,7 @@ CONF_BRAND: Final = "brand"
 CONF_VIN: Final = "vin"
 
 CONF_FORCE_REMOTE_CLIMATE_CONTROL: Final = "force_remote_climate_control"
+CONF_OVERWRITE_DATA_EXIST_CHECK: Final = "skip_data_existance_check"
 
 UPDATE_INTERVAL: Final = "update_interval"
 UPDATE_INTERVAL_DEFAULT: Final = 290 # it looks like that the default auto-access_token expires after 5 minutes (300 seconds)

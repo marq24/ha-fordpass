@@ -60,11 +60,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                         name_addon=f"{a_location_name}:"
                     )
             else:
-                _LOGGER.debug(f"{coordinator.vli}SELECT '{a_entity_description.tag}' not supported/no valid data present")
-                continue
+                if not coordinator._skip_DATA_EXIST_CHECK:
+                    _LOGGER.debug(f"{coordinator.vli}SELECT '{a_entity_description.tag}' not supported/no valid data present")
+                    continue
 
         entity = FordPassSelect(coordinator, a_entity_description)
-        if a_entity_description.skip_existence_check or not check_data_availability:
+        if coordinator._skip_DATA_EXIST_CHECK or a_entity_description.skip_existence_check or not check_data_availability:
             entities.append(entity)
         else:
             # calling the state reading function to check if the entity should be added (if there is any data)

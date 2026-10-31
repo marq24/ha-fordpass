@@ -179,12 +179,14 @@
                     "pressure_unit": "Maßeinheit für Druck",
                     "scan_interval": "Aktualisierungsintervall der Ford-API Requests (Sekunden)",
                     "update_interval": "Aktualisierungsintervall der Ford-API Requests (Sekunden)",
+                    "skip_data_existance_check": "Keine Datenexistenzprüfung (fügt alle Entitäten hinzu)",
                     "force_remote_climate_control": "Die Optionen der Klima Fernsteuerung (❄|☀) [RemoteControl] sollen immer verfügbar sein",
                     "log_to_filesystem": "Protokolliere API-Antworten im lokalen HA Dateisystem"
                 },
                 "data_description": {
                     "update_interval": "Das kleinste Interval sind 30 Sekunden",
                     "scan_interval": "Das kleinste Interval sind 30 Sekunden",
+                    "skip_data_existance_check": "Standardmäßig (mit wenigen Ausnahmen) fügt die Integration nur dann Entitäten hinzu, wenn die zugrunde liegende Datenquelle in der ersten Antwort des Backends gefunden werden kann.",
                     "force_remote_climate_control": "Wenn Du diese Option aktivierst, werden die von Ford vorgegebenen Einstellungen ignoriert.",
                     "log_to_filesystem": "Diese Option sollte nicht über einen längeren Zeitraum aktiviert sein!\rDu findest die Dateien unter: './storage/{integration_name}/data_dumps'"
                 },

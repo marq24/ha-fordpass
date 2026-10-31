@@ -41,7 +41,7 @@ from .const import (
     CONF_VIN,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
     BRAND_OPTIONS,
-
+    CONF_OVERWRITE_DATA_EXIST_CHECK,
     UPDATE_INTERVAL,
     UPDATE_INTERVAL_DEFAULT,
 )
@@ -817,6 +817,7 @@ class FordPassOptionsFlowHandler(OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         options = {vol.Optional(CONF_PRESSURE_UNIT, default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
+                   vol.Optional(CONF_OVERWRITE_DATA_EXIST_CHECK, default=self._options.get(CONF_OVERWRITE_DATA_EXIST_CHECK, False),): bool,
                    vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL, default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
                    vol.Optional(CONF_LOG_TO_FILESYSTEM, default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
                    vol.Optional(UPDATE_INTERVAL, default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int}

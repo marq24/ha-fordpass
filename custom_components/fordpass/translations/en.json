@@ -179,12 +179,14 @@
                     "pressure_unit": "Unit of Pressure",
                     "update_interval": "Interval to poll Ford-API requests (Seconds)",
                     "scan_interval": "Interval to poll Ford-API requests (Seconds)",
+                    "skip_data_existance_check": "Ignore data existence check",
                     "force_remote_climate_control": "The remote climate (❄|☀) control options should always be available",
                     "log_to_filesystem": "Log API responses to local HA filesystem"
                 },
                 "data_description": {
                     "update_interval": "The minimum update interval is 30 seconds",
                     "scan_interval": "The minimum update interval is 30 seconds",
+                    "skip_data_existance_check": "By default the integration only add entities (with few exceptions) if the underlying datasource can be found in the initially received data backend data (you can disable this data-consistency check).",
                     "force_remote_climate_control": "If you activate this option, the setting specified by Ford will be ignored.",
                     "log_to_filesystem": "This option should not be activated over a longer period of time!\rFiles can be found: './storage/{integration_name}/data_dumps'"
                 },

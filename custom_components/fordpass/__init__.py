@@ -31,6 +31,7 @@ from .const import (
     CONF_IS_SUPPORTED,
     CONF_VIN,
     CONF_FORCE_REMOTE_CLIMATE_CONTROL,
+    CONF_OVERWRITE_DATA_EXIST_CHECK,
     DEFAULT_REGION_FORD,
     REGION_OPTIONS_LINCOLN,
     UPDATE_INTERVAL,
@@ -572,6 +573,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
         self._supports_AUTO_UPDATES = None
         self._supports_HAF = None
         self._force_REMOTE_CLIMATE_CONTROL = config_entry.options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False)
+        self._skip_DATA_EXIST_CHECK = config_entry.options.get(CONF_OVERWRITE_DATA_EXIST_CHECK, False)
         self._supports_REMOTE_CLIMATE_CONTROL = None
         self._supports_HEATED_STEERING_WHEEL = None
         self._supports_HEATED_HEATED_SEAT_MODE = None
