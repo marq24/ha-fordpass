@@ -11,10 +11,10 @@ from typing import Any, Final
 from urllib.parse import urlparse, parse_qs
 
 import aiohttp
-import voluptuous as vol
+import probatio
 from homeassistant import config_entries, exceptions
 from homeassistant.config_entries import ConfigError, ConfigFlowResult, ConfigFlow, OptionsFlow
-from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION
+from homeassistant.const import CONF_URL, CONF_USERNAME, CONF_REGION, UnitOfTime
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
@@ -54,12 +54,6 @@ from .const_shared import (
 from .fordpass_bridge import ConnectedFordPassVehicle
 
 _LOGGER = logging.getLogger(__name__)
-
-VIN_SCHEME = vol.Schema(
-    {
-        vol.Required(CONF_VIN, default=""): str,
-    }
-)
 
 CONF_TOKEN_STR: Final = "tokenstr"
 CONF_SETUP_TYPE: Final = "setup_type"
@@ -274,7 +268,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         return False
 
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
         """Handle the initial step."""
         errors = {}
 
@@ -291,15 +285,14 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if len(self._accounts) > 0:
             return self.async_show_form(
                 step_id="user",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_SETUP_TYPE):
-                        selector.SelectSelector(
-                            selector.SelectSelectorConfig(
-                                options=[ADD_VEHICLE, NEW_ACCOUNT],
-                                mode=selector.SelectSelectorMode.LIST,
-                                translation_key=CONF_SETUP_TYPE,
-                            )
+                data_schema=probatio.Schema({
+                    probatio.Required(CONF_SETUP_TYPE): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[ADD_VEHICLE, NEW_ACCOUNT],
+                            mode=selector.SelectSelectorMode.LIST,
+                            translation_key=CONF_SETUP_TYPE,
                         )
+                    )
                 }),
                 description_placeholders={
                     "repo": "https://github.com/marq24/ha-fordpass",
@@ -347,8 +340,13 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
             return self.async_show_form(
                 step_id="select_account",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_ACCOUNT): vol.In(account_options)
+                data_schema=probatio.Schema({
+                    probatio.Required(CONF_ACCOUNT): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[selector.SelectOptionDict(value=a_value, label=a_label) for a_value, a_label in account_options.items()],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
                 }),
                 errors=errors
             )
@@ -386,16 +384,18 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         else:
             return self.async_show_form(
                 step_id="brand",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_BRAND, default="ford"):
-                        selector.SelectSelector(
+                data_schema=self.add_suggested_values_to_schema(
+                    probatio.Schema({
+                        probatio.Required(CONF_BRAND): selector.SelectSelector(
                             selector.SelectSelectorConfig(
                                 options=BRAND_OPTIONS,
                                 mode=selector.SelectSelectorMode.LIST,
                                 translation_key=CONF_BRAND,
                             )
                         )
-                }), errors=errors
+                    }),
+                    {CONF_BRAND: "ford"},
+                ), errors=errors
             )
 
 
@@ -423,17 +423,21 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id=account_data["step_id"],
-            data_schema=vol.Schema({
-                vol.Required(CONF_USERNAME, default=""): str,
-                vol.Required(CONF_REGION, default=account_data["default"]):
-                    selector.SelectSelector(
-                        selector.SelectSelectorConfig(
+            data_schema=self.add_suggested_values_to_schema(
+                probatio.Schema({
+                    probatio.Required(CONF_USERNAME):
+                        selector.TextSelector(),
+                    probatio.Required(CONF_REGION):
+                        selector.SelectSelector(selector.SelectSelectorConfig(
                             options=account_data["options"],
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                            translation_key=CONF_REGION,
-                        )
-                    )
-            }), errors=errors
+                            translation_key=CONF_REGION)),
+                }),
+                {
+                    CONF_USERNAME: "",
+                    CONF_REGION: account_data["default"],
+                },
+            ), errors=errors
         )
 
 
@@ -461,17 +465,21 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id=account_data["step_id"],
-            data_schema=vol.Schema({
-                vol.Required(CONF_USERNAME, default=""): str,
-                vol.Required(CONF_REGION, default=account_data["default"]):
-                    selector.SelectSelector(
-                        selector.SelectSelectorConfig(
+            data_schema=self.add_suggested_values_to_schema(
+                probatio.Schema({
+                    probatio.Required(CONF_USERNAME):
+                        selector.TextSelector(),
+                    probatio.Required(CONF_REGION):
+                        selector.SelectSelector(selector.SelectSelectorConfig(
                             options=account_data["options"],
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                            translation_key=CONF_REGION,
-                        )
-                    )
-            }), errors=errors
+                            translation_key=CONF_REGION)),
+                }),
+                {
+                    CONF_USERNAME: "",
+                    CONF_REGION: account_data["default"],
+                },
+            ), errors=errors
         )
 
 
@@ -486,7 +494,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
                 if self.preverify_code_url_string(urlstring=code_urlstring, region_key=self.region_key):
                     # we don't need our generated URL either...
-                    del user_input[CONF_URL]
+                    user_input.pop(CONF_URL, None)
 
                     user_input[CONF_REGION] = self.region_key
                     user_input[CONF_USERNAME] = self.username
@@ -512,11 +520,14 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             the_url = self.generate_url(self.region_key)
             return self.async_show_form(
                 step_id="token",
-                data_schema=vol.Schema(
-                    {
-                        vol.Optional(CONF_URL, default=the_url): str,
-                        vol.Required(CONF_TOKEN_STR): str,
-                    }
+                data_schema=self.add_suggested_values_to_schema(
+                    probatio.Schema({
+                        probatio.Optional(CONF_URL):
+                            selector.TextSelector(),
+                        probatio.Required(CONF_TOKEN_STR):
+                            selector.TextSelector(),
+                    }),
+                    {CONF_URL: the_url},
                 ),
                 description_placeholders={
                     CONF_URL: the_url,
@@ -646,7 +657,17 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=f"VIN: {user_input[CONF_VIN]}", data=self.cached_login_input)
 
         _LOGGER.debug(f"{self.cached_login_input}")
-        return self.async_show_form(step_id="vin", data_schema=VIN_SCHEME, errors=errors)
+        return self.async_show_form(
+            step_id="vin",
+            data_schema=self.add_suggested_values_to_schema(
+                probatio.Schema({
+                    probatio.Required(CONF_VIN):
+                        selector.TextSelector()
+                }),
+                {CONF_VIN: ""}
+            ),
+            errors=errors,
+        )
 
 
     async def async_step_vehicle(self, user_input=None):
@@ -689,12 +710,14 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="vehicle",
-            data_schema=vol.Schema(
-                {vol.Required(CONF_VIN): vol.In(available_vehicles)}
-            ),
+            data_schema=probatio.Schema({
+                probatio.Required(CONF_VIN):
+                    selector.SelectSelector(selector.SelectSelectorConfig(
+                        options=[selector.SelectOptionDict(value=a_value, label=a_label) for a_value, a_label in available_vehicles.items()],
+                        mode=selector.SelectSelectorMode.DROPDOWN))
+            }),
             errors={}
         )
-
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         """Handle flow upon an API authentication error."""
@@ -715,7 +738,7 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
                 if self.preverify_code_url_string(urlstring=code_urlstring, region_key=self.region_key):
                     # we don't need our generated URL either...
-                    del user_input[CONF_URL]
+                    user_input.pop(CONF_URL, None)
 
                     # ok we have already the username and region, this must be stored
                     # in the config entry, so we can get it from there...
@@ -781,10 +804,15 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             the_url = self.generate_url(region_key=self.region_key)
             return self.async_show_form(
                 step_id="reauth_confirm",
-                data_schema=vol.Schema({
-                    vol.Optional(CONF_URL, default=the_url): str,
-                    vol.Required(CONF_TOKEN_STR): str,
-                }),
+                data_schema=self.add_suggested_values_to_schema(
+                    probatio.Schema({
+                        probatio.Optional(CONF_URL):
+                            selector.TextSelector(),
+                        probatio.Required(CONF_TOKEN_STR):
+                            selector.TextSelector(),
+                    }),
+                    {CONF_URL: the_url},
+                ),
                 description_placeholders={
                     CONF_USERNAME: reauth_entry.data.get(CONF_USERNAME, "UNKNOWN-USER"),
                     CONF_URL: the_url,
@@ -816,9 +844,33 @@ class FordPassOptionsFlowHandler(OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        options = {vol.Optional(CONF_PRESSURE_UNIT, default=self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),): vol.In(PRESSURE_UNITS),
-                   vol.Optional(CONF_OVERWRITE_DATA_EXIST_CHECK, default=self._options.get(CONF_OVERWRITE_DATA_EXIST_CHECK, False),): bool,
-                   vol.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL, default=self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),): bool,
-                   vol.Optional(CONF_LOG_TO_FILESYSTEM, default=self._options.get(CONF_LOG_TO_FILESYSTEM, False),): bool,
-                   vol.Optional(UPDATE_INTERVAL, default=self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),): int}
-        return self.async_show_form(step_id="init", data_schema=vol.Schema(options), description_placeholders={"integration_name": "fordpass"})
+        options_schema = probatio.Schema({
+            probatio.Optional(CONF_PRESSURE_UNIT):
+                selector.SelectSelector(selector.SelectSelectorConfig(
+                    options=PRESSURE_UNITS,
+                    mode=selector.SelectSelectorMode.DROPDOWN)),
+            probatio.Optional(CONF_OVERWRITE_DATA_EXIST_CHECK):
+                selector.BooleanSelector(),
+            probatio.Optional(CONF_FORCE_REMOTE_CLIMATE_CONTROL):
+                selector.BooleanSelector(),
+            probatio.Optional(CONF_LOG_TO_FILESYSTEM):
+                selector.BooleanSelector(),
+            probatio.Optional(UPDATE_INTERVAL):
+                selector.NumberSelector(selector.NumberSelectorConfig(
+                    step=1,
+                    min=1,
+                    unit_of_measurement=UnitOfTime.SECONDS,
+                    mode=selector.NumberSelectorMode.BOX)),
+        })
+        suggested = {
+            CONF_PRESSURE_UNIT: self._options.get(CONF_PRESSURE_UNIT, DEFAULT_PRESSURE_UNIT),
+            CONF_OVERWRITE_DATA_EXIST_CHECK: self._options.get(CONF_OVERWRITE_DATA_EXIST_CHECK, False),
+            CONF_FORCE_REMOTE_CLIMATE_CONTROL: self._options.get(CONF_FORCE_REMOTE_CLIMATE_CONTROL, False),
+            CONF_LOG_TO_FILESYSTEM: self._options.get(CONF_LOG_TO_FILESYSTEM, False),
+            UPDATE_INTERVAL: self._options.get(UPDATE_INTERVAL, UPDATE_INTERVAL_DEFAULT),
+        }
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(options_schema, suggested),
+            description_placeholders={"integration_name": "fordpass"},
+        )
