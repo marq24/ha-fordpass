@@ -460,6 +460,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         _LOGGER.debug(f"{coordinator.vli}Service 'departure_schedule services' will NOT be registered since this vehicle does not support departure schedules")
 
     config_entry.async_on_unload(config_entry.add_update_listener(entry_update_listener))
+    _LOGGER.info(f"{coordinator.vli}async_setup_entry(): integration setup complete for {config_entry.entry_id}")
     return True
 
 
