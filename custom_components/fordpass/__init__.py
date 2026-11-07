@@ -1,18 +1,17 @@
 import asyncio
 import logging
 import time
+import aiohttp
+
 from datetime import timedelta
 from pathlib import Path
 from typing import Final, Any
 
-import aiohttp
-import voluptuous as vol
-from asyncio import timeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_REGION, CONF_USERNAME, UnitOfPressure, EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, CoreState
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import entity_registry as the_entity_registry
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
@@ -68,7 +67,6 @@ from .fordpass_handler import (
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 PLATFORMS:Final = [Platform.BUTTON, Platform.LOCK, Platform.NUMBER, Platform.SENSOR, Platform.SWITCH, Platform.SELECT, Platform.DEVICE_TRACKER, Platform.IMAGE]
 WEBSOCKET_WATCHDOG_INTERVAL: Final = timedelta(seconds=64)
 
@@ -106,8 +104,8 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
         if save_config_entry:
             _LOGGER.info(f"async_migrate_entry(): Migrating configuration from version {config_entry.version}.{config_entry.minor_version}")
 
-        registry = the_entity_registry.async_get(hass)
-        entities = the_entity_registry.async_entries_for_config_entry(registry, config_entry.entry_id)
+        registry = er.async_get(hass)
+        entities = er.async_entries_for_config_entry(registry, config_entry.entry_id)
 
         for entity in entities:
             # 'entity' is an instance of RegistryEntry
