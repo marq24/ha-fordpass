@@ -844,11 +844,21 @@ class FordpassDataHandler:
         if not isinstance(volt, Number) or volt == 0:
             return 0 if "xevBatteryChargerVoltageOutput" in data_metrics else None
 
-        # 2. Parse charger and battery current metrics
+        # 2. Only count power while a charging session is in progress. Outside
+        #    a session the charger current keeps the stale value of the last
+        #    session (#264) and the battery current carries traction and regen
+        #    current while driving, which the timestamp rule below would pick
+        #    up as charging (#291).
+        if "xevBatteryChargeDisplayStatus" in data_metrics:
+            status = str(data_metrics["xevBatteryChargeDisplayStatus"].get("value", "")).upper()
+            if status != XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
+                return 0
+
+        # 3. Parse charger and battery current metrics
         ch_amps, ch_dt = parse_metric_int("xevBatteryChargerCurrentOutput")
         batt_amps, batt_dt = parse_metric_int("xevBatteryIoCurrent")
 
-        # 3. Determine amperage based on the newer timestamps
+        # 4. Determine amperage based on the newer timestamps
         if ch_dt and batt_dt:
             amps_to_use_for_calc = ch_amps if ch_dt > batt_dt else abs(batt_amps)
         elif ch_dt:
@@ -858,7 +868,7 @@ class FordpassDataHandler:
         else:
             amps_to_use_for_calc = 0
 
-        # 4. Calculate power (kW)
+        # 5. Calculate power (kW)
         if isinstance(amps_to_use_for_calc, Number) and amps_to_use_for_calc != 0:
             return round((volt * amps_to_use_for_calc) / 1000, 2)
 
