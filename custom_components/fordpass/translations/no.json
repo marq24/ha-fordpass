@@ -314,6 +314,7 @@
             "elvehplug":                {"name": "Ladekontakt"},
             "elvehcharging":            {"name": "EV-ladestatus"},
             "elvehchargingpower":       {"name": "EV-ladeeffekt"},
+            "elvehrecuppower":          {"name": "EV-regenerativ"},
             "speed":                    {"name": "Hastighet"},
             "enginespeed":              {"name": "Turtall"},
             "gearleverposition":        {"name": "Girposisjon"},
@@ -333,12 +334,10 @@
             "metrics":                  {"name": "Målinger"},
             "states":                   {"name": "Tilstander"},
             "vehicles":                 {"name": "Kjøretøy"},
-
             "soc":                      {"name": "Batterinivå (EV)"},
             "evccstatus":               {"name": "EVCC-statuskode"},
             "seatbelt":                 {"name": "Sikkerhetsbeltestatus"},
             "deviceconnectivity":       {"name": "Tilkobling"},
-
             "yawrate":                  {"name": "Girhastighet"},
             "acceleration":             {"name": "Akselerasjon"},
             "brakepedalstatus":         {"name": "Status: bremsepedal"},

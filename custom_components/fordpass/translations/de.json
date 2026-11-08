@@ -318,6 +318,7 @@
             "elvehplug":                {"name": "EV Steckerstatus"},
             "elvehcharging":            {"name": "EV Ladestatus"},
             "elvehchargingpower":       {"name": "EV geladen"},
+            "elvehrecuppower":          {"name": "EV Rekuperation"},
             "speed":                    {"name": "Geschwindigkeit"},
             "enginespeed":              {"name": "Motordrehzahl"},
             "gearleverposition":        {"name": "Gang"},
@@ -337,12 +338,10 @@
             "metrics":                  {"name": "Metriken"},
             "states":                   {"name": "Status"},
             "vehicles":                 {"name": "Fahrzeuge"},
-
             "soc":                      {"name": "Ladestand"},
             "evccstatus":               {"name": "EVCC Status-Code"},
             "seatbelt":                 {"name": "Sicherheitsgurte"},
             "deviceconnectivity":       {"name": "Verbindung"},
-
             "yawrate":                  {"name": "Gier und Neigung"},
             "acceleration":             {"name": "Beschleunigung"},
             "brakepedalstatus":         {"name": "Bremspedal"},

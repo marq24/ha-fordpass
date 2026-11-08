@@ -253,250 +253,95 @@
     },
     "entity": {
         "button": {
-            "update_data": {
-                "name": "Lokale synchronisatie"
-            },
-            "request_refresh": {
-                "name": "Externe synchronisatie"
-            },
-            "doorlock": {
-                "name": "Vergrendelen"
-            },
-            "doorunlock": {
-                "name": "Ontgrendelen"
-            },
-            "evstart": {
-                "name": "EV-laden starten"
-            },
-            "evcancel": {
-                "name": "EV-laden hervatten"
-            },
-            "evpause": {
-                "name": "EV-laden pauzeren"
-            },
-            "hafshort": {
-                "name": "Toeter & flits [1 sec.]"
-            },
-            "hafdefault": {
-                "name": "Toeter & flits [3 sec.]"
-            },
-            "haflong": {
-                "name": "Toeter & flits [5 sec.]"
-            },
-            "extendremotestart": {
-                "name": "RC (❄|☀): Verleng tijd"
-            },
-            "msgdeleteall": {
-                "name": "Berichten: Alles verwijderen"
-            },
-            "msgdeletelast": {
-                "name": "Berichten: Laatst verwijderde"
-            }
+            "update_data":          {"name": "Lokale synchronisatie"},
+            "request_refresh":      {"name": "Externe synchronisatie"},
+            "doorlock":             {"name": "Vergrendelen"},
+            "doorunlock":           {"name": "Ontgrendelen"},
+            "evstart":              {"name": "EV-laden starten"},
+            "evcancel":             {"name": "EV-laden hervatten"},
+            "evpause":              {"name": "EV-laden pauzeren"},
+            "hafshort":             {"name": "Toeter & flits [1 sec.]"},
+            "hafdefault":           {"name": "Toeter & flits [3 sec.]"},
+            "haflong":              {"name": "Toeter & flits [5 sec.]"},
+            "extendremotestart":    {"name": "RC (❄|☀): Verleng tijd"},
+            "msgdeleteall":         {"name": "Berichten: Alles verwijderen"},
+            "msgdeletelast":        {"name": "Berichten: Laatst verwijderde"}
         },
         "device_tracker": {
-            "tracker": {
-                "name": "Voertuigtracker"
-            }
+            "tracker": {"name": "Voertuigtracker"}
         },
         "lock": {
-            "doorlock": {
-                "name": "Deuren"
-            }
+            "doorlock": {"name": "Deuren"}
         },
         "switch": {
-            "ignition": {
-                "name": "RC (❄|☀): Start [Starten op afstand]"
-            },
-            "elvehcharge": {
-                "name": "EV-laden (pauze)"
-            },
-            "guardmode": {
-                "name": "Beveiligingsmodus"
-            },
-            "autosoftwareupdates": {
-                "name": "Automatische softwareupdates"
-            },
-            "rccdefrostrear": {
-                "name": "RC (❄|☀): Achterruit ontdooien [Starten op afstand]"
-            },
-            "rccdefrostfront": {
-                "name": "RC (❄|☀): Voorruit ontdooien [Starten op afstand]"
-            },
-            "rccsteeringwheel": {
-                "name": "RC (❄|☀): Stuurwielverwarming [Starten op afstand]"
-            }
+            "ignition":             {"name": "RC (❄|☀): Start [Starten op afstand]"},
+            "elvehcharge":          {"name": "EV-laden (pauze)"},
+            "guardmode":            {"name": "Beveiligingsmodus"},
+            "autosoftwareupdates":  {"name": "Automatische softwareupdates"},
+            "rccdefrostrear":       {"name": "RC (❄|☀): Achterruit ontdooien [Starten op afstand]"},
+            "rccdefrostfront":      {"name": "RC (❄|☀): Voorruit ontdooien [Starten op afstand]"},
+            "rccsteeringwheel":     {"name": "RC (❄|☀): Stuurwielverwarming [Starten op afstand]"}
         },
         "number": {
-            "rcctemperature": {
-                "name": "RC (❄|☀): Klimaattemperatuur [Starten op afstand]"
-            },
-            "elvehtargetcharge": {
-                "name": "Gewenst laadniveau"
-            },
-            "globaltargetsoc": {
-                "name": "Algemeen: Gewenst laadniveau"
-            },
-            "globalaccurrentlimit": {
-                "name": "AC-stroomlimiet"
-            },
-            "globaldcpowerlimit": {
-                "name": "DC-vermogenslimiet"
-            }
+            "rcctemperature":       {"name": "RC (❄|☀): Klimaattemperatuur [Starten op afstand]"},
+            "elvehtargetcharge":    {"name": "Gewenst laadniveau"},
+            "globaltargetsoc":      {"name": "Algemeen: Gewenst laadniveau"},
+            "globalaccurrentlimit": {"name": "AC-stroomlimiet"},
+            "globaldcpowerlimit":   {"name": "DC-vermogenslimiet"}
         },
         "sensor": {
-            "odometer": {
-                "name": "Kilometerteller"
-            },
-            "fuel": {
-                "name": "Brandstof"
-            },
-            "battery": {
-                "name": "Batterij (12V)"
-            },
-            "oil": {
-                "name": "Olie rest levensduur"
-            },
-            "tirepressure": {
-                "name": "Bandenspanning"
-            },
-            "gps": {
-                "name": "GPS JSON"
-            },
-            "alarm": {
-                "name": "Alarm"
-            },
-            "ignitionstatus": {
-                "name": "Contact"
-            },
-            "doorstatus": {
-                "name": "Deuren"
-            },
-            "windowposition": {
-                "name": "Raamstand"
-            },
-            "lastrefresh": {
-                "name": "Laatst vernieuwd"
-            },
-            "elveh": {
-                "name": "EV bereik"
-            },
-            "elvehplug": {
-                "name": "EV stekker"
-            },
-            "elvehcharging": {
-                "name": "EV oplaadstatus"
-            },
-            "elvehchargingpower": {
-                "name": "EV laadvermogen"
-            },
-            "speed": {
-                "name": "Snelheid"
-            },
-            "enginespeed": {
-                "name": "Toerental"
-            },
-            "gearleverposition": {
-                "name": "Huidige versnelling"
-            },
-            "indicators": {
-                "name": "Indicatoren"
-            },
-            "coolanttemp": {
-                "name": "Koelvloeistoftemperatuur"
-            },
-            "outsidetemp": {
-                "name": "Buitentemperatuur"
-            },
-            "engineoiltemp": {
-                "name": "Motorolietemp."
-            },
-            "deepsleep": {
-                "name": "Slaapmodus"
-            },
-            "firmwareupginprogress": {
-                "name": "Firmware-update in uitvoering"
-            },
-            "firmwareupgstatus": {
-                "name": "Firmware-update Status"
-            },
-            "remotestartstatus": {
-                "name": "RC (❄|☀): Starten op afstand"
-            },
-            "zonelighting": {
-                "name": "Zoneverlichting"
-            },
-            "messages": {
-                "name": "Berichten"
-            },
-            "dieselsystemstatus": {
-                "name": "Dieselsysteem"
-            },
-            "exhaustfluidlevel": {
-                "name": "AdBlue-niveau"
-            },
-            "events": {
-                "name": "Gebeurtenissen"
-            },
-            "metrics": {
-                "name": "Metrieken"
-            },
-            "states": {
-                "name": "Statussen"
-            },
-            "vehicles": {
-                "name": "Voertuigen"
-            },
-            "soc": {
-                "name": "Laadtoestand"
-            },
-            "evccstatus": {
-                "name": "EVCC-statuscode"
-            },
-            "seatbelt": {
-                "name": "Autogordels"
-            },
-            "deviceconnectivity": {
-                "name": "Connectiviteit"
-            },
-            "yawrate": {
-                "name": "Gierhoeksnelheid"
-            },
-            "acceleration": {
-                "name": "Versnelling"
-            },
-            "brakepedalstatus": {
-                "name": "Rempedaal"
-            },
-            "braketorque": {
-                "name": "Remkoppel"
-            },
-            "acceleratorpedalposition": {
-                "name": "Gaspedaalpositie"
-            },
-            "parkingbrakestatus": {
-                "name": "Parkeerrem"
-            },
-            "torqueattransmission": {
-                "name": "Transmissiekoppel"
-            },
-            "wheeltorquestatus": {
-                "name": "Wielkoppel"
-            },
-            "cabintemperature": {
-                "name": "Cabinetemperatuur"
-            },
-            "lastenergyconsumed": {
-                "name": "EV-energieverbruik (laatste rit)"
-            },
-            "energytransferlogentry": {
-                "name": "EV laatste laadsessie"
-            },
-            "remotestartcountdown": {
-                "name": "RC (❄|☀): Resterende tijd"
-            },
-            "doorlock": {
-                "name": "Deurvergrendeling"
-            }
+            "odometer":                 {"name": "Kilometerteller"},
+            "fuel":                     {"name": "Brandstof"},
+            "battery":                  {"name": "Batterij (12V)"},
+            "oil":                      {"name": "Olie rest levensduur"},
+            "tirepressure":             {"name": "Bandenspanning"},
+            "gps":                      {"name": "GPS JSON"},
+            "alarm":                    {"name": "Alarm"},
+            "ignitionstatus":           {"name": "Contact"},
+            "doorstatus":               {"name": "Deuren"},
+            "windowposition":           {"name": "Raamstand"},
+            "lastrefresh":              {"name": "Laatst vernieuwd"},
+            "elveh":                    {"name": "EV bereik"},
+            "elvehplug":                {"name": "EV stekker"},
+            "elvehcharging":            {"name": "EV oplaadstatus"},
+            "elvehchargingpower":       {"name": "EV laadvermogen"},
+            "elvehrecuppower":          {"name": "EV regeneratief"},
+            "speed":                    {"name": "Snelheid"},
+            "enginespeed":              {"name": "Toerental"},
+            "gearleverposition":        {"name": "Huidige versnelling"},
+            "indicators":               {"name": "Indicatoren"},
+            "coolanttemp":              {"name": "Koelvloeistoftemperatuur"},
+            "outsidetemp":              {"name": "Buitentemperatuur"},
+            "engineoiltemp":            {"name": "Motorolietemp."},
+            "deepsleep":                {"name": "Slaapmodus"},
+            "firmwareupginprogress":    {"name": "Firmware-update in uitvoering"},
+            "firmwareupgstatus":        {"name": "Firmware-update Status"},
+            "remotestartstatus":        {"name": "RC (❄|☀): Starten op afstand"},
+            "zonelighting":             {"name": "Zoneverlichting"},
+            "messages":                 {"name": "Berichten"},
+            "dieselsystemstatus":       {"name": "Dieselsysteem"},
+            "exhaustfluidlevel":        {"name": "AdBlue-niveau"},
+            "events":                   {"name": "Gebeurtenissen"},
+            "metrics":                  {"name": "Metrieken"},
+            "states":                   {"name": "Statussen"},
+            "vehicles":                 {"name": "Voertuigen"},
+            "soc":                      {"name": "Laadtoestand"},
+            "evccstatus":               {"name": "EVCC-statuscode"},
+            "seatbelt":                 {"name": "Autogordels"},
+            "deviceconnectivity":       {"name": "Connectiviteit"},
+            "yawrate":                  {"name": "Gierhoeksnelheid"},
+            "acceleration":             {"name": "Versnelling"},
+            "brakepedalstatus":         {"name": "Rempedaal"},
+            "braketorque":              {"name": "Remkoppel"},
+            "acceleratorpedalposition": {"name": "Gaspedaalpositie"},
+            "parkingbrakestatus":       {"name": "Parkeerrem"},
+            "torqueattransmission":     {"name": "Transmissiekoppel"},
+            "wheeltorquestatus":        {"name": "Wielkoppel"},
+            "cabintemperature":         {"name": "Cabinetemperatuur"},
+            "lastenergyconsumed":       {"name": "EV-energieverbruik (laatste rit)"},
+            "energytransferlogentry":   {"name": "EV laatste laadsessie"},
+            "remotestartcountdown":     {"name": "RC (❄|☀): Resterende tijd"},
+            "doorlock":                 {"name": "Deurvergrendeling"}
         },
         "select": {
             "zonelighting": {
@@ -682,9 +527,7 @@
                     "100": "100%"
                 }
             },
-            "globaldcpowerlimit": {
-                "name": "DC-vermogenslimiet"
-            }
+            "globaldcpowerlimit": {"name": "DC-vermogenslimiet"}
         }
     }
 }

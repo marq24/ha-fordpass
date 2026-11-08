@@ -22,6 +22,7 @@ from .const_shared import (
     XEVPLUGCHARGER_STATE_DISCONNECTED,
     XEVPLUGCHARGER_STATE_CONNECTED,
     XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS,
+    XEVBATTERYCHARGEDISPLAY_STATE_PAUSED,
     VEHICLE_LOCK_STATE_LOCKED,
     VEHICLE_LOCK_STATE_PARTLY,
     VEHICLE_LOCK_STATE_UNLOCKED,
@@ -31,7 +32,7 @@ from .const_shared import (
     HONK_AND_FLASH,
     DAYS_MAP,
     OTA_DEPLOYMENT_STATE_MAP,
-    OTA_TRIGGER_STATE_MAP
+    OTA_TRIGGER_STATE_MAP,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -808,13 +809,12 @@ class FordpassDataHandler:
     def get_cancel_pause_charge_switch_state(data, prev_state=None):
         # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
         data_metrics = FordpassDataHandler.get_metrics(data)
-        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
+        val = str(data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)).upper()
         if val != UNSUPPORTED:
-            val = val.upper()
-            if val == XEVPLUGCHARGER_STATE_CHARGING or val == XEVPLUGCHARGER_STATE_CHARGINGAC:
+            if val in [XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC]:
                 return "ON"
             elif val == XEVPLUGCHARGER_STATE_CONNECTED and "xevBatteryChargeDisplayStatus" in data_metrics:
-                secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
+                secondary_val = str(data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED)).upper()
                 if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
                     return "ON"
         return "OFF"
@@ -825,7 +825,7 @@ class FordpassDataHandler:
             else:
                 return await vehicle.pause_charge()
 
-    def _get_eleveh_charging_power_from_metrics(data_metrics):
+    def _get_eleveh_charging_power_from_metrics(data_metrics, plug_must_be_connected:bool):
         def parse_metric_int(key):
             """Extracts (float_value, datetime) or (0.0, None) if missing/invalid."""
             if key not in data_metrics:
@@ -839,16 +839,45 @@ class FordpassDataHandler:
                 dt = None
             return val, dt
 
+        def should_exit_on_status(plug_must_be_connected, data_metrics, key, valid_states):
+            if key not in data_metrics:
+                return False
+
+            state = str(data_metrics.get(key, {}).get("value", UNSUPPORTED)).upper()
+            if state == UNSUPPORTED:
+                return False
+
+            is_state_in_valid_states = state in valid_states
+            # If plug_must_be_connected is True, we want it IN the list (is_state_in_valid_states should be True)
+            # If plug_must_be_connected is False, we want it NOT IN the list (is_state_in_valid_states should be False)
+            # An inequality check covers both cases:
+            return plug_must_be_connected != is_state_in_valid_states
+
         # 1. Parse voltage
         volt, _ = parse_metric_int("xevBatteryChargerVoltageOutput")
         if not isinstance(volt, Number) or volt == 0:
             return 0 if "xevBatteryChargerVoltageOutput" in data_metrics else None
 
-        # 2. Parse charger and battery current metrics
+        # 2. Only count power while a charging session is in progress. Outside
+        #    a session the charger current keeps the stale value of the last
+        #    session (#264) and the battery current carries traction and regen
+        #    current while driving, which the timestamp rule below would pick
+        #    up as charging (#291).
+        # Check Plug Status
+        if should_exit_on_status(plug_must_be_connected, data_metrics, "xevPlugChargerStatus",
+                [XEVPLUGCHARGER_STATE_CONNECTED, XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC]):
+            return None
+
+        # Check Battery Charge Display Status
+        if should_exit_on_status(plug_must_be_connected, data_metrics, "xevBatteryChargeDisplayStatus",
+                [XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS, XEVBATTERYCHARGEDISPLAY_STATE_PAUSED]):
+            return None
+
+        # 3. Parse charger and battery current metrics
         ch_amps, ch_dt = parse_metric_int("xevBatteryChargerCurrentOutput")
         batt_amps, batt_dt = parse_metric_int("xevBatteryIoCurrent")
 
-        # 3. Determine amperage based on the newer timestamps
+        # 4. Determine amperage based on the newer timestamps
         if ch_dt and batt_dt:
             amps_to_use_for_calc = ch_amps if ch_dt > batt_dt else abs(batt_amps)
         elif ch_dt:
@@ -858,11 +887,11 @@ class FordpassDataHandler:
         else:
             amps_to_use_for_calc = 0
 
-        # 4. Calculate power (kW)
+        # 5. Calculate power (kW)
         if isinstance(amps_to_use_for_calc, Number) and amps_to_use_for_calc != 0:
             return round((volt * amps_to_use_for_calc) / 1000, 2)
 
-        return 0
+        return None
 
     def get_elveh_charging_attrs(data, units:UnitSystem):
         data_metrics = FordpassDataHandler.get_metrics(data)
@@ -890,7 +919,7 @@ class FordpassDataHandler:
                 attrs[attr_name] = transform_fn(value, units)
 
         # handle the self-calculated custom metrics stuff
-        charging_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(data_metrics)
+        charging_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(data_metrics, plug_must_be_connected=True)
         if charging_kw is not None:
             attrs["chargingkW"] = charging_kw
 
@@ -938,9 +967,19 @@ class FordpassDataHandler:
 
     # ELVEH_CHARGING_power state
     def get_elveh_charging_power_state(data, prev_state=None):
-        charging_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(data_metrics = FordpassDataHandler.get_metrics(data))
+        charging_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(
+            data_metrics = FordpassDataHandler.get_metrics(data),
+            plug_must_be_connected = True)
         if charging_kw is not None:
             return charging_kw
+        return None
+
+    def get_elveh_recuperate_power_state(data, prev_state=None):
+        recuperate_kw = FordpassDataHandler._get_eleveh_charging_power_from_metrics(
+            data_metrics = FordpassDataHandler.get_metrics(data),
+            plug_must_be_connected = False)
+        if recuperate_kw is not None:
+            return recuperate_kw
         return None
 
     # ELVEH_PLUG attributes
@@ -968,7 +1007,7 @@ class FordpassDataHandler:
                 return "A"
             elif val == XEVPLUGCHARGER_STATE_CONNECTED:
                 if "xevBatteryChargeDisplayStatus" in data_metrics:
-                    secondary_val = data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED).upper()
+                    secondary_val = str(data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED)).upper()
                     if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
                         return "C"
                 return "B"

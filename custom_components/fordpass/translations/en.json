@@ -324,6 +324,7 @@
             "elvehplug":                {"name": "EV Plug"},
             "elvehcharging":            {"name": "EV Charging State"},
             "elvehchargingpower":       {"name": "EV Charging Power"},
+            "elvehrecuppower":          {"name": "EV Recuperating Power"},
             "speed":                    {"name": "Speed"},
             "enginespeed":              {"name": "Engine Speed (rev)"},
             "gearleverposition":        {"name": "Gear Lever Position"},
@@ -343,12 +344,10 @@
             "metrics":                  {"name": "Metrics"},
             "states":                   {"name": "States"},
             "vehicles":                 {"name": "Vehicles"},
-
             "soc":                      {"name": "State of Charge"},
             "evccstatus":               {"name": "EVCC Status Code"},
             "seatbelt":                 {"name": "Seat Belts"},
             "deviceconnectivity":       {"name": "Connectivity"},
-
             "yawrate":                  {"name": "Yaw Rate"},
             "acceleration":             {"name": "Acceleration"},
             "brakepedalstatus":         {"name": "Brake Pedal"},
@@ -368,6 +367,8 @@
             "lastfirmwareupdate":       {"name": "Last Firmware Update"},
             "firmwareupdatehistory":    {"name": "Firmware Update History"},
             "otareadiness":             {"name": "OTA Update Readiness"},
+
+
 
             "batteryvoltage":           {"name": "Battery Voltage (12V)"},
             "batteryloadstatus":        {"name": "Battery Load Status (12V)"},

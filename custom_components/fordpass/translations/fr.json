@@ -311,7 +311,8 @@
             "elveh":                    {"name": "Véhicule électrique"},
             "elvehplug":                {"name": "Prise VE"},
             "elvehcharging":            {"name": "État de charge VE"},
-            "elvehchargingpower":       {"name": "Charge KW VE"},
+            "elvehchargingpower":       {"name": "Charge VE"},
+            "elvehrecuppower":          {"name": "Récupération VE"},
             "speed":                    {"name": "Vitesse"},
             "enginespeed":              {"name": "Régime moteur"},
             "gearleverposition":        {"name": "Position du levier de vitesse"},
@@ -331,12 +332,10 @@
             "metrics":                  {"name": "Mesures"},
             "states":                   {"name": "États"},
             "vehicles":                 {"name": "Véhicules"},
-
             "soc":                      {"name": "État de charge"},
             "evccstatus":               {"name": "Code statut EVCC"},
             "seatbelt":                 {"name": "Statut de la ceinture"},
             "deviceconnectivity":       {"name": "Connectivité"},
-
             "yawrate":                  {"name": "Taux de lacet"},
             "acceleration":             {"name": "Accélération"},
             "brakepedalstatus":         {"name": "Statut de la pédale de frein"},
