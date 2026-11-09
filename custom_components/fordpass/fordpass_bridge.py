@@ -3127,7 +3127,7 @@ class ConnectedFordPassVehicle:
                                     _LOGGER.debug(f"{self.vli}__wait_for_state(): EXCELLENT! Command succeeded")
                                     return True
 
-                                elif to_state == "COMMAND_FAILED_ON_DEVICE":
+                                elif to_state in ["COMMAND_FAILED_ON_DEVICE", "FAILURE"]:
                                     error_context = "UNKNOWN_CONTEXT"
                                     error_code = "UNKNOWN_CODE"
                                     try:
