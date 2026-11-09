@@ -15,16 +15,13 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(
-        hass: HomeAssistant,
-        config_entry: ConfigEntry,
-        async_add_entities: AddEntitiesCallback,
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Set up the vehicle image entity from a config entry."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR_KEY]
 
     # Add the static image entity
     async_add_entities([VehicleImageEntity(hass, coordinator)])
+
 
 class VehicleImageEntity(ImageEntity):
     _attr_has_entity_name = True
