@@ -866,12 +866,12 @@ class FordpassDataHandler:
         # Check Plug Status
         if should_exit_on_status(plug_must_be_connected, data_metrics, "xevPlugChargerStatus",
                 [XEVPLUGCHARGER_STATE_CONNECTED, XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC]):
-            return None
+            return 0
 
         # Check Battery Charge Display Status
         if should_exit_on_status(plug_must_be_connected, data_metrics, "xevBatteryChargeDisplayStatus",
                 [XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS, XEVBATTERYCHARGEDISPLAY_STATE_PAUSED]):
-            return None
+            return 0
 
         # 3. Parse charger and battery current metrics
         ch_amps, ch_dt = parse_metric_int("xevBatteryChargerCurrentOutput")
