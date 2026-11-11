@@ -1,7 +1,7 @@
 {
   "domain": "fordpass",
   "name": "Ford™ (aka FordPass)",
-  "codeowners": ["@marq24", "@SquidBytes", "@itchannel"],
+  "codeowners": ["@marq24"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/marq24/ha-fordpass",

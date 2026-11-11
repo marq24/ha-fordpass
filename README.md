@@ -420,10 +420,6 @@ If you like this integration and want to support the development, please conside
 > - Code cleanup and refactoring
 
 
-## Change Log
-[See GitHub releases](https://github.com/marq24/ha-fordpass/releases) of this repository or [for older update information that was not part of this repository a separate document](./info.md) for the complete change log of this integration.
-
-
 ## Credits
 - [@crowedavid](https://github.com/crowedavid) — David, who is great support here in the community and has provided a lot of feedback and ideas for improvements. Also, he has provided various HA automations and template sensors for this integration. Thanks a lot for your support David!
 - https://github.com/itchannel/fordpass-ha — Original fordpass integration by @itchannel and @SquidBytes
