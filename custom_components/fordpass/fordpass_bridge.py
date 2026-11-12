@@ -18,7 +18,7 @@ import aiohttp
 from aiohttp import ClientConnectionError, ContentTypeError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from . import DOMAIN
+from . import DOMAIN, TargetedEvent
 from .const import (
     OAUTH_ID,
     CLIENT_ID,
@@ -893,7 +893,7 @@ class ConnectedFordPassVehicle:
 
     # the WebSocket-related handling...
     async def ws_connect(self,
-                         ready_event:asyncio.Event=None,
+                         ready_event:TargetedEvent=None,
                          do_inventory_check_shortly_after_ws_connect:bool=True,
                          init_other_data:bool=True,
                          purge_root_metrics:bool=False):
@@ -1050,12 +1050,25 @@ class ConnectedFordPassVehicle:
                         # check if we need to refresh the auto token...
                         await self._ws_check_for_auth_token_refresh(ws)
 
-                # 'async for' ends silently when the server sends a CLOSE frame - so log why the connection has ended
-                if ready_event is not None and not ready_event.is_set():
-                    _LOGGER.warning(f"{self.vli}ws_connect(): websocket closed by server before any vehicle data was received - close_code: {ws.close_code}, exception: {ws.exception()}")
-                else:
-                    _LOGGER.debug(f"{self.vli}ws_connect(): websocket closed - close_code: {ws.close_code}, exception: {ws.exception()}")
 
+                # 'async for' ends silently when the server sends a CLOSE frame - so log why the connection has ended
+                ws_close_code = "unknown_ws_close_code"
+                ws_exception = None
+                try:
+                    ws_close_code = ws.close_code
+                    ws_exception = ws.exception()
+                except BaseException:
+                    pass
+                if ready_event is not None and not ready_event.is_set():
+                    if init_other_data:
+                        # if the ws_connect is started with a 'ready_event' and the ready_event is not set AND with
+                        # 'init_other_data' = True, then this means, we are in the startup phase of the integration,
+                        # but we did not receive any data from the websocket...
+                        # [so we should raise a "ConfigEntryNotReady"]
+                        ready_event.set_error(ClientConnectionError("WebSocket was instant closed"))
+                    _LOGGER.warning(f"{self.vli}ws_connect(): websocket closed by server before any vehicle data was received - close_code: {ws_close_code}, exception: {ws_exception}")
+                else:
+                    _LOGGER.debug(f"{self.vli}ws_connect(): websocket closed - close_code: {ws_close_code}, exception: {ws_exception}")
         except ClientConnectionError as err:
             _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(err).__name__} - {err}")
         except asyncio.TimeoutError as time_exc:

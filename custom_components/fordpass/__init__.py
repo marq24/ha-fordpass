@@ -533,6 +533,20 @@ def get_none_closed_cached_session(hass: HomeAssistant, vin:str, vli:str) -> aio
     #         _LOGGER.debug(f"{vli}Using cached aiohttp.ClientSession (so we share cookies) for user: {user}, region: {region_key}")
     # return _session_cache[a_key]
 
+class TargetedEvent(asyncio.Event):
+    """A simple extened Event, that can carry also an error as return object"""
+    def __init__(self):
+        super().__init__()
+        self._error = None
+
+    def has_errors(self):
+        return self._error is not None
+
+    def set_error(self, error: Exception):
+        self._error = error
+        self.set()
+
+
 class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
     """DataUpdateCoordinator to handle fetching new data about the vehicle."""
     _http_session: aiohttp.ClientSession | None = None
@@ -654,7 +668,7 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def start_websocket_and_wait_for_first_data(self, is_integration_init:bool):
         # 1. Create an event to signal when the connection is established/ready
-        connected_event = asyncio.Event()
+        connected_event = TargetedEvent()
 
         # 2. Pass the event into your background task
         target = self.bridge.ws_connect(
@@ -669,17 +683,25 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
             async with asyncio.timeout(60):  # Protect against hanging forever
                 await connected_event.wait()
         except TimeoutError:
-            _LOGGER.warning("Connection to websocket timed out after one minute!")
+            _LOGGER.warning("start_websocket_and_wait_for_first_data(): Connection to websocket timed out after one minute!")
             self._a_task.cancel()
-            # NOT SURE WHAT TO DO NOW ???!
-            raise
-
-        _LOGGER.debug(f"Connection to websocket established!")
-        is_essential_vehicle_data_available = FordpassDataHandler.is_essential_vehicle_data_available(self.data)
-        if not is_essential_vehicle_data_available:
+            # ok the attempt to connect to the websocket took longer then 60 seconds...
+            # so we return 'False' since this will trigger a "ConfigEntryNotReady"
             return False
 
-        _LOGGER.info(f"Essential vehicle data is available after WebSocket connection has been established - that's just so GREAT! Available keys: {list(self.data.keys())} so let's move on...")
+        if connected_event.has_errors():
+            # if the connected_event has recorded a error, the init failed some sort of
+            # so we will return 'False' to trigger a "ConfigEntryNotReady"
+            _LOGGER.debug(f"start_websocket_and_wait_for_first_data(): Could NOT established connection to websocket")
+            return False
+
+        _LOGGER.debug(f"start_websocket_and_wait_for_first_data(): Connection to websocket established!")
+        is_essential_vehicle_data_available = FordpassDataHandler.is_essential_vehicle_data_available(self.data)
+        if not is_essential_vehicle_data_available:
+            _LOGGER.debug(f"start_websocket_and_wait_for_first_data(): But 'is_essential_vehicle_data_available' is False :-/")
+            return False
+
+        _LOGGER.info(f"start_websocket_and_wait_for_first_data(): Essential vehicle data is available after WebSocket connection has been established - that's just so GREAT! Available keys: {list(self.data.keys())} so let's move on...")
         return True
 
     async def start_watchdog(self, event=None):
