@@ -1050,6 +1050,12 @@ class ConnectedFordPassVehicle:
                         # check if we need to refresh the auto token...
                         await self._ws_check_for_auth_token_refresh(ws)
 
+                # 'async for' ends silently when the server sends a CLOSE frame - so log why the connection has ended
+                if ready_event is not None and not ready_event.is_set():
+                    _LOGGER.warning(f"{self.vli}ws_connect(): websocket closed by server before any vehicle data was received - close_code: {ws.close_code}, exception: {ws.exception()}")
+                else:
+                    _LOGGER.debug(f"{self.vli}ws_connect(): websocket closed - close_code: {ws.close_code}, exception: {ws.exception()}")
+
         except ClientConnectionError as err:
             _LOGGER.error(f"{self.vli}ws_connect(): Could not connect to websocket: {type(err).__name__} - {err}")
         except asyncio.TimeoutError as time_exc:
