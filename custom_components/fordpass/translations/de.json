@@ -39,6 +39,14 @@
                 "lincoln": "Lincoln Fahrzeuge - The Lincoln Way™ App"
             }
         },
+        "precondition_temperature": {
+            "options": {
+                "low": "Kühl",
+                "medium": "Mittel",
+                "high": "Warm",
+                "off": "Aus"
+            }
+        },
         "schedule_days": {
             "options": {
                 "monday": "01 Montag",
@@ -48,14 +56,6 @@
                 "friday": "05 Freitag",
                 "saturday": "06 Samstag",
                 "sunday": "07 Sonntag"
-            }
-        },
-        "precondition_temperature": {
-            "options": {
-                "low": "Kühl",
-                "medium": "Mittel",
-                "high": "Warm",
-                "off": "Aus"
             }
         }
     },
@@ -279,7 +279,9 @@
             "msgdeleteall":         {"name": "Nachrichten: Alle Löschen"},
             "msgdeletelast":        {"name": "Nachrichten: Letzte Löschen"},
             "trailerlightcheckon":  {"name": "Trailer Light Check: EIN"},
-            "trailerlightcheckoff": {"name": "Trailer Light Check: AUS"}
+            "trailerlightcheckoff": {"name": "Trailer Light Check: AUS"},
+            "openwindows":          {"name": "Alle Fenster öffnen"},
+            "closewindows":         {"name": "Alle Fenster schließen"}
         },
         "device_tracker":   {"tracker": {"name": "Fahrzeug Tracker"}},
         "image":            {"vehicleimage":  {"name":  "Fahrzeug Abbildung"}},
@@ -374,22 +376,6 @@
                     "off": "AUS"
                 }
             },
-            "rccseatrearleft": {
-                "name": "RC (❄|☀): Sitz hinten links [RemoteControl]",
-                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
-            },
-            "rccseatrearright": {
-                "name": "RC (❄|☀): Sitz hinten rechts [RemoteControl]",
-                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
-            },
-            "rccseatfrontleft": {
-                "name": "RC (❄|☀): Sitz vorne links [RemoteControl]",
-                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
-            },
-            "rccseatfrontright": {
-                "name": "RC (❄|☀): Sitz vorne rechts [RemoteControl]",
-                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
-            },
             "rcctemperature": {
                 "name": "RC (❄|☀): Temperatur [RemoteControl]",
                 "state": {"lo": "LOW",
@@ -405,6 +391,22 @@
                           "21_0": "69.8°F", "21_5": "70.7°F", "22_0": "71.6°F", "22_5": "72.5°F", "23_0": "73.4°F", "23_5": "74.3°F", "24_0": "75.2°F", "24_5": "76.1°F", "25_0": "77.0°F", "25_5": "77.9°F",
                           "26_0": "78.8°F", "26_5": "79.7°F", "27_0": "80.6°F", "27_5": "81.5°F", "28_0": "82.4°F", "28_5": "83.3°F", "29_0": "84.2°F", "29_5": "85.1°F", "30_0": "86.0°F",
                           "hi": "HIGH"}
+            },
+            "rccseatrearleft": {
+                "name": "RC (❄|☀): Sitz hinten links [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
+            },
+            "rccseatrearright": {
+                "name": "RC (❄|☀): Sitz hinten rechts [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
+            },
+            "rccseatfrontleft": {
+                "name": "RC (❄|☀): Sitz vorne links [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
+            },
+            "rccseatfrontright": {
+                "name": "RC (❄|☀): Sitz vorne rechts [RemoteControl]",
+                "state": { "off": "aus", "cooled1": "Kühlen Stufe I", "cooled2": "Kühlen Stufe II", "cooled3": "Kühlen Stufe III", "heated1": "Heizen Stufe I", "heated2": "Heizen Stufe II", "heated3": "Heizen Stufe III"}
             },
             "elvehtargetcharge": {
                 "name": "Ziel-Ladestand EV",
