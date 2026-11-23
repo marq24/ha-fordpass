@@ -21,7 +21,7 @@ CONF_LOG_TO_FILESYSTEM: Final = "log_to_filesystem"
 
 CONF_PRESSURE_UNIT: Final = "pressure_unit"
 DEFAULT_PRESSURE_UNIT: Final = "BAR"
-PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR"]
+PRESSURE_UNITS: Final = ["PSI", "kPa", "BAR", "RAW"]
 
 WINDOW_POSITIONS: Final = {
     "CLOSED": {

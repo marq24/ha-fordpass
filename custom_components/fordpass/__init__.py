@@ -589,6 +589,9 @@ class FordPassDataUpdateCoordinator(DataUpdateCoordinator):
                     local_pressure_unit = UnitOfPressure.PSI
                 elif user_pressure_unit == "BAR":
                     local_pressure_unit = UnitOfPressure.BAR
+                elif user_pressure_unit == "RAW":
+                    # INH2O is our "raw" format for pressure...
+                    local_pressure_unit = UnitOfPressure.INH2O
 
                 orig = hass.config.units
                 self.units = UnitSystem(

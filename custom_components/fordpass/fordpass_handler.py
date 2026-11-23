@@ -32,7 +32,7 @@ from .const_shared import (
     HONK_AND_FLASH,
     DAYS_MAP,
     OTA_DEPLOYMENT_STATE_MAP,
-    OTA_TRIGGER_STATE_MAP,
+    OTA_TRIGGER_STATE_MAP
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -283,12 +283,21 @@ class FordpassDataHandler:
         elif units.pressure_unit == UnitOfPressure.BAR:
             digits = 2
 
+        def get_value_str(a_val:Number, units:UnitSystem, digits:int):
+            # INH2O is our "raw" format for pressure...
+            if units.pressure_unit == UnitOfPressure.INH2O:
+                return f"{a_val}"
+            return f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
+
         if "tirePressure" in data_metrics:
             for a_tire in data_metrics["tirePressure"]:
                 a_val = a_tire.get("value", UNSUPPORTED)
                 if a_val is not None and a_val != UNSUPPORTED and isinstance(a_val, Number):
                     if "vehicleWheel" in a_tire:
-                        attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = f"{round(units.pressure(a_val, UnitOfPressure.KPA), digits)} {units.pressure_unit}"
+                        attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = get_value_str(a_val, units, digits)
+                        a_placecard_val = a_tire.get("wheelPlacardFront", a_tire.get("wheelPlacardRear", UNSUPPORTED))
+                        if a_placecard_val is not None and a_placecard_val != UNSUPPORTED and isinstance(a_placecard_val, Number):
+                            attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placecard_max"] = get_value_str(a_placecard_val, units, digits)
 
         if "tirePressureStatus" in data_metrics:
             for a_tire in data_metrics["tirePressureStatus"]:
