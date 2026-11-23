@@ -195,6 +195,10 @@
         }
     },
     "services": {
+        "refresh_status_dont_use": {
+            "name": "Odśwież status pojazdu – implementacja LEGACY [OSTRZEŻENIE: WYSOKIE RYZYKO!] (nie używaj, jeśli nie znasz możliwych konsekwencji)",
+            "description": "UŻYWAJ TEJ AKCJI TYLKO WTEDY, GDY AKCEPTUJESZ RYZYKO, ŻE FORD/LINCOLN MOŻE (TYMCZASOWO) ZABLOKOWAĆ TWOJE KONTO, ponieważ ta akcja korzysta z endpointu, którego Ford już nie używa.\nNie twierdź, że to integracja zablokowała Twoje konto, jeśli zrobiłeś to celowo!"
+        },
         "refresh_status": {
             "name": "Odśwież status pojazdu",
             "description": "Pobierz z samochodu najnowszy status (aktualizacja po uruchomieniu tej funkcji może potrwać do 5 minut!)"
