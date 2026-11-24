@@ -344,7 +344,13 @@ Based on these attributes, you can create your own template sensors or automatio
    The entities for the second and third 'charge locations select'-entities are disabled by default, but you can enable them in the integration.
 
 
-## Want to report an issue?
+## Contributing
+
+Bug reports, technical findings and contributions are welcome.
+
+Before opening a feature request or pull request, please read my [contribution guidelines](CONTRIBUTING.md).
+
+### Want to report an issue?
 
 Please use the [GitHub Issues](https://github.com/marq24/ha-fordpass/issues) for reporting any issues you encounter with this integration. Please be so kind before creating a new issues, check the closed ones if your problem has been already reported (& solved).
 
