@@ -7,7 +7,7 @@ from re import sub
 from typing import Final, Iterable
 
 from homeassistant.const import UnitOfLength, UnitOfTemperature, UnitOfPressure
-from homeassistant.util import dt
+from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_system import UnitSystem
 
 from .const_shared import (
@@ -620,7 +620,7 @@ class FordpassDataHandler:
 
     # LAST_REFRESH state
     def get_last_refresh_state(data, prev_state=None):
-        return dt.as_local(dt.parse_datetime(data.get(ROOT_UPDTIME, "1970-01-01T00:00:00.000Z")))
+        return dt_util.as_local(dt_util.parse_datetime(data.get(ROOT_UPDTIME, "1970-01-01T00:00:00.000Z")))
 
 
     # ELVEH state + attributes
@@ -735,7 +735,7 @@ class FordpassDataHandler:
                                     if "LOCAL_TIME" == tz:
                                         if day_of_week in DAYS_MAP and time_of_day != UNSUPPORTED:
                                             # Get the current date and time in local timezone
-                                            now = datetime.now()
+                                            now = dt_util.now()
 
                                             # Get the weekday number for the specified day
                                             target_weekday = DAYS_MAP[day_of_week]
@@ -764,7 +764,7 @@ class FordpassDataHandler:
                 if "outside_air_ambient_temperature" in tripData and isinstance(tripData["outside_air_ambient_temperature"], Number):
                     attrs["tripOutsideAirAmbientTemp"] = FordpassDataHandler.localize_temperature(tripData["outside_air_ambient_temperature"], units)
                 if "trip_duration" in tripData:
-                    attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
+                    attrs["tripDuration"] = str(dt_util.parse_duration(str(tripData["trip_duration"])))
                 if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
                     attrs["tripCabinTemp"] = FordpassDataHandler.localize_temperature(tripData["cabin_temperature"], units)
                 if "energy_consumed" in tripData and isinstance(tripData["energy_consumed"], Number):
@@ -933,9 +933,9 @@ class FordpassDataHandler:
             attrs["chargingkW"] = charging_kw
 
         if "xevBatteryTimeToFullCharge" in data_metrics:
-            cs_update_time = dt.parse_datetime(data_metrics.get("xevBatteryTimeToFullCharge", {}).get("updateTime", 0))
+            cs_update_time = dt_util.parse_datetime(data_metrics.get("xevBatteryTimeToFullCharge", {}).get("updateTime", 0))
             cs_est_end_time = cs_update_time + timedelta(minutes=data_metrics.get("xevBatteryTimeToFullCharge", {}).get("value", 0))
-            attrs["estimatedEndTime"] = dt.as_local(cs_est_end_time)
+            attrs["estimatedEndTime"] = dt_util.as_local(cs_est_end_time)
 
         if "customMetrics" in data_metrics:
             for key in data_metrics.get("customMetrics", {}):
@@ -1319,7 +1319,7 @@ class FordpassDataHandler:
             for dataStr in trip_data_str:
                 tripData = json.loads(dataStr)
                 if "trip_duration" in tripData and isinstance(tripData["trip_duration"], Number):
-                    attrs["tripDuration"] = str(dt.parse_duration(str(tripData["trip_duration"])))
+                    attrs["tripDuration"] = str(dt_util.parse_duration(str(tripData["trip_duration"])))
                 if "distance_traveled" in tripData and isinstance(tripData["distance_traveled"], Number):
                     attrs["tripDistanceTraveled"] = FordpassDataHandler.localize_distance(tripData["distance_traveled"], units)
                 if "cabin_temperature" in tripData and isinstance(tripData["cabin_temperature"], Number):
@@ -1877,7 +1877,7 @@ class FordpassDataHandler:
         if update_time is None:
             return None
         try:
-            return dt.as_local(dt.parse_datetime(update_time))
+            return dt_util.as_local(dt_util.parse_datetime(update_time))
         except BaseException as ex:
             _LOGGER.debug(f"get_last_firmware_update_state(): could not parse datetime: '{update_time}', error: {ex}")
             return None
@@ -1921,7 +1921,7 @@ class FordpassDataHandler:
                 elif isinstance(val, str):
                     if val is not None and val != UNDEFINED:
                         try:
-                            return dt.as_local(dt.parse_datetime(val))
+                            return dt_util.as_local(dt_util.parse_datetime(val))
                         except BaseException as ex:
                             _LOGGER.debug(f"get_departure_schedules_state(): could not parse datetime: '{val}', error: {ex}")
         return None
