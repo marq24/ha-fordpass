@@ -48,8 +48,8 @@ ROOT_ENERGY_TRANSFER_STATUS: Final = "ets"
 ROOT_ENERGY_TRANSFER_LOGS: Final = "etl"
 ROOT_UPDTIME: Final = "updateTime"
 
-UNSUPPORTED: Final = str("Unsupported")
-UNDEFINED: Final = str("Undefined")
+MY_UNSUPPORTED: Final = str("Unsupported")
+MY_UNDEFINED: Final = str("Undefined")
 
 class FordpassDataHandler:
     # Helper functions to simplify the callable implementations
@@ -112,7 +112,7 @@ class FordpassDataHandler:
         return data.get(ROOT_ENERGY_TRANSFER_LOGS, {}).get("energyTransferLogs", [])
 
     @staticmethod
-    def get_value_for_metrics_key(data, metrics_key, default=UNSUPPORTED):
+    def get_value_for_metrics_key(data, metrics_key, default=MY_UNSUPPORTED):
         """Get a value from metrics with a default fallback."""
         return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", default)
 
@@ -122,12 +122,12 @@ class FordpassDataHandler:
         return data.get(ROOT_METRICS, {}).get(metrics_key, {})
 
     @staticmethod
-    def get_attr_of_metrics_value_dict(data, metrics_key, metrics_attr, default=UNSUPPORTED):
+    def get_attr_of_metrics_value_dict(data, metrics_key, metrics_attr, default=MY_UNSUPPORTED):
         """Get an attribute that is present in the value dict."""
         return data.get(ROOT_METRICS, {}).get(metrics_key, {}).get("value", {}).get(metrics_attr, default)
 
     @staticmethod
-    def get_value_at_index_for_metrics_key(data, metrics_key, index=0, default=UNSUPPORTED):
+    def get_value_at_index_for_metrics_key(data, metrics_key, index=0, default=MY_UNSUPPORTED):
         sub_data = data.get(ROOT_METRICS, {}).get(metrics_key, [{}])
         if len(sub_data) > index:
             return sub_data[index].get("value", default)
@@ -136,7 +136,7 @@ class FordpassDataHandler:
 
     @staticmethod
     def localize_distance(value, units):
-        if value is not None and value != UNSUPPORTED:
+        if value is not None and value != MY_UNSUPPORTED:
             try:
                 if not isinstance(value, Number):
                     value = float(value)
@@ -152,7 +152,7 @@ class FordpassDataHandler:
 
     @staticmethod
     def localize_temperature(value, units):
-        if value is not None and value != UNSUPPORTED:
+        if value is not None and value != MY_UNSUPPORTED:
             try:
                 if not isinstance(value, Number):
                     value = float(value)
@@ -248,16 +248,16 @@ class FordpassDataHandler:
         attrs = {}
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "batteryVoltage" in data_metrics:
-            if str(data_metrics["batteryVoltage"].get("vehicleBattery", UNDEFINED)).lower() == "primary_battery":
+            if str(data_metrics["batteryVoltage"].get("vehicleBattery", MY_UNDEFINED)).lower() == "primary_battery":
                 attrs["batteryVoltage"] = FordpassDataHandler.get_value_for_metrics_key(data, "batteryVoltage")
             else:
                 attrs["batteryVoltageObject"] = data_metrics.get("batteryVoltage", 0)
 
         if "batteryLoadStatus" in data_metrics:
-            if str(data_metrics["batteryLoadStatus"].get("vehicleBattery", UNDEFINED)).lower() == "primary_battery":
+            if str(data_metrics["batteryLoadStatus"].get("vehicleBattery", MY_UNDEFINED)).lower() == "primary_battery":
                 attrs["batteryLoadStatus"] = FordpassDataHandler.get_value_for_metrics_key(data, "batteryLoadStatus")
             else:
-                attrs["batteryLoadStatusObject"] = data_metrics.get("batteryLoadStatus", UNSUPPORTED)
+                attrs["batteryLoadStatusObject"] = data_metrics.get("batteryLoadStatus", MY_UNSUPPORTED)
         return attrs or None
 
 
@@ -291,26 +291,26 @@ class FordpassDataHandler:
 
         if "tirePressure" in data_metrics:
             for a_tire in data_metrics["tirePressure"]:
-                a_val = a_tire.get("value", UNSUPPORTED)
-                if a_val is not None and a_val != UNSUPPORTED and isinstance(a_val, Number):
+                a_val = a_tire.get("value", MY_UNSUPPORTED)
+                if a_val is not None and a_val != MY_UNSUPPORTED and isinstance(a_val, Number):
                     if "vehicleWheel" in a_tire:
                         attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = get_value_str(a_val, units, digits)
-                        a_placard_val = a_tire.get("wheelPlacardFront", a_tire.get("wheelPlacardRear", UNSUPPORTED))
-                        if a_placard_val is not None and a_placard_val != UNSUPPORTED and isinstance(a_placard_val, Number):
+                        a_placard_val = a_tire.get("wheelPlacardFront", a_tire.get("wheelPlacardRear", MY_UNSUPPORTED))
+                        if a_placard_val is not None and a_placard_val != MY_UNSUPPORTED and isinstance(a_placard_val, Number):
                             attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard_max"] = get_value_str(a_placard_val, units, digits)
 
         if "tirePressureStatus" in data_metrics:
             for a_tire in data_metrics["tirePressureStatus"]:
-                a_val = a_tire.get("value", UNSUPPORTED)
-                if a_val is not None and a_val != UNSUPPORTED:
+                a_val = a_tire.get("value", MY_UNSUPPORTED)
+                if a_val is not None and a_val != MY_UNSUPPORTED:
                     if "vehicleWheel" in a_tire:
                         attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_state"] = a_val
 
         if "tirePressureSystemStatus" in data_metrics:
             count = 0
             for a_system_state in data_metrics["tirePressureSystemStatus"]:
-                a_val = a_system_state.get("value", UNSUPPORTED)
-                if a_val is not None and a_val != UNSUPPORTED:
+                a_val = a_system_state.get("value", MY_UNSUPPORTED)
+                if a_val is not None and a_val != MY_UNSUPPORTED:
                     if "vehicleWheel" in a_system_state:
                         attrs[f"{FordpassDataHandler.to_camel(a_system_state['vehicleWheel'])}_system_state"] = a_val
                     else:
@@ -335,9 +335,9 @@ class FordpassDataHandler:
         attrs = dict(pos_data)
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "compassDirection" in data_metrics:
-            attrs["compassDirection"] = data_metrics.get("compassDirection", {}).get("value", UNSUPPORTED)
+            attrs["compassDirection"] = data_metrics.get("compassDirection", {}).get("value", MY_UNSUPPORTED)
         if "heading" in data_metrics:
-            attrs["heading"] = data_metrics.get("heading", {}).get("value", UNSUPPORTED)
+            attrs["heading"] = data_metrics.get("heading", {}).get("value", MY_UNSUPPORTED)
         return attrs or None
 
     def get_gps_tracker_attrs(data, units:UnitSystem):
@@ -353,14 +353,14 @@ class FordpassDataHandler:
         return attrs or None
 
     def get_gps_lat(data) -> float:
-        val = FordpassDataHandler.get_gps_state(data, None).get("lat", UNSUPPORTED)
-        if val != UNSUPPORTED:
+        val = FordpassDataHandler.get_gps_state(data, None).get("lat", MY_UNSUPPORTED)
+        if val != MY_UNSUPPORTED:
             return float(val)
         return None
 
     def get_gps_lon(data) -> float:
-        val = FordpassDataHandler.get_gps_state(data, None).get("lon", UNSUPPORTED)
-        if val != UNSUPPORTED:
+        val = FordpassDataHandler.get_gps_state(data, None).get("lon", MY_UNSUPPORTED)
+        if val != MY_UNSUPPORTED:
             return float(val)
         return None
 
@@ -373,8 +373,8 @@ class FordpassDataHandler:
         attrs = dict(alarm_data)
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "panicAlarmStatus" in data_metrics:
-            val = data_metrics.get("panicAlarmStatus", {}).get("value", UNSUPPORTED)
-            if val != UNSUPPORTED:
+            val = data_metrics.get("panicAlarmStatus", {}).get("value", MY_UNSUPPORTED)
+            if val != MY_UNSUPPORTED:
                 attrs["panicAlarmStatus"] = val
         return attrs or None
 
@@ -486,11 +486,11 @@ class FordpassDataHandler:
 
         if required_locked_doors == 0:
             _LOGGER.debug("No doorLockStatus found in the data - returning UNSUPPORTED")
-            return UNSUPPORTED
+            return MY_UNSUPPORTED
 
         locked_doors = 0
         for a_lock_state in all_doors:
-            a_upper_case_lock_value = a_lock_state.get("value", UNSUPPORTED).upper()
+            a_upper_case_lock_value = a_lock_state.get("value", MY_UNSUPPORTED).upper()
             if a_upper_case_lock_value in ["LOCKED", "DOUBLE_LOCKED"]:
                 # if we have an ALL_DOORS lock state, we can ignore the other door lock states
                 if "vehicleDoor" in a_lock_state and a_lock_state["vehicleDoor"].upper() == "ALL_DOORS":
@@ -535,7 +535,7 @@ class FordpassDataHandler:
             if value["value"].upper() in ["CLOSED", "INVALID", "UNKNOWN"]:
                 continue
             return "Open"
-        if data_metrics.get("hoodStatus", {}).get("value", UNSUPPORTED).upper() == "OPEN":
+        if data_metrics.get("hoodStatus", {}).get("value", MY_UNSUPPORTED).upper() == "OPEN":
             return "Open"
         return "Closed"
 
@@ -627,8 +627,8 @@ class FordpassDataHandler:
     def get_elveh_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
         if "xevBatteryRange" in data_metrics:
-            val = data_metrics.get("xevBatteryRange", {}).get("value", UNSUPPORTED)
-            if val != UNSUPPORTED and isinstance(val, Number):
+            val = data_metrics.get("xevBatteryRange", {}).get("value", MY_UNSUPPORTED)
+            if val != MY_UNSUPPORTED and isinstance(val, Number):
                 return round(val, 2)
         return None
 
@@ -644,7 +644,7 @@ class FordpassDataHandler:
             "xevBatteryVoltage":                ("batteryVoltage", lambda value, units: float(value), 0),
             "xevBatteryStateOfCharge":          ("batteryCharge", lambda value, units: value, 0),
             "xevBatteryActualStateOfCharge":    ("batteryActualCharge", lambda value, units: value, 0),
-            "xevBatteryPerformanceStatus":      ("batteryPerformanceStatus", lambda value, units: value, UNSUPPORTED),
+            "xevBatteryPerformanceStatus":      ("batteryPerformanceStatus", lambda value, units: value, MY_UNSUPPORTED),
             "xevBatteryEnergyRemaining":        ("batteryEnergyRemaining", lambda value, units: value, 0),
             "xevBatteryCapacity":               ("maximumBatteryCapacity", lambda value, units: value, 0),
             "xevBatteryMaximumRange":           ("maximumBatteryRange", lambda value, units: FordpassDataHandler.localize_distance(value, units), 0),
@@ -714,7 +714,7 @@ class FordpassDataHandler:
         if xev_next_departure_time_schedule_id is not None: #and xev_next_departure_time_location_id is not None:
             # IF there is a 'schedule_id' defined, then we set the attribute, in order to make the processing
             # of this data a bit easier - since you must not check for existence of both id's all the time
-            attrs["nextScheduledDepartureTime"] = UNDEFINED
+            attrs["nextScheduledDepartureTime"] = MY_UNDEFINED
             xev_departure_locations = data_metrics.get("configurations", {}).get("xevDepartureSchedulesSetting",{}).get("value", {}).get("departureLocations", {})
             for a_depart_location in xev_departure_locations:
                 if "departureSchedules" in a_depart_location and (
@@ -728,12 +728,12 @@ class FordpassDataHandler:
                                 if len(a_schedule_obj) > 0:
                                     #_LOGGER.debug(f"A schedule object: {a_schedule_obj}")
                                     time_obj = a_schedule_obj.get("weeklySchedule", {})
-                                    day_of_week = time_obj.get("dayOfWeek", UNSUPPORTED).upper()
-                                    time_of_day = time_obj.get("timeOfDay", UNSUPPORTED)
-                                    tz = a_schedule_obj.get("timeZone", UNSUPPORTED)
+                                    day_of_week = time_obj.get("dayOfWeek", MY_UNSUPPORTED).upper()
+                                    time_of_day = time_obj.get("timeOfDay", MY_UNSUPPORTED)
+                                    tz = a_schedule_obj.get("timeZone", MY_UNSUPPORTED)
 
                                     if "LOCAL_TIME" == tz:
-                                        if day_of_week in DAYS_MAP and time_of_day != UNSUPPORTED:
+                                        if day_of_week in DAYS_MAP and time_of_day != MY_UNSUPPORTED:
                                             # Get the current date and time in local timezone
                                             now = dt_util.now()
 
@@ -785,7 +785,7 @@ class FordpassDataHandler:
         return (data.get(ROOT_METRICS, {})
                 .get("configurations", {})
                 .get("automaticSoftwareUpdateOptInSetting",{})
-                .get("value", UNSUPPORTED))
+                .get("value", MY_UNSUPPORTED))
 
     async def on_off_auto_updates(data, vehicle, turn_on:bool) -> bool:
         if turn_on:
@@ -818,12 +818,12 @@ class FordpassDataHandler:
     def get_cancel_pause_charge_switch_state(data, prev_state=None):
         # we will use a ha switch entity for this, so we need to return "ON" or "OFF"
         data_metrics = FordpassDataHandler.get_metrics(data)
-        val = str(data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)).upper()
-        if val != UNSUPPORTED:
+        val = str(data_metrics.get("xevPlugChargerStatus", {}).get("value", MY_UNSUPPORTED)).upper()
+        if val != MY_UNSUPPORTED:
             if val in [XEVPLUGCHARGER_STATE_CHARGING, XEVPLUGCHARGER_STATE_CHARGINGAC]:
                 return "ON"
             elif val == XEVPLUGCHARGER_STATE_CONNECTED and "xevBatteryChargeDisplayStatus" in data_metrics:
-                secondary_val = str(data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED)).upper()
+                secondary_val = str(data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", MY_UNSUPPORTED)).upper()
                 if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
                     return "ON"
         return "OFF"
@@ -852,8 +852,8 @@ class FordpassDataHandler:
             if key not in data_metrics:
                 return False
 
-            state = str(data_metrics.get(key, {}).get("value", UNSUPPORTED)).upper()
-            if state == UNSUPPORTED:
+            state = str(data_metrics.get(key, {}).get("value", MY_UNSUPPORTED)).upper()
+            if state == MY_UNSUPPORTED:
                 return False
 
             is_state_in_valid_states = state in valid_states
@@ -909,10 +909,10 @@ class FordpassDataHandler:
         attrs = {}
 
         metrics_mapping = {
-            "xevPlugChargerStatus": ("plugStatus", lambda value, units: value, UNSUPPORTED),
-            "xevChargeStationCommunicationStatus": ("chargingStationStatus", lambda value, units: value, UNSUPPORTED),
-            "xevBatteryChargeDisplayStatus": ("chargingStatus", lambda value, units: value, UNSUPPORTED),
-            "xevChargeStationPowerType": ("chargingType", lambda value, units: value, UNSUPPORTED),
+            "xevPlugChargerStatus": ("plugStatus", lambda value, units: value, MY_UNSUPPORTED),
+            "xevChargeStationCommunicationStatus": ("chargingStationStatus", lambda value, units: value, MY_UNSUPPORTED),
+            "xevBatteryChargeDisplayStatus": ("chargingStatus", lambda value, units: value, MY_UNSUPPORTED),
+            "xevChargeStationPowerType": ("chargingType", lambda value, units: value, MY_UNSUPPORTED),
             "xevBatteryChargerVoltageOutput": ("chargingVoltage", lambda value, units: float(value), 0),
             "xevBatteryChargerCurrentOutput": ("chargingAmperage", lambda value, units: float(value), 0),
             "xevBatteryTemperature": ("batteryTemperature", lambda value, units: FordpassDataHandler.localize_temperature(value, units), 0),
@@ -999,24 +999,24 @@ class FordpassDataHandler:
         attrs = {}
 
         if "xevChargeStationCommunicationStatus" in data_metrics:
-            attrs["ChargingStationStatus"] = data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", UNSUPPORTED)
+            attrs["ChargingStationStatus"] = data_metrics.get("xevChargeStationCommunicationStatus", {}).get("value", MY_UNSUPPORTED)
 
         if "xevChargeStationPowerType" in data_metrics:
-            attrs["ChargingType"] = data_metrics.get("xevChargeStationPowerType", {}).get("value", UNSUPPORTED)
+            attrs["ChargingType"] = data_metrics.get("xevChargeStationPowerType", {}).get("value", MY_UNSUPPORTED)
 
         return attrs
 
     # EVCC_STATUS state
     def get_evcc_status_state(data, prev_state=None):
         data_metrics = FordpassDataHandler.get_metrics(data)
-        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", UNSUPPORTED)
-        if val != UNSUPPORTED:
+        val = data_metrics.get("xevPlugChargerStatus", {}).get("value", MY_UNSUPPORTED)
+        if val != MY_UNSUPPORTED:
             val = val.upper()
             if val == XEVPLUGCHARGER_STATE_DISCONNECTED:
                 return "A"
             elif val == XEVPLUGCHARGER_STATE_CONNECTED:
                 if "xevBatteryChargeDisplayStatus" in data_metrics:
-                    secondary_val = str(data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", UNSUPPORTED)).upper()
+                    secondary_val = str(data_metrics.get("xevBatteryChargeDisplayStatus", {}).get("value", MY_UNSUPPORTED)).upper()
                     if secondary_val == XEVBATTERYCHARGEDISPLAY_STATE_IN_PROGRESS:
                         return "C"
                 return "B"
@@ -1041,8 +1041,8 @@ class FordpassDataHandler:
         # }
         # it's a bit sad, but it looks like, that only in the event section we can find the status of the zoneLight stuff
         oem_data = FordpassDataHandler.get_events(data).get("customEvents", {}).get("pttb-power-mode-change-event", {}).get("oemData", {})
-        value = oem_data.get("current_power_mode", {}).get("stringValue", UNSUPPORTED)
-        if value != UNSUPPORTED:
+        value = oem_data.get("current_power_mode", {}).get("stringValue", MY_UNSUPPORTED)
+        if value != MY_UNSUPPORTED:
             if value.upper() == "ON":
                 zone1 = oem_data.get("zone_1_active_power_status", {}).get("stringValue", "OFF").upper() == "ON"
                 zone2 = oem_data.get("zone_2_active_power_status", {}).get("stringValue", "OFF").upper() == "ON"
@@ -1071,8 +1071,8 @@ class FordpassDataHandler:
             list = ["current_power_mode", "zone_1_active_power_status", "zone_2_active_power_status", "zone_3_active_power_status", "zone_4_active_power_status"]
             for key in list:
                 if key in oem_data:
-                    value = oem_data[key].get("stringValue", UNSUPPORTED)
-                    if value != UNSUPPORTED:
+                    value = oem_data[key].get("stringValue", MY_UNSUPPORTED)
+                    if value != MY_UNSUPPORTED:
                         attrs[FordpassDataHandler.to_camel(key)] = value
             return attrs
 
@@ -1270,7 +1270,7 @@ class FordpassDataHandler:
             return None
         attrs = {}
         if "parkingBrakeType" in parking_brake_data:
-            attrs["type"] = parking_brake_data.get("parkingBrakeType", UNSUPPORTED)
+            attrs["type"] = parking_brake_data.get("parkingBrakeType", MY_UNSUPPORTED)
         return attrs or None
 
     # CABIN_TEMP state + attributes (from trip data)
@@ -1336,7 +1336,7 @@ class FordpassDataHandler:
     # def get_battery_voltage_state(data, prev_state=None):
     #     data_metrics = FordpassDataHandler.get_metrics(data)
     #     if "batteryVoltage" in data_metrics:
-    #         if data_metrics["batteryVoltage"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
+    #         if data_metrics["batteryVoltage"].get("vehicleBattery", MY_UNDEFINED).lower() == "primary_battery":
     #             return FordpassDataHandler.get_value_for_metrics_key(data, "batteryVoltage")
     #     return None
     #
@@ -1344,7 +1344,7 @@ class FordpassDataHandler:
     # def get_battery_load_status_state(data, prev_state=None):
     #     data_metrics = FordpassDataHandler.get_metrics(data)
     #     if "batteryLoadStatus" in data_metrics:
-    #         if data_metrics["batteryLoadStatus"].get("vehicleBattery", UNDEFINED).lower() == "primary_battery":
+    #         if data_metrics["batteryLoadStatus"].get("vehicleBattery", MY_UNDEFINED).lower() == "primary_battery":
     #             return FordpassDataHandler.get_value_for_metrics_key(data, "batteryLoadStatus")
     #     return None
 
@@ -1487,9 +1487,9 @@ class FordpassDataHandler:
         all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
         if len(all_pct_data) > index:
             ets_data_at_idx = list(all_pct_data.values())[index]
-            return ets_data_at_idx.get("location", {}).get("name", UNSUPPORTED)
+            return ets_data_at_idx.get("location", {}).get("name", MY_UNSUPPORTED)
         else:
-            return UNSUPPORTED
+            return MY_UNSUPPORTED
 
     def is_elev_target_charge_supported(data, index:int = 0):
         all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
@@ -1505,10 +1505,10 @@ class FordpassDataHandler:
         all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
         if len(all_pct_data) > index:
             pct_data_at_idx = list(all_pct_data.values())[index]
-            return pct_data_at_idx.get("chargeProfile", {}).get("targetSoc", UNSUPPORTED)
+            return pct_data_at_idx.get("chargeProfile", {}).get("targetSoc", MY_UNSUPPORTED)
         else:
             #_LOGGER.debug(f"get_elev_target_charge_state(): No 'preferred_charge_times' data found for index: {index} in: {len(all_pct_data)}")
-            return UNSUPPORTED
+            return MY_UNSUPPORTED
 
     async def set_elev_target_charge(data, vehicle, target_value, current_value:str):
         all_pct_data = FordpassDataHandler.get_preferred_charge_times(data)
@@ -1580,19 +1580,19 @@ class FordpassDataHandler:
     def get_rcc_state(data, rcc_key):
         value_list = data.get(ROOT_REMOTE_CLIMATE_CONTROL, {}).get("rccUserProfiles", [])
         if value_list is None or isinstance(value_list, (str, bytes)) or not isinstance(value_list, Iterable):
-            return UNSUPPORTED
+            return MY_UNSUPPORTED
 
         for a_list_entry in value_list:
             if a_list_entry.get("preferenceType", "") == rcc_key:
-                value = a_list_entry.get("preferenceValue", UNSUPPORTED)
-                if value != UNSUPPORTED:
+                value = a_list_entry.get("preferenceValue", MY_UNSUPPORTED)
+                if value != MY_UNSUPPORTED:
                     if rcc_key == "SetPointTemp_Rq":
                         if value.lower() != "hi" and value.lower() != "lo":
                             value = float(value.replace("_", "."))
                     elif rcc_key in ["RccLeftRearClimateSeat_Rq", "RccLeftFrontClimateSeat_Rq", "RccRightRearClimateSeat_Rq", "RccRightFrontClimateSeat_Rq"]:
                         value = value.lower()
                 return value
-        return UNSUPPORTED
+        return MY_UNSUPPORTED
 
     # number(s) for the RCC
     async def set_rcc_SetPointTemp_Rq(data, vehicle, target_value: str, current_value:str):
@@ -1655,7 +1655,7 @@ class FordpassDataHandler:
 
     # DEVICE_CONNECTIVITY state
     def get_device_connectivity_state(data, prev_state=None):
-        state = FordpassDataHandler.get_states(data).get("deviceConnectivity", {}).get("value", {}).get("toState", UNSUPPORTED)
+        state = FordpassDataHandler.get_states(data).get("deviceConnectivity", {}).get("value", {}).get("toState", MY_UNSUPPORTED)
         if state.upper() == "CONNECTED":
             return "CONNECTED"
         elif state.upper() == "DISCONNECTED":
@@ -1708,7 +1708,7 @@ class FordpassDataHandler:
         if to_state is None:
             to_state = states.get("configurationUpdate", {}).get("value", {}).get("toState")
         if to_state is None:
-            return UNSUPPORTED
+            return MY_UNSUPPORTED
         return OTA_DEPLOYMENT_STATE_MAP.get(to_state, "unknown")
 
     def get_firmware_update_status_attrs(data, units):
@@ -1750,7 +1750,7 @@ class FordpassDataHandler:
     def get_ota_readiness_state(data, prev_state=None):
         telemetry = FordpassDataHandler._get_ota_deployment_telemetry(data)
         if telemetry is None:
-            return UNSUPPORTED
+            return MY_UNSUPPORTED
 
         lv_soc = telemetry.get("currentLvBatterySoc")
         if lv_soc is None:
@@ -1919,7 +1919,7 @@ class FordpassDataHandler:
                         return val
 
                 elif isinstance(val, str):
-                    if val is not None and val != UNDEFINED:
+                    if val is not None and val != MY_UNDEFINED:
                         try:
                             return dt_util.as_local(dt_util.parse_datetime(val))
                         except BaseException as ex:
@@ -2172,7 +2172,7 @@ class FordpassDataHandler:
 
     # DEEPSLEEP state
     def get_deepsleep_state(data, prev_state=None):
-        state = FordpassDataHandler.get_states(data).get("commandPreclusion", {}).get("value", {}).get("toState", UNSUPPORTED)
+        state = FordpassDataHandler.get_states(data).get("commandPreclusion", {}).get("value", {}).get("toState", MY_UNSUPPORTED)
         if state.upper() == "COMMANDS_PRECLUDED":
             return "ACTIVE"
         elif state.upper() == "COMMANDS_PERMITTED":
@@ -2197,8 +2197,8 @@ class FordpassDataHandler:
                 if guard_status_data["session"]["gmStatus"] == "enable":
                     return "ON"
                 return "OFF"
-            return UNSUPPORTED
-        return UNSUPPORTED
+            return MY_UNSUPPORTED
+        return MY_UNSUPPORTED
 
     async def on_off_guard_mode(data, vehicle, turn_on:bool) -> bool:
         if turn_on:

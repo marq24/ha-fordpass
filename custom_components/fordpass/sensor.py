@@ -23,7 +23,7 @@ from . import FordPassEntity, FordPassDataUpdateCoordinator, ROOT_METRICS
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import SENSORS, ExtSensorEntityDescription, Tag
-from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
+from .fordpass_handler import FordpassDataHandler, MY_UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         else:
             # calling the state reading function to check if the sensor should be added (if there is any data)
             value = a_entity_description.tag.state_fn(coordinator.data, None)
-            if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
+            if value is not None and ((isinstance(value, (str, Number)) and str(value) != MY_UNSUPPORTED) or
                                       (isinstance(value, (dict, list)) and len(value) != 0) or
                                       (isinstance(value, datetime) and value) ):
                 sensors.append(sensor)
@@ -139,7 +139,7 @@ class FordPassSensor(FordPassEntity, SensorEntity, RestoreEntity):
     def native_value(self):
         """Return Native Value"""
         new_state = self._tag.get_state(self.coordinator.data, self._previous_state)
-        if new_state is not None and new_state is not UNSUPPORTED:
+        if new_state is not None and new_state is not MY_UNSUPPORTED:
             self._previous_state = new_state
         return new_state
 

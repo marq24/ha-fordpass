@@ -9,7 +9,7 @@ from . import FordPassEntity
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY, VEHICLE_LOCK_STATE_LOCKED
 from .const_tags import Tag
-from .fordpass_handler import UNSUPPORTED
+from .fordpass_handler import MY_UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     if coordinator.tag_supported_by_vehicle(Tag.DOOR_LOCK):
         if coordinator.data is not None:
             lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
-            if lock_state != UNSUPPORTED and lock_state.upper() != "ERROR":
+            if lock_state != MY_UNSUPPORTED and lock_state.upper() != "ERROR":
                 async_add_entities([FordPassLock(coordinator)], False)
             else:
                 _LOGGER.debug(f"{coordinator.vli}Ford model doesn't support remote locking [lock_state: {lock_state}]")
@@ -69,7 +69,7 @@ class FordPassLock(FordPassEntity, LockEntity):
     def is_locked(self):
         """Determine if the lock is locked."""
         lock_state = self._tag.get_state(self.coordinator.data)
-        if lock_state != UNSUPPORTED:
+        if lock_state != MY_UNSUPPORTED:
             return lock_state == VEHICLE_LOCK_STATE_LOCKED
         return None
 

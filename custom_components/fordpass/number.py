@@ -10,7 +10,7 @@ from . import FordPassEntity, RCC_TAGS, FordPassDataUpdateCoordinator
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import Tag, NUMBERS, ExtNumberEntityDescription
-from .fordpass_handler import UNSUPPORTED, ROOT_METRICS
+from .fordpass_handler import MY_UNSUPPORTED, ROOT_METRICS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         else:
             # calling the state reading function to check if the entity should be added (if there is any data)
             value = a_entity_description.tag.state_fn(coordinator.data, None)
-            if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
+            if value is not None and ((isinstance(value, (str, Number)) and str(value) != MY_UNSUPPORTED) or
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 entities.append(entity)
             else:
@@ -73,7 +73,7 @@ class FordPassNumber(FordPassEntity, NumberEntity):
         """Return Native Value"""
         try:
             value = self._tag.get_state(self.coordinator.data)
-            if value is not None and str(value) != UNSUPPORTED:
+            if value is not None and str(value) != MY_UNSUPPORTED:
                 if self._tag == Tag.RCC_TEMPERATURE:
                     # the latest fordPass App also support "HI" and "LO"
                     # as 'valid' values for the remote temperature...

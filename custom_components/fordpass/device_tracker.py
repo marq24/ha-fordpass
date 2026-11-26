@@ -11,7 +11,7 @@ from . import FordPassEntity
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import Tag
-from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
+from .fordpass_handler import FordpassDataHandler, MY_UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     _LOGGER.debug(f"{coordinator.vli}DEVICE_TRACKER async_setup_entry")
 
     # Added a check to see if the car supports GPS
-    if FordpassDataHandler.get_gps_state(coordinator.data) != UNSUPPORTED:
+    if FordpassDataHandler.get_gps_state(coordinator.data) != MY_UNSUPPORTED:
         async_add_entities([FordPassCarTracker(coordinator)], True)
     else:
         _LOGGER.debug(f"{coordinator.vli}Vehicle does not support GPS")

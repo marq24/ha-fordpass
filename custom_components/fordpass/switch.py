@@ -8,7 +8,7 @@ from . import FordPassEntity, RCC_TAGS
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY
 from .const_tags import SWITCHES, Tag
-from .fordpass_handler import UNSUPPORTED
+from .fordpass_handler import MY_UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class FordPassSwitch(FordPassEntity, SwitchEntity):
         """Check the status of switch"""
         state = self._tag.get_state(self.coordinator.data)
         #_LOGGER.error(f"{self.coordinator.vli} SWITCH '{self._tag}' - state: {state}")
-        if state is not None and state is not UNSUPPORTED:
+        if state is not None and state is not MY_UNSUPPORTED:
             if isinstance(state, bool):
                 return state
             else:

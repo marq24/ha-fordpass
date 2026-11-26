@@ -8,7 +8,7 @@ from homeassistant.const import UnitOfTemperature, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED, FordpassDataHandler, ROOT_METRICS
+from . import FordPassEntity, FordPassDataUpdateCoordinator, MY_UNSUPPORTED, FordpassDataHandler, ROOT_METRICS
 from .const import DOMAIN
 from .const_shared import (
     COORDINATOR_KEY,
@@ -54,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         if a_entity_description.tag in ELVEH_TARGET_CHARGE_TAG_TO_INDEX.keys():
             if FordpassDataHandler.is_elev_target_charge_supported(coordinator.data, ELVEH_TARGET_CHARGE_TAG_TO_INDEX[a_entity_description.tag]):
                 a_location_name = FordpassDataHandler.get_elev_target_charge_name(coordinator.data, ELVEH_TARGET_CHARGE_TAG_TO_INDEX[a_entity_description.tag])
-                if a_location_name is not UNSUPPORTED:
+                if a_location_name is not MY_UNSUPPORTED:
                     a_entity_description = replace(
                         a_entity_description,
                         name_addon=f"{a_location_name}:"
@@ -70,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
         else:
             # calling the state reading function to check if the entity should be added (if there is any data)
             value = a_entity_description.tag.state_fn(coordinator.data, None)
-            if value is not None and ((isinstance(value, (str, Number)) and str(value) != UNSUPPORTED) or
+            if value is not None and ((isinstance(value, (str, Number)) and str(value) != MY_UNSUPPORTED) or
                                       (isinstance(value, (dict, list)) and len(value) != 0) ):
                 entities.append(entity)
             else:
@@ -164,7 +164,7 @@ class FordPassSelect(FordPassEntity, SelectEntity):
     @property
     def available(self):
         """Return True if entity is available."""
-        if self.current_option == UNSUPPORTED:
+        if self.current_option == MY_UNSUPPORTED:
             return False
 
         state = super().available

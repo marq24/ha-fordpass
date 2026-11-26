@@ -28,7 +28,7 @@ from .const_shared import (
     RCC_TEMPERATURES_CELSIUS,
     ELVEH_TARGET_CHARGE_OPTIONS
 )
-from .fordpass_handler import FordpassDataHandler, UNSUPPORTED
+from .fordpass_handler import FordpassDataHandler, MY_UNSUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,14 +70,14 @@ class Tag(ApiKey, Enum):
     async def async_select_option(self, data, vehicle, new_value: Any) -> bool:
         if self.select_fn:
             current_value = self.get_state(data)
-            if current_value is not UNSUPPORTED:
+            if current_value is not MY_UNSUPPORTED:
                 return await self.select_fn(data, vehicle, new_value, current_value)
         return None
 
     async def async_set_value(self, data, vehicle, new_value: str) -> bool:
         if self.select_fn:
             current_value = self.get_state(data)
-            if current_value is not UNSUPPORTED:
+            if current_value is not MY_UNSUPPORTED:
                 return await self.select_fn(data, vehicle, new_value, current_value)
         return None
 

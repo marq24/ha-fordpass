@@ -7,7 +7,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import FordPassEntity, FordPassDataUpdateCoordinator, UNSUPPORTED
+from . import FordPassEntity, FordPassDataUpdateCoordinator, MY_UNSUPPORTED
 from .const import DOMAIN
 from .const_shared import COORDINATOR_KEY, REMOTE_START_STATE_ACTIVE
 from .const_tags import BUTTONS, Tag, ExtButtonEntityDescription
@@ -30,7 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, add_
         if a_entity_description.tag in [Tag.DOOR_LOCK, Tag.DOOR_UNLOCK]:
             if coordinator.data is not None:
                 lock_state = Tag.DOOR_LOCK.get_state(coordinator.data)
-                if lock_state == UNSUPPORTED or lock_state.upper() == "ERROR":
+                if lock_state == MY_UNSUPPORTED or lock_state.upper() == "ERROR":
                     # when the LOCK entity is not supported, we enable the LOCK+UNLOCK Buttons by default
                     a_entity_description = replace(a_entity_description, entity_registry_enabled_default=True)
 
