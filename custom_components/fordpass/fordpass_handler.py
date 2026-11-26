@@ -2089,21 +2089,29 @@ class FordpassDataHandler:
             else:
                 # DAY_LIST mode...
                 # Rule: Find a slot with status OFF/ON (that can be toggled)
-                target_slot = next((s for s in schedules if s["scheduleStatus"] == ("OFF" if enable_schedule else "ON")), None)
+                target_slots = [s for s in schedules if s["scheduleStatus"] == ("OFF" if enable_schedule else "ON")]
 
-                if target_slot is None:
+                if len(target_slots) == 0:
                     # Rule 3: Day already has two ON/OFF slots -> ignore and log
                     _LOGGER.info(f"update_departure_schedule(): Day {day_name} already has two {"ON" if enable_schedule else "OFF"} slots. Skipping.")
                     continue
 
-                # 4. Apply changes to the OFF slot
-                target_slot.update({
-                    "scheduleStatus": "ON" if enable_schedule else "OFF",
-                    "preconditionTemperature": precon_temperature.upper(),
-                    "timeOfDay": {"hours": hour, "minutes": rounded_minute}
-                })
+                # when we ENABLE/ADD a new schedule, and if for the current DAY, there are two slots available (OFF)
+                # then we still only want to UPDATE a single `OFF` schedule in any other case we would add two times
+                # the same schedule!
+                if enable_schedule and len(target_slots) > 1:
+                    target_slots = target_slots[:1]  # Only take the first available OFF slot
+
+                # 4. Apply changes to the slots
+                for target_slot in target_slots:
+                    target_slot.update({
+                        "scheduleStatus": "ON" if enable_schedule else "OFF",
+                        "preconditionTemperature": precon_temperature.upper(),
+                        "timeOfDay": {"hours": hour, "minutes": rounded_minute}
+                    })
+                    _LOGGER.debug(f"update_departure_schedule(): Updated slot on {day_name} (ID: {target_slot['scheduleId']}) to {"ON" if enable_schedule else "OFF"}.")
+
                 any_changes = True
-                _LOGGER.debug(f"update_departure_schedule(): Updated slot on {day_name} (ID: {target_slot['scheduleId']}) to {"ON" if enable_schedule else "OFF"}.")
 
         # checking if we have manipulated the departure_schedules_list
         if not any_changes:
