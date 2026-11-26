@@ -582,14 +582,6 @@ class FordPassConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             _LOGGER.error(f"preverify_code_url_string(): invalid URL '{urlstring}'")
         return False
 
-        redirect_schema = "fordapp"
-        if "redirect_schema" in REGIONS[region_key]:
-            redirect_schema = REGIONS[region_key]["redirect_schema"]
-
-        if f"{redirect_schema}://userauthorized/?code=" in token:
-            return True
-        return False
-
     def generate_url(self, region_key):
         if region_key not in REGIONS:
             _LOGGER.error(f"generate_url(): Invalid region_key: {region_key}")
