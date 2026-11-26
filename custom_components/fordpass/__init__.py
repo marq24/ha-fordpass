@@ -18,7 +18,7 @@ from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.helpers.storage import STORAGE_DIR
-from homeassistant.helpers.typing import UNDEFINED, UndefinedType
+from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.loader import async_get_integration
 from homeassistant.util.unit_system import UnitSystem
@@ -1147,7 +1147,7 @@ class FordPassEntity(CustomFriendlyNameEntity):
         self._tag = a_tag
 
 
-    def _name_internal(self, device_class_name: str | None, platform_translations: dict[str, Any], ) -> str | UndefinedType | None:
+    def _name_internal(self, device_class_name: str | None, platform_translations: dict[str, Any], ) -> str | None:
         tmp = super()._name_internal(device_class_name, platform_translations)
         if self._attr_name_addon is not None:
             return f"{self._attr_name_addon} {tmp}"
