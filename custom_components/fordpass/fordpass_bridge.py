@@ -361,7 +361,7 @@ class ConnectedFordPassVehicle:
 
         # parse_qs returns a list of values for each parameter, get the first one
         the_code = query_params.get("code", [None])[0]
-        _LOGGER.debug(f"{self.vli}Authorization code extracted: {the_code[:50]}... (length: {len(the_code)})")
+        _LOGGER.debug(f"{self.vli}Authorization code extracted: {the_code[:25]}... (length: {len(the_code)})")
 
         headers = {
             **loginHeadersOct2025,
@@ -389,7 +389,7 @@ class ConnectedFordPassVehicle:
             # do not check the status code here - since it's not always return http 200!
             token_data = await response.json()
             if "access_token" in token_data:
-                _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON: {token_data}")
+                _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON len: {len(token_data)}")
                 return await self.generate_tokens_part2(token_data)
             else:
                 if "message" in token_data:
@@ -433,7 +433,7 @@ class ConnectedFordPassVehicle:
                 final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
                 del final_access_token["refresh_expires_in"]
 
-            _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON: {final_access_token}")
+            _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON len: {len(final_access_token)}")
             await self._write_token_to_storage(final_access_token)
             return True
         else:
@@ -444,7 +444,7 @@ class ConnectedFordPassVehicle:
             elif "error" in final_access_token:
                 self.login_fail_reason = final_access_token["error"]
 
-            _LOGGER.warning(f"{self.vli}generate_tokens_part2 'FAILED' - http status: {response.status} for '...cat-with-b2c-access-token' request - JSON: {final_access_token}")
+            _LOGGER.warning(f"{self.vli}generate_tokens_part2 'FAILED' - http status: {response.status} for '...cat-with-b2c-access-token' request - JSON len: {len(final_access_token)}")
             return False
 
     @property
@@ -525,7 +525,7 @@ class ConnectedFordPassVehicle:
                     _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): result for new token: ERROR, None or False")
 
         if self.auto_access_token is None or self.auto_expires_at is None:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto_access_token: '{self.auto_access_token}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto_access_token len: '{len(self.auto_access_token)}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         if self.auto_expires_at and now_time > self.auto_expires_at:
