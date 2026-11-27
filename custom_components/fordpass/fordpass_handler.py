@@ -296,8 +296,11 @@ class FordpassDataHandler:
                     if "vehicleWheel" in a_tire:
                         attrs[FordpassDataHandler.to_camel(a_tire["vehicleWheel"])] = get_value_str(a_val, units, digits)
                         a_placard_val = a_tire.get("wheelPlacardFront", a_tire.get("wheelPlacardRear", MY_UNSUPPORTED))
-                        if a_placard_val is not None and a_placard_val != MY_UNSUPPORTED and isinstance(a_placard_val, Number):
-                            attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard_max"] = get_value_str(a_placard_val, units, digits)
+                        if a_placard_val is not None and a_placard_val != MY_UNSUPPORTED:
+                            if isinstance(a_placard_val, Number):
+                                attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard"] = get_value_str(a_placard_val, units, digits)
+                            else:
+                                attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard"] = str(a_placard_val)
 
         if "tirePressureStatus" in data_metrics:
             for a_tire in data_metrics["tirePressureStatus"]:
