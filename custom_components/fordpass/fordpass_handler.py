@@ -300,7 +300,16 @@ class FordpassDataHandler:
                             if isinstance(a_placard_val, Number):
                                 attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard"] = get_value_str(a_placard_val, units, digits)
                             else:
-                                attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard"] = str(a_placard_val)
+                                str_a_placard_val = str(a_placard_val).strip()
+                                do_fallback = True
+                                if '/' in str_a_placard_val:
+                                    vals_list = str_a_placard_val.split('/')
+                                    if len(vals_list) == 2:
+                                        attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard"] = f"{get_value_str(float(vals_list[0]), units, digits)}/{get_value_str(float(vals_list[1]), units, digits)}"
+                                        do_fallback = False
+
+                                if do_fallback:
+                                    attrs[f"{FordpassDataHandler.to_camel(a_tire['vehicleWheel'])}_placard"] = str_a_placard_val
 
         if "tirePressureStatus" in data_metrics:
             for a_tire in data_metrics["tirePressureStatus"]:
