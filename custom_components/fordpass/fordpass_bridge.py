@@ -11,7 +11,7 @@ from asyncio import CancelledError
 from datetime import datetime, timezone
 from numbers import Number
 from pathlib import Path
-from typing import Final, Iterable
+from typing import Final, Iterable, Any
 from urllib.parse import urlparse, parse_qs
 
 import aiohttp
@@ -133,6 +133,37 @@ def get_async_lock_for_account(user: str, region_key: str) -> asyncio.Lock:
         _async_lock_cache[account_key] = asyncio.Lock()
     return _async_lock_cache[account_key]
 
+def _mask_string(value: Any):
+    if not isinstance(value, str) or len(value) < 9:
+        return "****"
+    return f"{value[:3]}...{value[-3:]}"
+
+def _sec_log(value: Any) -> str | dict[Any, str] | list[str]:
+    if value is None:
+        return 'None'
+
+    if isinstance(value, str):
+        return _mask_string(value)
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, Number):
+        return _mask_string(str(value))
+
+    if isinstance(value, list):
+        return [
+            _sec_log(val)
+            for val in value
+        ]
+
+    if isinstance(value, dict):
+        return {
+            key: _sec_log(val)
+            for key, val in value.items()
+        }
+
+    return "****"
 
 class NonNullDict(dict):
     def none_null_get(self, key, default=None):
@@ -361,7 +392,7 @@ class ConnectedFordPassVehicle:
 
         # parse_qs returns a list of values for each parameter, get the first one
         the_code = query_params.get("code", [None])[0]
-        _LOGGER.debug(f"{self.vli}Authorization code extracted: {the_code[:25]}... (length: {len(the_code)})")
+        _LOGGER.debug(f"{self.vli}Authorization code extracted: {_sec_log(the_code)}... (length: {len(the_code)})")
 
         headers = {
             **loginHeadersOct2025,
@@ -389,7 +420,7 @@ class ConnectedFordPassVehicle:
             # do not check the status code here - since it's not always return http 200!
             token_data = await response.json()
             if "access_token" in token_data:
-                _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON len: {len(token_data)}")
+                _LOGGER.debug(f"{self.vli}generate_tokens 'OK'- http status: {response.status} - JSON {_sec_log(token_data)}")
                 return await self.generate_tokens_part2(token_data)
             else:
                 if "message" in token_data:
@@ -433,7 +464,7 @@ class ConnectedFordPassVehicle:
                 final_access_token["refresh_expiry_date"] = time.time() + final_access_token["refresh_expires_in"]
                 del final_access_token["refresh_expires_in"]
 
-            _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON len: {len(final_access_token)}")
+            _LOGGER.debug(f"{self.vli}generate_tokens_part2 'OK' - http status: {response.status} - JSON {_sec_log(final_access_token)}")
             await self._write_token_to_storage(final_access_token)
             return True
         else:
@@ -444,7 +475,7 @@ class ConnectedFordPassVehicle:
             elif "error" in final_access_token:
                 self.login_fail_reason = final_access_token["error"]
 
-            _LOGGER.warning(f"{self.vli}generate_tokens_part2 'FAILED' - http status: {response.status} for '...cat-with-b2c-access-token' request - JSON len: {len(final_access_token)}")
+            _LOGGER.warning(f"{self.vli}generate_tokens_part2 'FAILED' - http status: {response.status} for '...cat-with-b2c-access-token' request - JSON {_sec_log(final_access_token)}")
             return False
 
     @property
@@ -484,7 +515,7 @@ class ConnectedFordPassVehicle:
                 return
 
             self.use_token_data_from_memory = True
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): token data read from fs - size: {len(prev_token_data)}")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): token data read from fs - {_sec_log(prev_token_data)}")
 
             self.access_token = prev_token_data["access_token"]
             self.refresh_token = prev_token_data["refresh_token"]
@@ -519,13 +550,13 @@ class ConnectedFordPassVehicle:
                 _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): skipping 'auto_token_refresh' - COMM ERROR")
             else:
                 if refreshed_token is not None and refreshed_token is not False and refreshed_token != ERROR:
-                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): result for new token: {len(refreshed_token)}")
+                    _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): result for new token: {_sec_log(refreshed_token)}")
                     await self.refresh_auto_token_func(refreshed_token)
                 else:
                     _LOGGER.warning(f"{self.vli}__ensure_valid_tokens(): result for new token: ERROR, None or False")
 
         if self.auto_access_token is None or self.auto_expires_at is None:
-            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto_access_token len: '{len(self.auto_access_token)}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
+            _LOGGER.debug(f"{self.vli}__ensure_valid_tokens(): auto_access_token {_sec_log(self.auto_access_token)}' or auto_expires_at: '{self.auto_expires_at}' is None -> requesting new auto-token")
             await self.refresh_auto_token_func(prev_token_data)
 
         if self.auto_expires_at and now_time > self.auto_expires_at:
@@ -2549,7 +2580,7 @@ class ConnectedFordPassVehicle:
         return False
 
     async def set_rcc(self, data:dict, result_list:dict):
-        _LOGGER.debug(f"{self.vli}set_rcc() - Attempting to set RCC with VIN: {data.get('vin')}, crccStateFlag: {data.get('crccStateFlag')}, preferences count: {len(data.get('userPreferences', []))}")
+        _LOGGER.debug(f"{self.vli}set_rcc() - Attempting to set RCC with VIN: {data.get('vin')}, crccStateFlag: {data.get('crccStateFlag')}, preferences count: {len(data.get('userPreferences', []) or 'None')}")
 
         result = await self.__request_command(command="setRemoteClimateControl", post_data=data)
         if result:
